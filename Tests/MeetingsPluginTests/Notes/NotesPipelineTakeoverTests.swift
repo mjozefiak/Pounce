@@ -30,10 +30,10 @@ import Testing
         let log = NotesEventLog()
         let pipeline = rig.pipeline({ $0.busyPoll = Self.poll }, sleep: rig.pollSleep(Self.poll, stepper))
         let notes = Task { try await pipeline.run(utterances: NotesFixtures.meeting(), onEvent: log.add) }
-        await spin { rig.llm.calls.count == 1 }
+        await expectSpin { rig.llm.calls.count == 1 }
 
         let dictation = try await takeOver(rig, with: dictationLLM)  // held: the notes cannot come back
-        await spin { stepper.pending == 1 }
+        await expectSpin { stepper.pending == 1 }
         #expect(log.all.contains(.waitingForModel))
 
         notes.cancel()
@@ -41,7 +41,7 @@ import Testing
         // The yield was no failure and the cancel is no yield: one request, never repeated.
         #expect(rig.llm.calls.count == 1)
         await dictation.release()
-        await spin { await rig.lease.activeLeases == 0 }
+        await expectSpin { await rig.lease.activeLeases == 0 }
     }
 
     @Test func aModelThatStaysBusyAfterATakeoverEndsTheJobWithoutRetryingTheChunk() async throws {
@@ -55,11 +55,11 @@ import Testing
                 $0.busyLimit = .seconds(14)
             }, sleep: rig.pollSleep(Self.poll, stepper))
         let notes = Task { try await pipeline.run(utterances: NotesFixtures.meeting(), onEvent: log.add) }
-        await spin { rig.llm.calls.count == 1 }
+        await expectSpin { rig.llm.calls.count == 1 }
         let dictation = try await takeOver(rig, with: dictationLLM)
 
         for _ in 0..<2 {
-            await spin { stepper.pending == 1 }
+            await expectSpin { stepper.pending == 1 }
             stepper.fire()
         }
         // `modelBusy` comes out of the job as it is: it is not a failed chunk that is tried once more.
@@ -67,7 +67,7 @@ import Testing
         #expect(rig.llm.calls.count == 1)
         #expect(log.all.filter { $0 == .waitingForModel }.count == 2)
         await dictation.release()
-        await spin { await rig.lease.activeLeases == 0 }
+        await expectSpin { await rig.lease.activeLeases == 0 }
     }
 
     @Test func theBusyBudgetIsOneForTheWholeJobNotRestartedByATakeover() async throws {
@@ -81,14 +81,14 @@ import Testing
                 $0.busyLimit = .seconds(10)
             }, sleep: rig.pollSleep(.seconds(10), stepper))
         let notes = Task { try await pipeline.run(utterances: NotesFixtures.meeting(), onEvent: log.add) }
-        await spin { rig.llm.calls.count == 1 }
+        await expectSpin { rig.llm.calls.count == 1 }
 
         // First takeover: one wait (10 s) uses the whole budget, then the notes get the model back.
         await (try takeOver(rig, with: dictationLLM)).release()
-        await spin { stepper.pending == 1 }
+        await expectSpin { stepper.pending == 1 }
         rig.clock.advance(.seconds(15))
         stepper.fire()
-        await spin { rig.llm.calls.count == 2 }
+        await expectSpin { rig.llm.calls.count == 2 }
 
         // Second takeover: the budget is spent, so there is no new wait.
         let dictation = try await takeOver(rig, with: dictationLLM)
@@ -96,7 +96,7 @@ import Testing
         #expect(log.all.filter { $0 == .waitingForModel }.count == 1)
         #expect(rig.llm.calls.count == 2)
         await dictation.release()
-        await spin { await rig.lease.activeLeases == 0 }
+        await expectSpin { await rig.lease.activeLeases == 0 }
     }
 
     @Test func aRequestThatDictationKeepsInterruptingGivesUpAfterTheYieldCap() async throws {
@@ -113,17 +113,17 @@ import Testing
         let cap = NotesLease.maxYieldsPerRequest
 
         for round in 1...(cap + 1) {
-            await spin { rig.llm.calls.count == round }
+            await expectSpin { rig.llm.calls.count == round }
             await (try takeOver(rig, with: dictationLLM)).release()
             if round <= cap {
                 // Not a failure and not a retry: the same request is generated again after the grace period.
-                await spin { stepper.pending == 1 }
+                await expectSpin { stepper.pending == 1 }
                 rig.clock.advance(.seconds(15))
                 stepper.fire()
             }
         }
         await #expect(throws: NotesFailure.modelBusy) { _ = try await notes.value }
         #expect(rig.llm.calls.count == cap + 1)
-        await spin { await rig.lease.activeLeases == 0 }
+        await expectSpin { await rig.lease.activeLeases == 0 }
     }
 }

@@ -222,7 +222,7 @@ final class NotesStepper: Sendable {
 }
 
 /// Yields to the other tasks until `condition` holds (bounded; records an issue when it never does).
-func spin(sourceLocation: SourceLocation = #_sourceLocation, _ condition: @Sendable () async -> Bool) async {
+func expectSpin(sourceLocation: SourceLocation = #_sourceLocation, _ condition: @Sendable () async -> Bool) async {
     for _ in 0..<200_000 {
         if await condition() { return }
         await Task.yield()

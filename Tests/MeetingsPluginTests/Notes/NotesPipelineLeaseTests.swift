@@ -78,7 +78,7 @@ import Testing
         #expect(!both.isSet)
         await dictation.release()
         // The notes wait for dictation's grace period (it may speak again), then take the model back.
-        await spin { stepper.pending == 1 }
+        await expectSpin { stepper.pending == 1 }
         #expect(log.all.last == .waitingForModel)
         rig.clock.advance(.seconds(15))
         stepper.fire()
