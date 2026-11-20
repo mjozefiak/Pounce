@@ -143,7 +143,7 @@ import Testing
 
     @Test func pullRequestsCancelAndTagReleasesQueueInTheJobs() throws {
         let text = code(try workflow().components(separatedBy: "\n")).joined(separator: "\n")
-        // Workflow level: per ref, cancelling only for pull requests, no queue.
+        // Workflow level: per event and ref, cancelling only for pull requests, no queue.
         // The event name keeps a run started by hand out of the group of the builds that follow each push to main.
         #expect(text.contains("\nconcurrency:\n  group: release-${{ github.event_name }}-${{ github.ref }}\n"))
         #expect(text.contains("  cancel-in-progress: ${{ github.event_name == 'pull_request' }}\n"))

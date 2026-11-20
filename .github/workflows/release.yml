@@ -62,7 +62,7 @@ on:
 permissions:
   contents: read
 
-# Pull requests cancel their own older runs, as before. Every other ref has its own group and nothing is cancelled.
+# Pull requests cancel their own older runs, as before. Every other event and ref has its own group and nothing running is cancelled.
 # The event is part of the group: GitHub keeps only ONE waiting run per group and cancels the older waiting one, so
 # without it a run started by hand on main (the signed run) was cancelled while waiting by the next push to main.
 # Tag releases are serialised by the job-level group `release-tags` on `sign` and `publish` (below), not here: a
