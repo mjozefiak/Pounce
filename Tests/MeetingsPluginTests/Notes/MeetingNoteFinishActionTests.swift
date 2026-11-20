@@ -12,12 +12,12 @@ struct MeetingNoteFinishActionTests {
     private static let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowiedź"]
 
     /// A meeting whose system track cannot be read back, so finishing without a gap leaves it incomplete.
-    private func rig() throws -> (
+    private func rig() async throws -> (
         rig: RecoveryRig, library: MeetingsLibrary, source: MeetingNoteSource, key: NoteKey, id: Int64
     ) {
         let rig = try RecoveryRig(texts: Self.words)
         let track = TrackScript.build([(1, 11, 3), (4, 12, 3)], tail: 1)
-        let meeting = try rig.seed(.incomplete, mic: track, system: .build([(2, nil, 0)], tail: 2))
+        let meeting = try await rig.seed(.incomplete, mic: track, system: .build([(2, nil, 0)], tail: 2))
         try Data().write(to: rig.spool.file(for: meeting.uuid, track: .system))
         let library = rig.library(resumer: rig.resumerFactory(mic: track))
         library.open()
@@ -30,14 +30,14 @@ struct MeetingNoteFinishActionTests {
         )
     }
 
-    @Test func anInterruptedMeetingOffersBothActionsInTheOrderOfThePrototype() throws {
-        let parts = try rig()
+    @Test func anInterruptedMeetingOffersBothActionsInTheOrderOfThePrototype() async throws {
+        let parts = try await rig()
         #expect(parts.source.actions(for: parts.key).map(\.id) == ["meetings.finish", "meetings.finishWithGap"])
         parts.library.close()
     }
 
     @Test func finishTranscriptLeavesTheGapAloneAndFinishWithAGapClosesTheMeeting() async throws {
-        let parts = try rig()
+        let parts = try await rig()
         let store = try #require(parts.library.store)
         let finish = try #require(parts.source.actions(for: parts.key).first { $0.id == "meetings.finish" })
         try await finish.perform()

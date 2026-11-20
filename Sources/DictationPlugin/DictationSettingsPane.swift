@@ -8,6 +8,7 @@ struct DictationSettingsPane: View {
     @Bindable var model: DictationSettingsModel
     @Bindable var formatting: FormattingSettingsModel
     @Bindable var history: HistorySettingsModel
+    @Bindable var vocabulary: VocabularyPanelModel
     let recorder: AnyView
     /// `false` while the plugin is off (the main window shows the pane dimmed): the pane then probes no
     /// server and reads no model folder (`settingsPane()` must not start work while inactive).
@@ -17,7 +18,8 @@ struct DictationSettingsPane: View {
 
     var body: some View {
         DictationPaneContent(
-            model: model, formatting: formatting, history: history, recorder: recorder, isActive: isActive,
+            model: model, formatting: formatting, history: history, vocabulary: vocabulary, recorder: recorder,
+            isActive: isActive,
             openModels: openModels)
     }
 }
@@ -31,6 +33,7 @@ struct DictationPaneContent: View {
     @Bindable var model: DictationSettingsModel
     @Bindable var formatting: FormattingSettingsModel
     @Bindable var history: HistorySettingsModel
+    @Bindable var vocabulary: VocabularyPanelModel
     let recorder: AnyView
     var isActive = true
     var openModels: (String?) -> Void = { _ in }
@@ -48,6 +51,7 @@ struct DictationPaneContent: View {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
                     .settingsSectionHeader()
             }
+            VocabularySection(model: vocabulary, isActive: isActive)
         } advanced: {
             advanced
         } data: {
@@ -62,6 +66,7 @@ struct DictationPaneContent: View {
         )
         .task(id: isActive) {
             guard isActive else { return }
+            vocabulary.reload()
             await model.refresh()
             await formatting.refresh()
         }

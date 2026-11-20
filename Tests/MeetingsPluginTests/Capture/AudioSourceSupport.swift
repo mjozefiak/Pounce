@@ -28,6 +28,9 @@ final class FakeBackend: ProcessTapBackend {
     }
 
     let state = Mutex(State())
+    /// What the fake tap reports as dropped by its ring.
+    let drops = Mutex(0)
+    func setDropped(_ count: Int) { drops.withLock { $0 = count } }
 
     var tapCount: Int { state.withLock { $0.sinks.count } }
     var excludingFlags: [Bool] { state.withLock { $0.excluding } }
@@ -90,6 +93,7 @@ final class FakeBackend: ProcessTapBackend {
         let backend: FakeBackend
         let index: Int
         func stop() { backend.state.withLock { $0.stopped[index] = true } }
+        var droppedBuffers: Int { backend.drops.withLock { $0 } }
     }
 
     private struct FakeObservation: OutputChangeObservation {

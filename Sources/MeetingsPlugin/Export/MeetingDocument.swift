@@ -122,7 +122,8 @@ extension MeetingsStore {
     /// Returns false when the meeting does not exist.
     @discardableResult
     func deleteMeeting(_ id: Int64, spool: any SpoolMaintenance) throws -> Bool {
-        try write { db in
+        defer { pruneCaptureCounters() }
+        return try write { db in
             guard
                 let uuid = try String.fetchOne(
                     db, sql: "SELECT uuid FROM meeting WHERE id = ?", arguments: [id])
