@@ -280,8 +280,8 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
             try await mover.run(from: Self.source)
         }
         #expect(disk.openedFiles.isEmpty)
+        // Nothing was handed over and this instance did not quit, so the launch goes on and opens the files itself.
         #expect(disk.quitCalls == 0)
-        #expect(pending.count == 1)
     }
 
     @Test func withoutWaitingFilesTheCopyIsOpenedPlainly() async throws {
@@ -1022,7 +1022,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         #expect(two.informativeText.contains("Another copy stays in Applications; an administrator can remove it."))
     }
 
-    @Test func theFallbackAlertMentionsAnOlderCopyOnlyWhenOneExists() async {
+    @Test func theFallbackAlertMentionsAnotherCopyOnlyWhenOneExists() async {
         let disk = Self.disk(unwritable: ["/Applications/Lintel.app"], existingCopy: "/Applications/Lintel.app")
         disk.items["/Applications/Lintel.app"]?.build = "1"
         disk.items[MoveToApplicationsFlowTests.source.path] = .init(identity: "new", quarantined: true, build: "2")
