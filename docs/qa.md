@@ -339,6 +339,48 @@ Needs a real Keychain and the app built by `scripts/make-app.sh` (not `--qa`, wh
 - Keychain Access shows one `com.lintelapp.dictation` item; Settings → Features → Dictation → Erase Data removes it and the `Plugins/dictation` folder (downloaded models in `Models/` stay; "Remove model" deletes them);
 - delete the `com.lintelapp.dictation` item by hand and relaunch: the old file is renamed `dictation.sqlite.unreadable-<date>` and the history starts empty.
 
+### Dictation vocabulary panel (DICT-1.2, part A of the mockup)
+
+Settings → Dictation → Vocabulary sits between Basics and Advanced. In a `--qa` run Dictation is off by default and the
+vocabulary file is the QA run's own, so seed it with the DEBUG key `plugins.dictation.qaVocabulary=<state>` (not a
+contract; invented terms only, the seed file is rewritten at every launch):
+
+```bash
+APP=dist/Lintel-QA.app/Contents/MacOS/Lintel-QA
+$APP --qa --qa-data-root /tmp/lintel-qa-vocab --qa-setting plugins.dictation.enabled=true \
+  --qa-setting plugins.dictation.qaVocabulary=few --qa-window settings --qa-settings dictation \
+  --qa-appearance light --qa-snapshot /tmp/vocab-few.png --qa-quit-after 6
+```
+
+The snapshot is the window's visible part, so the section is at the bottom of a 720 pt window: scroll it first, or use a
+taller window, for the lower states. Add `-AppleLanguages "(pl)"`, `--qa-appearance dark` and
+`--qa-setting app.textSize=s|xl` as for any pane. A state with a sheet (`delete`) is not drawn by `--qa-snapshot` and
+`--qa-quit-after` waits for the sheet: take that screenshot by hand and press Esc.
+
+| `qaVocabulary=` | Mockup | Shows |
+|---|---|---|
+| `empty` | A2 | no terms: "No terms yet" with the primary Add Term… |
+| `few` | A1 | 5 terms in alphabetical order, no search |
+| `long` | A8 | 47 terms: search field, list capped at about 6 rows, "47 terms" |
+| `search:<text>` | A8 | 47 terms with the search typed, for example `search:post` (matches in a term and in a variant, "2 of 47") or `search:wrzos` (no match: "Add “wrzos”…") |
+| `add` | A3 | the form as a new first row, Add Term… inactive |
+| `edit` | A3 | AuthService open for editing, "auth serwis" typed, the example under the variants |
+| `err-empty` / `err-dupterm` / `err-alias` / `err-rule` / `err-long` | A4 | the form after pressing Add (Save for `err-rule`) with that problem (empty term; duplicate "authservice" with Show; variant of another term; SwiftUI edited with the variant "swift", which is the term Swift; a 10-word variant); no example while a problem is shown |
+| `noalias` | A4 | the form for "Verdigris" without variants and its hint |
+| `limit` | A4 | 2000 terms: the "full" strip, Add Term… inactive |
+| `short` / `short-ok` | A5 | "Zed" with the short variant "zet": warning and Add inactive / box ticked and Add active |
+| `off` | A6 | switch off, list dimmed and still editable, "Off: terms are kept and not used." |
+| `delete` | A7 | the confirmation sheet for AuthService ("Its 2 spoken variants are removed too.") |
+| `readonly` | A9 | a file from a newer version: neutral strip, terms shown, no Edit, Delete or Add |
+| `corrupt` | A9 | a damaged file was set aside: empty list, one-time strip with Show Copy in Finder and Dismiss |
+| `saveerror` | A9 | the form for "Orchard" after a write that fails: error strip, "Try Again" |
+| `keyboard` | A10 | the list has the keyboard on its second row |
+
+Not drawn by QA flags and checked by hand: Tab order (switch, search, list as one stop, Add Term…), ↑↓ Return ⌫ Esc on the
+list, Return in the variants field (token, then save on an empty field), ⌫ in an empty field (removes the last token),
+VoiceOver (row: "AuthService. When I hear: auth service, ałt serwis. Row 1 of 5." with Edit and Delete actions; tokens
+"variant 1 of 2"; errors announced; "Term added. 4 terms."), Reduce Motion (the section has no animation) and text sizes S to XL.
+
 ## Meetings capture counters (#135, manual)
 
 Settings → Meetings → Advanced → **Copy diagnostics** puts the counters of the last 20 meetings on the pasteboard

@@ -21,13 +21,13 @@ import Testing
         "historyEnabled": "setHistoryEnabled",
         "retentionDays": "setRetentionDays",
         "maximumEntries": "setMaximumEntries",
+        "vocabularyEnabled": "setVocabularyEnabled",
     ]
 
     /// Keys with no pane control, each with the reason.
     static let exempt: [String: String] = [
         "keepWarmMinutes":
-            "tuning key set with defaults only; no pane control by design (BACKWARD_COMPATIBILITY section 3)",
-        "vocabularyEnabled": "DICT-1.1 has no UI; the Vocabulary pane and its switch are DICT-1.2",
+            "tuning key set with defaults only; no pane control by design (BACKWARD_COMPATIBILITY section 3)"
     ]
 
     /// The pane view and model sources, relative to the repository root.
@@ -37,6 +37,7 @@ import Testing
         "Sources/DictationPlugin/DictationSettingsModel.swift",
         "Sources/DictationPlugin/FormattingSettingsModel.swift",
         "Sources/DictationPlugin/HistorySettingsModel.swift",
+        "Sources/DictationPlugin/Vocabulary/VocabularyPanelModel.swift",
     ]
 
     /// Step 5.1: the view token of every non-exempt key in the main window's sources, so a key stays
@@ -46,6 +47,7 @@ import Testing
             "main window",
             [
                 "Sources/DictationPlugin/DictationSettingsPane.swift",
+                "Sources/DictationPlugin/Vocabulary/VocabularySection.swift",
                 // The speech model's folder is chosen in the Models pane through the usage's `chooseFolder`.
                 "Sources/DictationPlugin/DictationPlugin.swift",
             ],
@@ -63,6 +65,7 @@ import Testing
                 "historyEnabled": "$history.isEnabled",
                 "retentionDays": "$history.retentionDays",
                 "maximumEntries": "$history.maximumEntries",
+                "vocabularyEnabled": "$model.isEnabled",
             ]
         )
     ]
