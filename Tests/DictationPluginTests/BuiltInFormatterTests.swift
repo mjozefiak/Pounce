@@ -173,7 +173,7 @@ private let cleaned = "Jutro mamy spotkanie o dziesiątej, nie to znaczy o jeden
     }
 }
 
-@Suite struct FirstResultTests {
+@Suite(.timeLimit(.minutes(1))) struct FirstResultTests {
     @Test func aFastOperationWins() async throws {
         let value = try await FirstResult.within(.seconds(5)) { 42 }
         #expect(value == 42)
