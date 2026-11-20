@@ -448,3 +448,5 @@ The list stays as the record of what was rejected. The behaviour is the one with
 6. "A model is not a gate" against the authorization closure comparing the request's model with the current choice:
    it makes a model change in the menu apply from the next process, at the price of a restart (see above).
 7. **[Closed 2026-11-20: D13]** The second sentence "Choosing this provider means your consent" stays in the notice.
+
+**Ręcznie wskazany plik CLI (2026-11-20, wariant A):** wymaga udanej sondy `--version` (bez treści) na tym samym, raz rozwiązanym pliku, z tożsamością pliku sprawdzaną tuż przed startem; nie chroni przed celowym skryptem o nazwie `claude` ani przed podmianą pliku tuż przed `posix_spawn` (zob. spec, `ProviderLocator`).

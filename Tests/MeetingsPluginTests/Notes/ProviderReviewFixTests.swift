@@ -210,4 +210,27 @@ import Testing
         #expect(notes.settings.notesProviderBinary == nil)
         #expect(await waitFor("the check") { choice.probes.withLock { $0 } > probes })
     }
+
+    // MARK: B3: the authorization compares the model of the request with the current choice
+
+    @Test func aRequestForAnotherModelThanTheCurrentChoiceStartsNoProcess() async throws {
+        let process = CountingProviderProcess()
+        let generator = ProviderNotesGenerator(
+            runner: ProviderFixtures.runner(process),
+            selection: NotesProviderSelection(provider: .claudeCode, model: "sonnet"), inputBudgetTokens: 100_000,
+            currentSelection: { NotesProviderSelection(provider: .claudeCode, model: "opus") })
+        await #expect(throws: NotesGenerationRefusal.self) {
+            _ = try await generator.generateResult(
+                messages: [ChatMessage(role: "user", content: "x")], maxTokens: 100, onPhase: nil)
+        }
+        #expect(process.contentRuns == 0, "no next part and no retry for the old model")
+        // The same request with the choice unchanged does start.
+        let same = ProviderNotesGenerator(
+            runner: ProviderFixtures.runner(process),
+            selection: NotesProviderSelection(provider: .claudeCode, model: "sonnet"), inputBudgetTokens: 100_000,
+            currentSelection: { NotesProviderSelection(provider: .claudeCode, model: "sonnet") })
+        _ = try await same.generateResult(
+            messages: [ChatMessage(role: "user", content: "x")], maxTokens: 100, onPhase: nil)
+        #expect(process.contentRuns == 1)
+    }
 }

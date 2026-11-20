@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 
 @testable import LintelProviders
@@ -133,5 +134,89 @@ import Testing
         let report = await runner.report(of: .claudeCode)
         #expect(report.status == .notInstalled)
         #expect(process.content == 0)
+    }
+
+    // MARK: The path is read once; the file that answered is the file that runs
+
+    /// Returns the path it is given (like the real locator for a hand-picked file); `nil` for none.
+    struct PathLocator: ProviderLocating {
+        func locate(_ descriptor: ProviderDescriptor, manualPath: String?) -> URL? {
+            manualPath.map { URL(filePath: $0) }
+        }
+    }
+
+    /// Records the executables of both kinds of start and runs a hook inside the probe (the moment a setting or a
+    /// file can change under the runner).
+    final class Recording: ProviderProcessRunning, @unchecked Sendable {
+        private let lock = NSLock()
+        private var probed: [String] = []
+        private var ran: [String] = []
+        let duringProbe: @Sendable () -> Void
+        init(duringProbe: @escaping @Sendable () -> Void) { self.duringProbe = duringProbe }
+        var probedExecutables: [String] { lock.withLock { probed } }
+        var contentExecutables: [String] { lock.withLock { ran } }
+        func runContent(_ spec: ProviderProcessSpec) async throws -> ProviderProcessOutput {
+            lock.withLock { ran.append(spec.executable.path) }
+            return ProviderProcessOutput(
+                stdout: Data(#"{"type":"result","is_error":false,"result":"ok"}"#.utf8), stderr: Data(), exitCode: 0,
+                ending: .exited)
+        }
+        func runProbe(_ spec: ProviderProcessSpec) async throws -> ProviderProcessOutput {
+            lock.withLock { probed.append(spec.executable.path) }
+            duringProbe()
+            return ProviderProcessOutput(
+                stdout: Data("2.1.328 (Claude Code)".utf8), stderr: Data(), exitCode: 0, ending: .exited)
+        }
+    }
+
+    private func executable(_ dir: URL, _ name: String, _ body: String = "#!/bin/sh\n") throws -> URL {
+        let folder = dir.appending(path: name + "-dir", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let file = folder.appending(path: "claude")
+        try Data(body.utf8).write(to: file)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: file.path)
+        return file
+    }
+
+    private func runner(_ process: Recording, dir: TempDir, path: @escaping @Sendable () -> String?) -> ProviderRunner {
+        ProviderRunner(
+            system: ProviderSystem(locator: PathLocator(), process: process),
+            descriptors: [ProviderDescriptor.claudeCode.with(isolationVerified: true)],
+            cachesDirectory: dir.url.appending(path: "caches"), gate: ProviderGate(), manualBinaryPath: path)
+    }
+
+    @Test func aPathChangedDuringTheProbeNeverReceivesTheContent() async throws {
+        let dir = try TempDir()
+        defer { dir.remove() }
+        let probed = try executable(dir.url, "probed")
+        let other = try executable(dir.url, "other")
+        let setting = Mutex<String?>(probed.path)
+        let process = Recording { setting.withLock { $0 = other.path } }
+        let runner = runner(process, dir: dir) { setting.withLock { $0 } }
+        _ = try? await runner.run(makeRequest(), authorization: allowed)
+        // Whatever the run did, no content went to a file that did not answer the probe.
+        #expect(process.probedExecutables.count <= 1)
+        for executable in process.contentExecutables {
+            #expect(process.probedExecutables.contains(executable), "content went to a file that was not probed")
+        }
+    }
+
+    @Test func aFileReplacedAfterTheProbeAnswersStartsNoProcessWithContent() async throws {
+        let dir = try TempDir()
+        defer { dir.remove() }
+        let file = try executable(dir.url, "swapped")
+        let setting = Mutex<String?>(file.path)
+        let process = Recording {
+            // A new file at the same path (new inode), while the probe runs.
+            let replacement = file.deletingLastPathComponent().appending(path: "new")
+            try? Data("#!/bin/sh\n# another\n".utf8).write(to: replacement)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: replacement.path)
+            _ = try? FileManager.default.replaceItemAt(file, withItemAt: replacement)
+        }
+        let runner = runner(process, dir: dir) { setting.withLock { $0 } }
+        await #expect(throws: ProviderError.notInstalled) {
+            try await runner.run(makeRequest(), authorization: allowed)
+        }
+        #expect(process.contentExecutables.isEmpty)
     }
 }
