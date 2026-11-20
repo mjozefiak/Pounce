@@ -40,7 +40,7 @@ decides from the `TeamIdentifier` of a probe signature, not from the identity's 
 ### Notarization
 
 The `sign` job signs the app inside-out (frameworks, then the app, hardened runtime), submits it with
-`xcrun notarytool submit --wait` using an App Store Connect API key, staples the app, builds the DMG **from the stapled
+`xcrun notarytool submit` (without waiting; the script then polls `notarytool info` with a bound) using an App Store Connect API key, staples the app, builds the DMG **from the stapled
 app**, signs, notarizes and staples the DMG, and only then computes `Lintel.dmg.sha256`. `scripts/verify-release-bundle.sh`
 then requires `codesign --verify --strict --deep`, a requirement that names the Team ID and has no `cdhash`, `spctl`
 reporting "Notarized Developer ID" and a valid staple, for the app and the DMG. A rejected submission uploads
