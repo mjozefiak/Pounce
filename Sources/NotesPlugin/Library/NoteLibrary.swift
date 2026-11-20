@@ -107,8 +107,15 @@ actor NoteLibrary {
                 await self.refreshSources()
                 let current = await self.currentSources()
                 watchers = current.map { source in
-                    Task {
-                        for await _ in source.makeChanges() { continuation.yield() }
+                    // Subscribe here, before the caller yields or waits again: a watcher that subscribed in its
+                    // own task could start after a change was signalled, and that change was lost.
+                    let changes = source.makeChanges()
+                    return Task {
+                        for await _ in changes {
+                            // A stream that was cancelled still hands out what it had buffered.
+                            if Task.isCancelled { return }
+                            continuation.yield()
+                        }
                     }
                 }
             }

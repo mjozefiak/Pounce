@@ -61,9 +61,22 @@ final class MeetingsStore: Sendable {
 
     private let database: DatabaseQueue
     private let closed = Mutex(false)
+    /// The capture counters next to the database (`open(in:)`); every delete prunes the entries of the meetings
+    /// it removed, so no counters outlive their meeting. `nil` for a store built on a bare queue.
+    let captureCounters: CaptureCountersStore?
 
-    init(database: DatabaseQueue) {
+    init(database: DatabaseQueue, captureCounters: CaptureCountersStore? = nil) {
         self.database = database
+        self.captureCounters = captureCounters
+    }
+
+    /// Drops the capture counters of meetings that no longer exist (numbers only, so a failure is not an error of
+    /// the delete; the next delete tries again). `dropDiscarded` also drops those of meetings discarded as quiet.
+    func pruneCaptureCounters(dropDiscarded: Bool = false) {
+        guard let captureCounters,
+            let existing = try? read({ db in Set(try Int64.fetchAll(db, sql: "SELECT id FROM meeting")) })
+        else { return }
+        try? captureCounters.prune(keeping: existing, dropDiscarded: dropDiscarded)
     }
 
     var isClosed: Bool { closed.withLock { $0 } }
@@ -119,7 +132,7 @@ final class MeetingsStore: Sendable {
             try? queue.close()
             throw error
         }
-        return MeetingsStore(database: queue)
+        return MeetingsStore(database: queue, captureCounters: CaptureCountersStore(directory: directory))
     }
 
     /// The frozen folding expression of migration `v1-meetings`: nested `replace()` calls for ł, Ł, đ, Đ, ø, Ø
@@ -330,6 +343,13 @@ extension MeetingsStore {
         }
     }
 
+    /// Marks the meeting's audio as having a hole (`audio_gap = 1`). Never clears it.
+    func setAudioGap(_ id: Int64) throws {
+        try write { db in
+            try db.execute(sql: "UPDATE meeting SET audio_gap = 1 WHERE id = ?", arguments: [id])
+        }
+    }
+
     func setAudioState(_ id: Int64, state: AudioState) throws {
         try write { db in
             try db.execute(sql: "UPDATE meeting SET audio_state = ? WHERE id = ?", arguments: [state.rawValue, id])
@@ -377,10 +397,12 @@ extension MeetingsStore {
                 try db.execute(sql: "DELETE FROM meeting WHERE id = ?", arguments: [id])
             }
         }
+        pruneCaptureCounters()
     }
 
     func deleteAll() throws {
         try write { db in try db.execute(sql: "DELETE FROM meeting") }
+        pruneCaptureCounters(dropDiscarded: true)
     }
 
     /// Deletes the meetings that started before `cutoff`, except those still being recorded or processed and
@@ -388,7 +410,8 @@ extension MeetingsStore {
     /// spool folders).
     @discardableResult
     func applyRetention(cutoff: Date, excluding: Set<Int64> = []) throws -> [String] {
-        try write { db in
+        defer { pruneCaptureCounters() }
+        return try write { db in
             let rows = try Row.fetchAll(
                 db,
                 sql: "SELECT id, uuid FROM meeting WHERE started_at < ? AND status NOT IN ('recording', 'processing')",

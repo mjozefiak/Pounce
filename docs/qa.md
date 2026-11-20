@@ -381,6 +381,17 @@ list, Return in the variants field (token, then save on an empty field), ⌫ in 
 VoiceOver (row: "AuthService. When I hear: auth service, ałt serwis. Row 1 of 5." with Edit and Delete actions; tokens
 "variant 1 of 2"; errors announced; "Term added. 4 terms."), Reduce Motion (the section has no animation) and text sizes S to XL.
 
+## Meetings capture counters (#135, manual)
+
+Settings → Meetings → Advanced → **Copy diagnostics** puts the counters of the last 20 meetings on the pasteboard
+(numbers and the channel names `mic` / `system` only; file `Plugins/meetings/capture-counters.json`). After a real
+recording with system audio: paste it and check `recorded` against `speech sent to engine` per channel, the
+`hard cuts`, `empty results dropped`, `ring buffers dropped`, `taps recreated`, `silence inserted` lines and
+`Audio gap written while recording`. Switch the output device (headset on/off) during a recording: `taps recreated`
+rises and `Audio gap written` becomes `yes`. A plain recording that is only stopped stays `no` (its `end padding`
+is not a hole). A recording of under 15 s with nothing transcribed is listed as `discarded as quiet`. Delete a
+meeting (or Clear Library): its section is gone from the next copy. No text, name, title or device name may appear.
+
 ## Meetings audio sources (manual)
 
 The real Core Audio tap (`CoreAudioProcessTapBackend`) is compiled but never exercised by `swift test`: a tap shows the

@@ -54,7 +54,9 @@ final class ManualClock: Clock, @unchecked Sendable {
                 switch action {
                 case .success?: continuation.resume()
                 case .failure(let error)?: continuation.resume(throwing: error)
-                case nil: break
+                // A sleeper that registers (on whatever thread the clock's async hop lands) is a change a test
+                // waits for through `sleepers`; nothing else would wake it.
+                case nil: ChangeSignal.fireFromAnywhere()
                 }
             }
         } onCancel: {
@@ -65,7 +67,10 @@ final class ManualClock: Clock, @unchecked Sendable {
                 }
                 return state.waiters.remove(at: index)
             }
-            waiter?.continuation.resume(throwing: CancellationError())
+            if let waiter {
+                waiter.continuation.resume(throwing: CancellationError())
+                ChangeSignal.fireFromAnywhere()
+            }
         }
     }
 
@@ -77,6 +82,7 @@ final class ManualClock: Clock, @unchecked Sendable {
             return ready
         }
         for waiter in due { waiter.continuation.resume() }
+        if !due.isEmpty { ChangeSignal.fireFromAnywhere() }
     }
 }
 
@@ -238,7 +244,9 @@ final class ScriptedSession: RecordingSession {
 /// timeout only keeps a broken test from hanging.
 @MainActor
 func eventually(
-    _ message: Comment = "condition", timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool
+    _ message: Comment = "condition", timeout: Duration = .seconds(60),
+    sourceLocation: SourceLocation = #_sourceLocation,
+    _ condition: @MainActor () -> Bool
 ) async {
     let deadline = ContinuousClock.now + timeout
     let timer = Task { @MainActor in
@@ -249,14 +257,16 @@ func eventually(
         await ChangeSignal.shared.wait()
     }
     timer.cancel()
-    #expect(condition(), message)
+    #expect(condition(), message, sourceLocation: sourceLocation)
 }
 
 /// `eventually` for a condition nothing signals (the plugin lets a lingering controller go in a task of its
 /// own): it looks again every 10 ms instead of sleeping until the 60 s timeout.
 @MainActor
 func eventuallyPolling(
-    _ message: Comment = "condition", timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool
+    _ message: Comment = "condition", timeout: Duration = .seconds(60),
+    sourceLocation: SourceLocation = #_sourceLocation,
+    _ condition: @MainActor () -> Bool
 ) async {
     let poller = Task { @MainActor in
         while !Task.isCancelled {
@@ -264,7 +274,7 @@ func eventuallyPolling(
             ChangeSignal.shared.fire()
         }
     }
-    await eventually(message, timeout: timeout, condition)
+    await eventually(message, timeout: timeout, sourceLocation: sourceLocation, condition)
     poller.cancel()
 }
 

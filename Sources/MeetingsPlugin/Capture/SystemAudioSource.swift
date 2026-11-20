@@ -38,6 +38,10 @@ struct SystemAudioPipeline: Sendable {
     private(set) var formatChanges = 0
     /// How often implausible stamps forced a re-base of the timeline.
     private(set) var resyncs = 0
+    /// Samples of silence inserted for missing buffers or by `padding` (a statistic; changes no output).
+    private(set) var insertedSilenceSamples = 0
+    /// Samples of silence `padding(upTo:atEnd: true)` added to line the end up (a statistic, not a hole).
+    private(set) var endPaddingSamples = 0
     private var resampler: MonoResampler?
     private var resamplerKey: String?
     /// Samples subtracted from stamp-derived positions after a re-base.
@@ -80,6 +84,7 @@ struct SystemAudioPipeline: Sendable {
                     gap = Self.maxGapSamples
                 }
                 output = [Float](repeating: 0, count: gap)
+                insertedSilenceSamples += gap
             } else if start < emittedSamples - Self.maxBackstepSamples {
                 shiftSamples += start - emittedSamples
                 resyncs += 1
@@ -93,12 +98,13 @@ struct SystemAudioPipeline: Sendable {
         return output
     }
 
-    /// Silence up to `hostTime`, for the end of the recording or a tap that stays down.
-    mutating func padding(upTo hostTime: UInt64) -> [Float] {
+    /// Silence up to `hostTime`, for the end of the recording (`atEnd`) or a tap that stays down.
+    mutating func padding(upTo hostTime: UInt64, atEnd: Bool = false) -> [Float] {
         guard let anchor = anchorHostTime else { return [] }
         let target = sampleIndex(forHostTime: hostTime, anchor: anchor) - shiftSamples
         guard target > emittedSamples else { return [] }
         let silence = [Float](repeating: 0, count: target - emittedSamples)
+        if atEnd { endPaddingSamples += silence.count } else { insertedSilenceSamples += silence.count }
         emittedSamples = target
         return silence
     }
@@ -121,7 +127,7 @@ struct SystemAudioPipeline: Sendable {
 ///
 /// The stream is one continuous timeline starting at `anchorHostTime`, so it lines up with the microphone
 /// track through `TimelineAlignment`.
-final class SystemAudioSource: AudioInput, @unchecked Sendable {
+final class SystemAudioSource: AudioInput, CaptureStatsProviding, @unchecked Sendable {
     private struct State {
         var pipeline: SystemAudioPipeline
         var continuation: AsyncStream<[Float]>.Continuation?
@@ -132,6 +138,11 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
         var generation = 0
         var recreation: Task<Void, Never>?
         var running = false
+        /// Event counts, and what earlier pipelines and taps (replaced or restarted) already reported.
+        var stats = SystemCaptureStats()
+        var silenceRetired = 0
+        var endPaddingRetired = 0
+        var ringDroppedRetired = 0
     }
 
     private let backend: any ProcessTapBackend
@@ -171,6 +182,31 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
         shutdown(finishWith: nil)
     }
 
+    /// The numbers the diagnostics read: events seen, silence inserted and ring buffers dropped. Nothing here
+    /// runs on the audio thread.
+    var captureStats: SystemCaptureStats {
+        state.withLock { state in
+            var stats = state.stats
+            stats.silenceInsertedSamples = state.silenceRetired + state.pipeline.insertedSilenceSamples
+            stats.endPaddingSamples = state.endPaddingRetired + state.pipeline.endPaddingSamples
+            stats.ringDropped = state.ringDroppedRetired + (state.session?.droppedBuffers ?? 0)
+            return stats
+        }
+    }
+
+    private func note(_ event: SystemAudioEvent) {
+        state.withLock { state in
+            switch event {
+            case .recreated: state.stats.tapsRecreated += 1
+            case .recreateFailed: state.stats.recreateFailures += 1
+            case .formatChanged: state.stats.formatChanges += 1
+            case .timelineResynced: state.stats.timelineResyncs += 1
+            case .outputChangesNotObserved: state.stats.outputChangesNotObserved += 1
+            }
+        }
+        onEvent(event)
+    }
+
     /// Host time of output sample 0, once known.
     var anchorHostTime: UInt64? { state.withLock { $0.pipeline.anchorHostTime } }
 
@@ -180,6 +216,8 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
         let alreadyRunning = state.withLock { state -> Bool in
             if state.running { return true }
             state.running = true
+            state.silenceRetired += state.pipeline.insertedSilenceSamples
+            state.endPaddingRetired += state.pipeline.endPaddingSamples
             state.continuation = continuation
             state.onLevel = onLevel
             // A fresh timeline for every start, so a source that was stopped begins from zero again. Without
@@ -225,7 +263,7 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
             }
             if !stored { observation.cancel() }
         } catch {
-            onEvent(.outputChangesNotObserved(error))
+            note(.outputChangesNotObserved(error))
         }
         return stream
     }
@@ -264,7 +302,7 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
             return (chunk, state.continuation, state.onLevel, events)
         }
         emit(chunk, to: continuation, onLevel: onLevel)
-        for event in events { onEvent(event) }
+        for event in events { note(event) }
     }
 
     private func emit(
@@ -293,6 +331,7 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
         let retired = state.withLock { state -> (any ProcessTapSession)? in
             guard state.running else { return nil }
             state.generation += 1
+            state.ringDroppedRetired += state.session?.droppedBuffers ?? 0
             defer {
                 state.session = nil
                 state.pipeline.tapReplaced()
@@ -316,7 +355,7 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
                 }
                 previous?.stop()
                 if keep {
-                    onEvent(.recreated)
+                    note(.recreated)
                 } else {
                     session.stop()
                 }
@@ -331,7 +370,7 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
             (state.pipeline.padding(upTo: clock.now()), state.continuation, state.onLevel)
         }
         emit(silence, to: continuation, onLevel: onLevel)
-        onEvent(.recreateFailed(failure))
+        note(.recreateFailed(failure))
     }
 
     // MARK: Teardown
@@ -344,10 +383,11 @@ final class SystemAudioSource: AudioInput, @unchecked Sendable {
                 (any ProcessTapSession)?, (any OutputChangeObservation)?, AsyncStream<[Float]>.Continuation?,
                 Task<Void, Never>?, [Float], (@Sendable (Float) -> Void)?
             ) in
-            let silence = hostTime.map { state.pipeline.padding(upTo: $0) } ?? []
+            let silence = hostTime.map { state.pipeline.padding(upTo: $0, atEnd: true) } ?? []
             let result = (
                 state.session, state.observation, state.continuation, state.recreation, silence, state.onLevel
             )
+            state.ringDroppedRetired += state.session?.droppedBuffers ?? 0
             state.running = false
             state.generation += 1
             state.session = nil

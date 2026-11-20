@@ -310,6 +310,26 @@ struct MeetingsPaneContent: View {
             suggestionRows
         }
         SystemAudioTestRow(test: model.systemAudioTest, openSettings: { model.openSystemAudioSettings() })
+        LabeledContent {
+            Button {
+                model.copyDiagnostics()
+            } label: {
+                Text(
+                    model.copiedDiagnostics
+                        ? String(localized: "Copied", comment: "Meetings: the diagnostics were copied")
+                        : String(localized: "Copy diagnostics", comment: "Meetings setting: counters for a bug report"))
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Capture diagnostics", comment: "Meetings setting: counters of what the recording dropped")
+                    .font(textSize.font(.body))
+                Text(
+                    "Numbers about the last recordings: segments, silence and dropped audio. No text, names or titles.",
+                    comment: "Meetings setting: what the diagnostics contain"
+                )
+                .font(textSize.font(.callout)).foregroundStyle(LintelBrand.secondaryText)
+            }
+        }
     }
 
     /// While suggestions are on: whether they work here, the apps the user muted and the apps they added.

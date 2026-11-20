@@ -86,7 +86,18 @@ struct MeetingsRuntime: Sendable {
             makeVAD: { LazyVAD(modelFolder: vadFolder) }, engine: makeEngine(modelID: request.modelID),
             modelID: request.modelID, modelFolder: request.modelFolder, sleepAssertion: IOKitSleepAssertion(),
             gate: gate, beforeReady: finalizer.hook, sourceBundleID: request.sourceBundleID,
-            keepAudio: { [settings] in settings.keepAudio }, logger: logger)
+            keepAudio: { [settings] in settings.keepAudio },
+            recordCounters: Self.counterRecorder(
+                directory: request.spool.root.deletingLastPathComponent(), logger: logger),
+            logger: logger)
+    }
+
+    /// Writes a finished meeting's counters (numbers only) next to the library; a failure is logged and nothing else.
+    static func counterRecorder(directory: URL, logger: Logger) -> @Sendable (CaptureCounters) -> Void {
+        let store = CaptureCountersStore(directory: directory)
+        return { counters in
+            do { try store.record(counters) } catch { logger.error("The capture counters could not be saved") }
+        }
     }
 
     // MARK: Recovery and "Dokończ"

@@ -141,6 +141,10 @@ import Testing
         try FileManager.default.createDirectory(at: spool, withIntermediateDirectories: true)
         try Data("audio".utf8).write(to: spool.appending(path: "mic.spool"))
         #expect(harness.keychain.itemNames == ["com.lintelapp.meetings/master-key"])
+        // The capture counters live in the same folder and go with it.
+        try plugin.library.store?.captureCounters?.record(CaptureCounters())
+        let counters = harness.pluginDirectory.appending(path: CaptureCountersStore.fileName)
+        #expect(FileManager.default.fileExists(atPath: counters.path))
 
         await plugin.deactivate()
         try await plugin.eraseData()
