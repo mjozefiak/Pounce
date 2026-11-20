@@ -58,15 +58,21 @@ on:
         description: "Sign with Developer ID and notarize (only on main; asks the release Environment's reviewer). Publishes nothing."
         type: boolean
         default: false
+      notary_wait_minutes:
+        description: "Longest wait for Apple's verdict on the app, in minutes (1 to 240, default 40). An account's first submission can take hours; raise it for one long run instead of several. Tag runs always use 40. The DMG keeps 40."
+        type: string
+        default: "40"
 
 permissions:
   contents: read
 
 # Pull requests cancel their own older runs, as before. Every other ref has its own group and nothing is cancelled.
+# The event is part of the group: GitHub keeps only ONE waiting run per group and cancels the older waiting one, so
+# without it a run started by hand on main (the signed run) was cancelled while waiting by the next push to main.
 # Tag releases are serialised by the job-level group `release-tags` on `sign` and `publish` (below), not here: a
 # workflow-level `queue: max` cannot be combined with `cancel-in-progress: true`.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -194,7 +200,12 @@ jobs:
       group: release-tags
       queue: max
     runs-on: xcode-27
-    timeout-minutes: 60
+    # Worst case = upload (10) + app wait (default 40, a manual run may raise it to 240) + DMG upload (10) + DMG wait (always
+    # 40, the account is warm once the app was accepted) + about 10 minutes for the rest = 310 minutes for the largest
+    # allowed input; each status read is bounded at 2 minutes, so each wait overshoots by at most about 2.5 minutes and
+    # a rejection's log fetch adds at most 2: about 319. GitHub-hosted jobs stop at 360. A first submission can sit In Progress for hours at Apple; the
+    # bounded wait fails the step with the submission id instead of the job being cut.
+    timeout-minutes: 330
     permissions:
       contents: read
     env:
@@ -295,6 +306,8 @@ jobs:
 
       - name: Notarize the app
         env:
+          # Empty (tag runs, other triggers) means the script's default of 40 minutes; the script validates it.
+          NOTARY_WAIT_MINUTES: ${{ inputs.notary_wait_minutes }}
           NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
           NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
           NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
@@ -356,7 +369,8 @@ jobs:
           scripts/requirement.sh compare Resources/designated-requirement.txt requirement/designated-requirement.txt --on-placeholder "$MODE"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: failure()
+        # The notary log of a rejection and the submission id files (also after a cancelled or timed-out job).
+        if: always()
         with:
           name: notary-logs
           path: notary-logs

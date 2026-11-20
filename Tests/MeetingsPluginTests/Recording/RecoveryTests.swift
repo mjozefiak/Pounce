@@ -24,10 +24,10 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 @Suite struct RecoveryJobTests {
     // MARK: Crash while recording
 
-    @Test func aMeetingStillRecordingAfterACrashBecomesIncompleteAndKeepsItsSpool() throws {
+    @Test func aMeetingStillRecordingAfterACrashBecomesIncompleteAndKeepsItsSpool() async throws {
         let rig = try RecoveryRig(texts: texts)
         let mic = micScript()
-        let meeting = try rig.seed(
+        let meeting = try await rig.seed(
             .recording, mic: mic, system: systemScript(), stored: [(.mic, 16_000..<64_000, "Pierwsza wypowiedź")])
         // The crash cut the last frame in the middle of a write.
         let file = rig.spool.file(for: meeting.uuid, track: .mic)
@@ -67,7 +67,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         let mic = micScript()
         let system = systemScript()
         // The first mic utterance and the system one reached the library; the second mic one is missing.
-        let meeting = try rig.seed(
+        let meeting = try await rig.seed(
             .processing, mic: mic, system: system,
             stored: [(.mic, 16_000..<64_000, texts[11]!), (.system, 96_000..<144_000, texts[21]!)])
 
@@ -77,7 +77,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         // Right after the pass the meeting is still `processing`: retention and "Dokończ" stay away.
         #expect(library.lastRecovery?.toResume.map(\.id) == [meeting.id])
 
-        #expect(await eventually { (try? store.audioState(of: meeting.id)) == .deleted })
+        #expect(await pollUntil { (try? store.audioState(of: meeting.id)) == .deleted })
         #expect(try store.audioState(of: meeting.id) == .deleted)
         #expect(!rig.spoolExists(meeting.uuid))
         let rows = try rig.rows(library, meeting.id)
@@ -98,22 +98,22 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
     @Test func aMeetingWhoseTranscriptIsCompleteSkipsTheModelAndJustFinalizes() async throws {
         let rig = try RecoveryRig(texts: texts)
         let mic = micScript()
-        let meeting = try rig.seed(
+        let meeting = try await rig.seed(
             .processing, mic: mic,
             stored: [(.mic, 16_000..<64_000, texts[11]!), (.mic, 96_000..<144_000, texts[12]!)])
         let library = rig.library(resumer: rig.resumerFactory(mic: mic))
         library.open()
         let store = try #require(library.store)
-        #expect(await eventually { (try? store.audioState(of: meeting.id)) == .deleted })
+        #expect(await pollUntil { (try? store.audioState(of: meeting.id)) == .deleted })
         #expect(rig.engine.loads == 0)
         #expect(rig.finalizations.calls.count == 1)
         #expect(!rig.spoolExists(meeting.uuid))
         #expect(try store.segmentCount(meetingID: meeting.id) == 2)
     }
 
-    @Test func withoutASpeechSetupAProcessingMeetingBecomesIncompleteAtOnce() throws {
+    @Test func withoutASpeechSetupAProcessingMeetingBecomesIncompleteAtOnce() async throws {
         let rig = try RecoveryRig(texts: texts)
-        let meeting = try rig.seed(.processing, mic: micScript())
+        let meeting = try await rig.seed(.processing, mic: micScript())
         let library = rig.library()
         library.open()
         #expect(try library.store?.status(of: meeting.id) == .incomplete)
@@ -124,11 +124,11 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
     @Test func aMissingSpeechModelLeavesTheResumedMeetingIncompleteWithItsSpool() async throws {
         let rig = try RecoveryRig(texts: texts)
         let mic = micScript()
-        let meeting = try rig.seed(.processing, mic: mic, stored: [(.mic, 16_000..<64_000, texts[11]!)])
+        let meeting = try await rig.seed(.processing, mic: mic, stored: [(.mic, 16_000..<64_000, texts[11]!)])
         let library = rig.library(resumer: rig.resumerFactory(mic: mic, haveModel: false))
         library.open()
         let store = try #require(library.store)
-        #expect(await eventually { (try? store.status(of: meeting.id)) == .incomplete })
+        #expect(await pollUntil { (try? store.status(of: meeting.id)) == .incomplete })
         #expect(rig.spoolExists(meeting.uuid))
         #expect(try store.audioState(of: meeting.id) == .spool)
         #expect(rig.finalizations.calls.isEmpty)
@@ -179,7 +179,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         let rig = try RecoveryRig(texts: texts)
         let mic = micScript()
         let other = try testKeys(77)
-        let meeting = try rig.seed(
+        let meeting = try await rig.seed(
             scenario.status, mic: mic,
             stored: scenario.hasSegments ? [(.mic, 16_000..<64_000, texts[11]!)] : [], spoolKeys: other,
             writeSpool: scenario.hasSpool)
@@ -199,9 +199,9 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         #expect(rig.finalizations.calls.isEmpty)
     }
 
-    @Test func aLibraryThatCannotBeWrittenKeepsTheStatusAndTheSpool() throws {
+    @Test func aLibraryThatCannotBeWrittenKeepsTheStatusAndTheSpool() async throws {
         let rig = try RecoveryRig(texts: texts)
-        let meeting = try rig.seed(.recording, mic: micScript())
+        let meeting = try await rig.seed(.recording, mic: micScript())
         let store = try #require(rig.seedStoreForTests)
         try store.write { db in
             try db.execute(sql: "CREATE TRIGGER readonly BEFORE UPDATE ON meeting BEGIN SELECT RAISE(ABORT, 'ro'); END")
@@ -219,7 +219,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 
     @Test func recoveryRunsBeforeTheFirstRetentionSweep() async throws {
         let rig = try RecoveryRig(texts: texts)
-        let meeting = try rig.seed(.recording, mic: micScript())
+        let meeting = try await rig.seed(.recording, mic: micScript())
         try rig.age(meeting.uuid, to: RecoveryRig.now.addingTimeInterval(-30 * RecoveryRig.day))
         let maintenance = RecordingSpool(existing: [SpoolStorage.name(of: meeting.uuid)])
         let library = rig.library(retention: true, maintenance: maintenance)
@@ -228,7 +228,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 
         // The retention pass only offers interrupted meetings: seeing this one proves it was already
         // `incomplete` when the sweep started.
-        #expect(await eventually { !maintenance.state.withLock { $0.sweeps }.isEmpty })
+        #expect(await pollUntil { !maintenance.state.withLock { $0.sweeps }.isEmpty })
         let first = try #require(maintenance.state.withLock { $0.sweeps }.first)
         #expect(first.candidates == [SpoolStorage.name(of: meeting.uuid)])
         #expect(try library.store?.status(of: meeting.id) == .incomplete)
@@ -236,7 +236,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 
     @Test func aRecoveredSpoolGetsItsFullGracePeriodAndThenExpiresAfterSevenDays() async throws {
         let rig = try RecoveryRig(texts: texts)
-        let meeting = try rig.seed(.recording, mic: micScript(), stored: [(.mic, 16_000..<64_000, texts[11]!)])
+        let meeting = try await rig.seed(.recording, mic: micScript(), stored: [(.mic, 16_000..<64_000, texts[11]!)])
         // The app was closed for a month after the crash.
         try rig.age(meeting.uuid, to: RecoveryRig.now.addingTimeInterval(-30 * RecoveryRig.day))
         let library = rig.library()
@@ -263,10 +263,10 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         library.close()
     }
 
-    @Test func rerunningRecoveryChangesNothing() throws {
+    @Test func rerunningRecoveryChangesNothing() async throws {
         let rig = try RecoveryRig(texts: texts)
-        let recording = try rig.seed(.recording, mic: micScript(), stored: [(.mic, 16_000..<64_000, texts[11]!)])
-        let failed = try rig.seed(.recording, mic: micScript(), writeSpool: false)
+        let recording = try await rig.seed(.recording, mic: micScript(), stored: [(.mic, 16_000..<64_000, texts[11]!)])
+        let failed = try await rig.seed(.recording, mic: micScript(), writeSpool: false)
         let library = rig.library(resumer: rig.resumerFactory(mic: micScript()))
         library.open()
         let first = try #require(library.lastRecovery)
@@ -287,9 +287,9 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 
     // MARK: Keychain
 
-    @Test func aDeletedKeychainItemMakesTheSpoolUnreadableAndItIsDeleted() throws {
+    @Test func aDeletedKeychainItemMakesTheSpoolUnreadableAndItIsDeleted() async throws {
         let rig = try RecoveryRig(texts: texts)
-        let meeting = try rig.seed(.recording, mic: micScript(), system: systemScript())
+        let meeting = try await rig.seed(.recording, mic: micScript(), system: systemScript())
         rig.closeSeed()
         try rig.harness.keychain.deleteGenericPassword(service: "com.lintelapp.meetings", account: "master-key")
 
@@ -303,9 +303,9 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         #expect(rig.engine.loads == 0)
     }
 
-    @Test func aKeychainErrorThatIsNotAMissingItemTouchesNoSpool() throws {
+    @Test func aKeychainErrorThatIsNotAMissingItemTouchesNoSpool() async throws {
         let rig = try RecoveryRig(texts: texts)
-        let meeting = try rig.seed(.recording, mic: micScript())
+        let meeting = try await rig.seed(.recording, mic: micScript())
         rig.closeSeed()
         rig.harness.keychain.failReads(with: .accessDenied)
         let library = rig.library()

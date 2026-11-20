@@ -14,9 +14,9 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
     @Test func clearLibraryAndDeleteTemporaryRecordingsSkipAMeetingBeingFinished() async throws {
         let rig = try RecoveryRig(texts: words)
         let track = TrackScript.build([(1, 11, 3), (4, 12, 3)], tail: 1)
-        let busy = try rig.seed(.incomplete, mic: track, stored: [(.mic, 16_000..<64_000, words[11]!)])
-        let idle = try rig.seed(.incomplete, mic: track)
-        let ready = try rig.seed(.ready, mic: track)
+        let busy = try await rig.seed(.incomplete, mic: track, stored: [(.mic, 16_000..<64_000, words[11]!)])
+        let idle = try await rig.seed(.incomplete, mic: track)
+        let ready = try await rig.seed(.ready, mic: track)
         let library = rig.library(resumer: rig.resumerFactory(mic: track))
         library.open()
         let store = try #require(library.store)
@@ -26,7 +26,7 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         let handle = try #require(library.finish(meetingID: busy.id))
         let finishing = Task { await handle.outcome }
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
         #expect(library.isProcessing)
         #expect(library.activeResumes == [busy.id])
 

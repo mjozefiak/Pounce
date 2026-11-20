@@ -11,7 +11,7 @@ import Testing
     @Test func aMeetingThatBecomesReadyGetsItsNotes() async throws {
         let rig = try NotesServiceRig()
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         let before = try rig.document(id)
         rig.library.meetingReady(id)
         #expect(await rig.settle())
@@ -41,10 +41,14 @@ import Testing
             return .done(NotesFake.answer(messages))
         }
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.meetingBecameReady(id)
-        #expect(await waitFor { (try? rig.store.notesStatus(of: id)) == .running })
-        #expect(await waitFor { rig.service.board.phase(of: id) == .mapping(done: 0, total: 1) })
+        // The phase is the event; `beginNotes` wrote `running` before the first request could be made.
+        #expect(
+            await rig.wait("the first chunk to be mapped") {
+                rig.service.board.phase(of: id) == .mapping(done: 0, total: 1)
+            })
+        #expect((try? rig.store.notesStatus(of: id)) == .running)
         let entry = try #require(try rig.store.libraryEntries(matching: nil, filter: .all, limit: 5).first)
         #expect(entry.notesStatus == .running)
         #expect(
@@ -57,7 +61,7 @@ import Testing
     @Test func notesThatAreOffRunNothing() async throws {
         let rig = try NotesServiceRig(settings: [:])
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.library.meetingReady(id)
         #expect(await rig.settle())
         #expect(rig.llm.calls.isEmpty)
@@ -71,7 +75,7 @@ import Testing
     @Test func aRegenerateRequestWorksEvenWhenAutomaticNotesAreOff() async throws {
         let rig = try NotesServiceRig(settings: [:])
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.regenerate(id)
         #expect(await rig.settle())
         #expect(try rig.record(id).status == .ok)
@@ -80,7 +84,7 @@ import Testing
     @Test func aMeetingThatIsNotReadyGetsNoNotes() async throws {
         let rig = try NotesServiceRig()
         await rig.start()
-        let id = try rig.addMeeting(status: .incomplete)
+        let id = try await rig.addMeeting(status: .incomplete)
         rig.service.regenerate(id)
         #expect(await rig.settle())
         #expect(rig.llm.calls.isEmpty)
@@ -90,7 +94,7 @@ import Testing
     @Test func aMeetingWithoutTextGetsNoNotes() async throws {
         let rig = try NotesServiceRig()
         await rig.start()
-        let id = try rig.addMeeting([])
+        let id = try await rig.addMeeting([])
         rig.service.regenerate(id)
         #expect(await rig.settle())
         #expect(rig.llm.calls.isEmpty)
@@ -109,7 +113,8 @@ import Testing
             return .done(NotesFake.answer(messages))
         }
         await rig.start()
-        let ids = try (0..<3).map { _ in try rig.addMeeting() }
+        var ids: [Int64] = []
+        for _ in 0..<3 { ids.append(try await rig.addMeeting()) }
         for id in ids { rig.service.meetingBecameReady(id) }
         // The same meeting twice is one job.
         rig.service.meetingBecameReady(ids[0])
@@ -146,7 +151,7 @@ import Testing
         rig.file.update { $0 = nil }
         await rig.start()
         #expect(rig.service.board.snapshot.needsModel)
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.library.meetingReady(id)
         #expect(await rig.settle())
 
@@ -185,7 +190,7 @@ import Testing
     @Test func aFailingModelMarksTheNotesFailedAndKeepsTheTranscript() async throws {
         let rig = try NotesServiceRig { _, _, _ in throw NotesFake.Failure() }
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         let before = try rig.document(id)
         rig.library.meetingReady(id)
         #expect(await rig.settle())
@@ -207,7 +212,7 @@ import Testing
         let rig = try NotesServiceRig()
         rig.llm.failLoading()
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.meetingBecameReady(id)
         #expect(await rig.settle())
         #expect(try rig.record(id).status == .failed)
@@ -221,7 +226,7 @@ import Testing
             return .done(NotesFake.answer(messages))
         }
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.regenerate(id)
         #expect(await rig.settle())
         let earlier = try #require(try rig.document(id).notesMarkdown)
@@ -241,7 +246,7 @@ import Testing
                 return .done(NotesFake.answer(messages))
             }, configure: { $0.chunkTokens = 150 })
         await rig.start()
-        let id = try rig.addMeeting(NotesFixtures.filler(count: 20))
+        let id = try await rig.addMeeting(NotesFixtures.filler(count: 20))
         rig.service.regenerate(id)
         #expect(await rig.settle())
         let record = try rig.record(id)
@@ -262,7 +267,7 @@ import Testing
             return .done(NotesFake.answer(messages))
         }
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.regenerate(id)
         #expect(await rig.settle())
         let record = try rig.record(id)
@@ -283,9 +288,9 @@ import Testing
             return .done("NONE")
         }
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.regenerate(id)
-        #expect(await waitFor { started.isSet })
+        #expect(await started.wait())
         #expect(try rig.record(id).status == .running)
 
         await rig.service.shutDown()
@@ -312,16 +317,17 @@ import Testing
             return .done(NotesFake.answer(messages))
         }
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.regenerate(id)
         #expect(await rig.settle())
         let earlier = try #require(try rig.document(id).notesMarkdown)
-        try rig.store.renameSpeaker(rig.speakerID(of: id, named: "Anna"), label: "Anna Nowak")
+        let speaker = try rig.speakerID(of: id, named: "Anna")
+        try await rig.perform { try $0.renameSpeaker(speaker, label: "Anna Nowak") }
         #expect(try rig.record(id).status == .stale)
 
         hang.set()
         rig.service.regenerate(id)
-        #expect(await waitFor { started.isSet })
+        #expect(await started.wait())
         await rig.service.shutDown()
         let record = try rig.record(id)
         #expect(record.status == .stale)
@@ -331,12 +337,13 @@ import Testing
     @Test func renamingASpeakerMakesNotesStaleAndRegeneratingFixesThem() async throws {
         let rig = try NotesServiceRig()
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.meetingBecameReady(id)
         #expect(await rig.settle())
         #expect(try rig.record(id).status == .ok)
 
-        try rig.store.renameSpeaker(rig.speakerID(of: id, named: "Marek"), label: "Marek Kowalski")
+        let speaker = try rig.speakerID(of: id, named: "Marek")
+        try await rig.perform { try $0.renameSpeaker(speaker, label: "Marek Kowalski") }
         #expect(try rig.record(id).status == .stale)
         let stale = try #require(try rig.store.libraryEntries(matching: nil, filter: .needsAttention, limit: 5).first)
         #expect(MeetingLibraryPresentation.badge(stale) == "Notes outdated")
@@ -358,15 +365,16 @@ import Testing
             return .done(NotesFake.answer(messages))
         }
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.regenerate(id)
         #expect(await rig.settle())
 
         hold.set()
         rig.service.regenerate(id)
-        #expect(await waitFor { reached.isSet })
+        #expect(await reached.wait())
         // A real rename marks the notes stale while the job runs; the finishing job must not hide that.
-        try rig.store.renameSpeaker(rig.speakerID(of: id, named: "Marek"), label: "Marek Kowalski")
+        let speaker = try rig.speakerID(of: id, named: "Marek")
+        try await rig.perform { try $0.renameSpeaker(speaker, label: "Marek Kowalski") }
         #expect(try rig.record(id).status == .stale)
         let callsBefore = rig.llm.calls.count
         hold.clear()
@@ -385,9 +393,9 @@ import Testing
         let handle = try await rig.lease.acquire(
             key: .init(modelID: "/models/other.gguf", contextLength: 4096), runtime: other,
             modelURL: URL(filePath: "/models/other.gguf"), priority: .interactive, keepWarm: { .seconds(60) })
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.meetingBecameReady(id)
-        #expect(await waitFor { rig.service.board.phase(of: id) == .waitingForModel })
+        #expect(await rig.wait("the job to wait for the model") { rig.service.board.phase(of: id) == .waitingForModel })
         let entry = try #require(try rig.store.libraryEntries(matching: nil, filter: .all, limit: 5).first)
         #expect(MeetingLibraryPresentation.badge(entry, phase: .waitingForModel) == "Waiting for the model")
         #expect(try rig.record(id).status == .running)
@@ -405,7 +413,7 @@ import Testing
         let handle = try await rig.lease.acquire(
             key: .init(modelID: "/models/other.gguf", contextLength: 4096), runtime: other,
             modelURL: URL(filePath: "/models/other.gguf"), priority: .interactive, keepWarm: { .seconds(60) })
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.regenerate(id)
         #expect(await rig.settle())
         #expect(try rig.record(id).status == .failed)
@@ -414,14 +422,17 @@ import Testing
 
     @Test func notesLeftRunningByACrashBecomeFailedWhenTheLibraryOpens() async throws {
         let rig = try NotesServiceRig()
-        let running = try rig.addMeeting()
-        let withText = try rig.addMeeting()
-        let fine = try rig.addMeeting()
-        try rig.store.setNotes(withText, markdown: "Earlier notes", status: .ok)
-        try rig.store.setNotes(fine, markdown: "Fine notes", status: .ok)
-        try rig.store.write { db in
-            try db.execute(
-                sql: "UPDATE meeting SET notes_status = 'running' WHERE id IN (?, ?)", arguments: [running, withText])
+        let running = try await rig.addMeeting()
+        let withText = try await rig.addMeeting()
+        let fine = try await rig.addMeeting()
+        try await rig.perform { store in
+            try store.setNotes(withText, markdown: "Earlier notes", status: .ok)
+            try store.setNotes(fine, markdown: "Fine notes", status: .ok)
+            try store.write { db in
+                try db.execute(
+                    sql: "UPDATE meeting SET notes_status = 'running' WHERE id IN (?, ?)",
+                    arguments: [running, withText])
+            }
         }
         rig.library.close()
         rig.library.open()
@@ -448,7 +459,7 @@ import Testing
         #expect(rig.settings.builtInLLMModelWasReplaced)
         #expect(rig.settings.offeredLLMModels.map(\.id) == [LLMModelCatalog.defaultModel.id])
         await rig.start()
-        let id = try rig.addMeeting()
+        let id = try await rig.addMeeting()
         rig.service.regenerate(id)
         #expect(await rig.settle())
         #expect(try rig.record(id).model == LLMModelCatalog.defaultModel.id)

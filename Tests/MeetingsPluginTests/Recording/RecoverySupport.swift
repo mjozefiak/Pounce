@@ -28,9 +28,11 @@ final class FinalizeLog: Sendable {
     func record(_ call: Call) { items.withLock { $0.append(call) } }
 }
 
-func eventually(timeout: Duration = .seconds(20), _ condition: @MainActor () -> Bool) async -> Bool {
+/// Polls every 10 ms and returns whether the condition held; the caller must assert the result. Named apart from
+/// `eventually` (ControllerSupport), which asserts by itself: a call without a message once resolved here silently.
+func pollUntil(timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool) async -> Bool {
     let deadline = ContinuousClock.now + timeout
-    while ContinuousClock.now < deadline {
+    while ContinuousClock.now < deadline, !Task.isCancelled {
         if await condition() { return true }
         try? await Task.sleep(for: .milliseconds(10))
     }
@@ -76,15 +78,35 @@ final class RecoveryRig {
         return samples.map { Int16(max(-1, min(1, $0)) * 32_767) }
     }
 
+    /// The seed is written off the main actor: `SpoolWriter` flushes every frame with `F_FULLFSYNC` and the store
+    /// commits with a durable journal, and on the one main thread that every `@MainActor` test shares those waits
+    /// starved the library's own `@MainActor` resume task for tens of seconds under disk load (#165).
     @discardableResult
     func seed(
         _ status: MeetingStatus, mic: TrackScript, system: TrackScript? = nil,
         stored: [(AudioChannel, Range<Int>, String)] = [], spoolKeys: MeetingKeys? = nil, writeSpool: Bool = true,
         closeSpool: Bool = false, uuid: UUID = UUID(), audioState: AudioState = .spool
-    ) throws -> (id: Int64, uuid: UUID) {
+    ) async throws -> (id: Int64, uuid: UUID) {
         let store = try #require(seedStore)
+        let spool = spool
+        let keys = keys
+        let micSamples = Self.int16(mic)
+        let systemSamples = system.map(Self.int16)
+        let stored = stored.map { (channel: $0.0, samples: $0.1, text: $0.2) }
+        return try await Self.write(
+            status, store: store, spool: spool, keys: spoolKeys ?? keys, micSamples: micSamples,
+            systemSamples: systemSamples, stored: stored, writeSpool: writeSpool, closeSpool: closeSpool, uuid: uuid,
+            audioState: audioState)
+    }
+
+    private nonisolated static func write(
+        _ status: MeetingStatus, store: MeetingsStore, spool: SpoolStorage, keys writerKeys: MeetingKeys,
+        micSamples: [Int16], systemSamples: [Int16]?,
+        stored: [(channel: AudioChannel, samples: Range<Int>, text: String)],
+        writeSpool: Bool, closeSpool: Bool, uuid: UUID, audioState: AudioState
+    ) async throws -> (id: Int64, uuid: UUID) {
         let id = try store.insertMeeting(
-            uuid: SpoolStorage.name(of: uuid), startedAt: Self.started, speechModelID: "test-model", status: status)
+            uuid: SpoolStorage.name(of: uuid), startedAt: started, speechModelID: "test-model", status: status)
         if audioState == .deleted { try store.setAudioState(id, state: .deleted) }
         for (channel, samples, text) in stored {
             try store.insertSegment(
@@ -92,12 +114,11 @@ final class RecoveryRig {
                 endMs: samples.upperBound * 1_000 / rate, text: text)
         }
         if writeSpool {
-            let writerKeys = spoolKeys ?? keys
-            if let system {
+            if let systemSamples {
                 let pair = try SpoolWriter.createPair(
                     in: spool, meeting: uuid, keys: writerKeys, freeSpace: { _ in .max })
-                try pair.mic.append(Self.int16(mic))
-                try pair.system.append(Self.int16(system))
+                try pair.mic.append(micSamples)
+                try pair.system.append(systemSamples)
                 if closeSpool {
                     try pair.mic.close()
                     try pair.system.close()
@@ -105,7 +126,7 @@ final class RecoveryRig {
             } else {
                 let writer = try SpoolWriter.create(
                     in: spool, meeting: uuid, track: .mic, keys: writerKeys, freeSpace: { _ in .max })
-                try writer.append(Self.int16(mic))
+                try writer.append(micSamples)
                 if closeSpool { try writer.close() }
             }
         }

@@ -22,8 +22,8 @@ struct NoteSourceRig {
         get throws { try rig.store }
     }
 
-    init() throws {
-        rig = try LibraryRig()
+    init() async throws {
+        rig = try await LibraryRig()
         let regenerated = regenerated
         let hub = hub
         source = MeetingNoteSource(
@@ -48,7 +48,7 @@ struct NoteSourceRig {
 struct MeetingNoteSourceReadingTests {
     @Test("list has the library's order and the same rows as the list mode's All filter")
     func parityWithListMode() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let page = try await rig.source.list(matching: nil, after: nil, limit: 100)
         let mode = try await rig.rig.search("", filter: .all)
         #expect(
@@ -64,7 +64,7 @@ struct MeetingNoteSourceReadingTests {
 
     @Test("a query finds the same meetings as the list mode and reports where it matched")
     func queryParity() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         for text in ["roadmapa", "budżet", "budzet zatwierdzony", "dzień", "nic takiego", "retro"] {
             let page = try await rig.source.list(matching: query(text), after: nil, limit: 100)
             let mode = try await rig.rig.search(text)
@@ -83,7 +83,7 @@ struct MeetingNoteSourceReadingTests {
 
     @Test("a cursor continues where the page ended, with the total of the whole query")
     func paging() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let first = try await rig.source.list(matching: nil, after: nil, limit: 2)
         #expect(first.items.count == 2)
         #expect(first.total == 5)
@@ -104,7 +104,7 @@ struct MeetingNoteSourceReadingTests {
 
     @Test("content has the notes and the transcript layers, the speakers and the details")
     func content() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let content = try #require(try await rig.source.content(for: rig.key("notes")))
         #expect(content.layers.map(\.id) == ["notes", "transcript"])
         #expect(content.layers.map(\.author) == [.agent, .stt])
@@ -124,7 +124,7 @@ struct MeetingNoteSourceReadingTests {
 
     @Test("an unknown meeting is nil, not an error; a key of another plugin or an empty one is refused")
     func absence() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let gone = NoteKey(pluginID: "meetings", id: UUID().uuidString.lowercased())
         #expect(try await rig.source.content(for: gone) == nil)
         #expect(try await rig.source.exists([gone, rig.key("plain")]) == [try rig.key("plain")])
@@ -135,7 +135,7 @@ struct MeetingNoteSourceReadingTests {
 
     @Test("a foreign or empty key in an exists batch is left out and never fails the other keys")
     func foreignKeysInBatch() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let known = try rig.key("plain")
         let foreign = NoteKey(pluginID: "dictation", id: "abcd/1")
         let empty = NoteKey(pluginID: "meetings", id: "")
@@ -145,7 +145,7 @@ struct MeetingNoteSourceReadingTests {
 
     @Test("exists answers a large batch")
     func largeBatch() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let known = try rig.key("plain")
         let keys = (0..<900).map { _ in NoteKey(pluginID: "meetings", id: UUID().uuidString.lowercased()) } + [known]
         #expect(try await rig.source.exists(keys) == [known])
@@ -153,7 +153,7 @@ struct MeetingNoteSourceReadingTests {
 
     @Test("every read throws while the library is not open, and none reports a note as gone")
     func closedStore() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let key = try rig.key("plain")
         rig.rig.library.close()
         await #expect(throws: MeetingNoteSourceError.storeUnavailable) {
@@ -232,7 +232,7 @@ struct MeetingNoteStateTests {
     @MainActor
     @Test("the source reports the mapped state of a stored meeting")
     func throughTheSource() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let expected: [String: NoteState] = [
             "notes": .ready, "stale": .stale, "plain": .ready, "incomplete": .interrupted, "failed": .failed,
         ]
@@ -271,7 +271,7 @@ struct MeetingNoteLayerTests {
     }
 
     @Test("a segment is one block whatever it says, and provenance follows the blocks")
-    func oneBlockPerSegment() throws {
+    func oneBlockPerSegment() async throws {
         let hostile = [
             "```", "~~~ swift", "# heading", "- item", "1. numbered", "| a | b |", "line\nbreak", "  ", "last",
         ]
@@ -289,7 +289,7 @@ struct MeetingNoteLayerTests {
     }
 
     @Test("the composed notes carry no times, and an older note's quote time is still read")
-    func notesQuotes() throws {
+    func notesQuotes() async throws {
         let notes = NotesComposer.markdown(
             verdict: NotesGuard.ReduceVerdict(
                 decisions: [NotesPoint(id: "p1", kind: .decision, timeMs: 83_000, quote: "q", text: "Ship it")],
@@ -315,7 +315,7 @@ struct MeetingNoteLayerTests {
     }
 
     @Test("the version changes with the text and the start times, not with speaker ids")
-    func version() throws {
+    func version() async throws {
         let a = try #require(MeetingNoteLayers.transcriptLayer(document(segments: [segment(1, 0, "hi", speaker: 1)])))
         let sameWithOtherSpeaker = try #require(
             MeetingNoteLayers.transcriptLayer(document(segments: [segment(1, 0, "hi", speaker: 99)])))
@@ -330,7 +330,7 @@ struct MeetingNoteLayerTests {
         "a speaker rename and a second applySpeakerPlan keep the transcript version; speakers carry id, name and isSelf"
     )
     func versionSurvivesSpeakerChanges() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let key = try rig.key("notes")
         let id = try #require(rig.rig.ids["notes"])
         let before = try #require(try await rig.source.content(for: key))
@@ -366,7 +366,7 @@ struct MeetingNoteLayerTests {
 struct MeetingNoteEditingTests {
     @Test("rename title sets it, a blank title clears it, and the notes stay current")
     func renameTitle() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let key = try rig.key("notes")
         try await rig.source.renameTitle(key, to: "  Nowy tytuł \u{200B}")
         #expect(try await rig.source.content(for: key)?.summary.title == "Nowy tytuł")
@@ -377,7 +377,7 @@ struct MeetingNoteEditingTests {
 
     @Test("rename speaker makes the notes stale and refuses a speaker of another meeting")
     func renameSpeaker() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let key = try rig.key("notes")
         let speaker = try #require(try await rig.source.content(for: key)?.speakers.first)
         try await rig.source.renameSpeaker(key, speakerID: speaker.id, to: "Ola")
@@ -392,7 +392,7 @@ struct MeetingNoteEditingTests {
 
     @Test("mark self sets the flag and the notes stale; a meeting being recorded refuses")
     func markSelf() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let key = try rig.key("notes")
         let speaker = try #require(try await rig.source.content(for: key)?.speakers.first)
         try await rig.source.markSelf(key, speakerID: speaker.id)
@@ -410,7 +410,7 @@ struct MeetingNoteEditingTests {
 
     @Test("actions follow the meeting: finish, regenerate and the notes model")
     func actions() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         func ids(_ name: String) throws -> [String] { try rig.source.actions(for: rig.key(name)).map(\.id) }
         #expect(try ids("notes") == ["meetings.regenerate"])
         #expect(try ids("failed").isEmpty)
@@ -441,7 +441,7 @@ struct MeetingNoteEditingTests {
 
     @Test("delete removes the meeting and its spool and tells the change streams; a live one is refused")
     func delete() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         var changes = rig.source.makeChanges().makeAsyncIterator()
         let key = try rig.key("plain")
         try await rig.source.delete(key)
@@ -484,7 +484,7 @@ struct MeetingNoteEditingTests {
 @Suite("MeetingNoteSource: privacy and keys")
 struct MeetingNotePrivacyTests {
     @Test("the source files never log or print")
-    func noLogging() throws {
+    func noLogging() async throws {
         for name in [
             "MeetingNoteSource.swift", "MeetingNoteLayers.swift", "MeetingNoteMapping.swift", "MeetingEdits.swift",
         ] {
@@ -497,7 +497,7 @@ struct MeetingNotePrivacyTests {
 
     @Test("keys stay unique after the library is erased and a meeting is recorded")
     func keysAfterErase() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let oldKeys = Set(try await rig.source.list(matching: nil, after: nil, limit: 10).items.map(\.id))
         #expect(oldKeys.count == 5)
         try rig.rig.library.erase()
@@ -515,7 +515,7 @@ struct MeetingNotePrivacyTests {
 
     @Test("keys are meetings:<uuid>")
     func keyFormat() async throws {
-        let rig = try NoteSourceRig()
+        let rig = try await NoteSourceRig()
         let page = try await rig.source.list(matching: nil, after: nil, limit: 1)
         let key = try #require(page.items.first?.id)
         #expect(key.rawValue.hasPrefix("meetings:"))
@@ -541,8 +541,8 @@ struct MeetingOpenNoteTests {
     }
 
     @Test("with the default handler (false) ⌘O still opens the meeting window")
-    func defaultHandlerOpensTheWindow() throws {
-        let rig = try LibraryRig()
+    func defaultHandlerOpensTheWindow() async throws {
+        let rig = try await LibraryRig()
         let windows = FakeWindows()
         let id = try #require(rig.ids["notes"])
         actions(rig, windows: windows).open(id)
@@ -550,8 +550,8 @@ struct MeetingOpenNoteTests {
     }
 
     @Test("a handler that returns false still opens the window, and sees the meeting's key")
-    func decliningHandler() throws {
-        let rig = try LibraryRig()
+    func decliningHandler() async throws {
+        let rig = try await LibraryRig()
         let windows = FakeWindows()
         let id = try #require(rig.ids["notes"])
         let seen = Shared<[NoteKey]>([])
@@ -564,8 +564,8 @@ struct MeetingOpenNoteTests {
     }
 
     @Test("a handler that returns true gets the key and no window opens")
-    func acceptingHandler() throws {
-        let rig = try LibraryRig()
+    func acceptingHandler() async throws {
+        let rig = try await LibraryRig()
         let windows = FakeWindows()
         let id = try #require(rig.ids["notes"])
         let seen = Shared<[NoteKey]>([])
@@ -580,7 +580,7 @@ struct MeetingOpenNoteTests {
 
     @Test("the library's ⌘O action goes through open")
     func theActionUsesIt() async throws {
-        let rig = try LibraryRig()
+        let rig = try await LibraryRig()
         let windows = FakeWindows()
         let handled = Shared<Int>(0)
         let actions = actions(rig, windows: windows) { _ in

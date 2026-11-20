@@ -29,7 +29,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
         let rig = try RecoveryRig(texts: words)
         rig.harness.settings.setValue(.integer(7), forKey: "plugins.meetings.retentionDays")
         let track = mic()
-        let meeting = try rig.seed(.incomplete, mic: track)
+        let meeting = try await rig.seed(.incomplete, mic: track)
         // The spool is one hour past the seven days, the meeting is far past the retention.
         let edge = RecoveryRig.now.addingTimeInterval(-7 * RecoveryRig.day - 3_600)
         try rig.age(meeting.uuid, to: edge)
@@ -40,7 +40,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
         let handle = try #require(library.finish(meetingID: meeting.id))
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
         #expect(try store.status(of: meeting.id) == .processing)
 
         #expect(await library.applyRetention() == 0)
@@ -62,7 +62,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
     func audioIsMarkedDeletedOnlyWhenTheRemovalIsConfirmed() async throws {
         let rig = try RecoveryRig(texts: words)
         let track = mic()
-        let meeting = try rig.seed(.incomplete, mic: track)
+        let meeting = try await rig.seed(.incomplete, mic: track)
         let library = rig.library(resumer: rig.resumerFactory(mic: track))
         library.open()
         let store = try #require(library.store)
@@ -86,9 +86,9 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
         library.close()
     }
 
-    @Test func aReadyMeetingWhoseSpoolIsStillThereLosesItAtTheNextOpen() throws {
+    @Test func aReadyMeetingWhoseSpoolIsStillThereLosesItAtTheNextOpen() async throws {
         let rig = try RecoveryRig(texts: words)
-        let meeting = try rig.seed(.ready, mic: mic())
+        let meeting = try await rig.seed(.ready, mic: mic())
         let library = rig.library()
         library.open()
         #expect(library.lastRecovery?.leftoverSpoolsRemoved == 1)
@@ -101,7 +101,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
     @Test func finishingAnUnreadableSpoolKeepsItUntilTheUserAcceptsTheGap() async throws {
         let rig = try RecoveryRig(texts: words)
-        let meeting = try rig.seed(
+        let meeting = try await rig.seed(
             .processing, mic: mic(), stored: [(.mic, 16_000..<64_000, words[11]!)], spoolKeys: try testKeys(77))
         let library = rig.library(resumer: rig.resumerFactory(mic: mic()))
         library.open()
@@ -129,7 +129,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
     @Test func aZeroByteTrackNeverMakesFinishFailForeverWhenTheUserAcceptsTheGap() async throws {
         let rig = try RecoveryRig(texts: words)
         let track = mic()
-        let meeting = try rig.seed(.incomplete, mic: track, system: .build([(2, nil, 0)], tail: 2))
+        let meeting = try await rig.seed(.incomplete, mic: track, system: .build([(2, nil, 0)], tail: 2))
         try Data().write(to: rig.spool.file(for: meeting.uuid, track: .system))
         let library = rig.library(resumer: rig.resumerFactory(mic: track))
         library.open()
@@ -153,7 +153,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
     @Test func aFailingDetectorIsNotCountedAsADamagedTrack() async throws {
         let rig = try RecoveryRig(texts: words)
         let track = mic()
-        let meeting = try rig.seed(.incomplete, mic: track)
+        let meeting = try await rig.seed(.incomplete, mic: track)
         let folder = rig.harness.directory.url.appending(path: "model")
         let engine = rig.engine
         let lease = rig.lease
@@ -174,10 +174,10 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
     // MARK: M5
 
-    @Test func disablingAndReEnablingMidRecordingDoesNotFlipTheLiveMeeting() throws {
+    @Test func disablingAndReEnablingMidRecordingDoesNotFlipTheLiveMeeting() async throws {
         let rig = try RecoveryRig(texts: words)
-        let live = try rig.seed(.recording, mic: mic())
-        let crashed = try rig.seed(.recording, mic: mic())
+        let live = try await rig.seed(.recording, mic: mic())
+        let crashed = try await rig.seed(.recording, mic: mic())
         let library = rig.library()
         library.registerLive(meetingID: live.id)
         library.open()
@@ -205,13 +205,13 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
     @Test func closingCancelsAFinishAndASecondOpenResumesTheMeetingOnce() async throws {
         let rig = try RecoveryRig(texts: words)
         let track = mic()
-        let meeting = try rig.seed(.incomplete, mic: track)
+        let meeting = try await rig.seed(.incomplete, mic: track)
         let library = rig.library(resumer: rig.resumerFactory(mic: track))
         library.open()
         rig.engine.gate.close()
         let handle = try #require(library.finish(meetingID: meeting.id))
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
 
         library.close()
         library.open()
@@ -221,7 +221,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
         let old = await finished(handle)
         #expect(old != .ready)
-        #expect(await eventually { (try? store.status(of: meeting.id)) == .ready })
+        #expect(await pollUntil { (try? store.status(of: meeting.id)) == .ready })
         #expect(try rig.rows(library, meeting.id).map(\.text) == [words[11]!, words[12]!])
         #expect(!rig.spoolExists(meeting.uuid))
         #expect(rig.finalizations.calls.count == 1)
@@ -230,9 +230,9 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
     // MARK: Lows
 
-    @Test func aProcessingMeetingThatKeepsFailingToResumeBecomesIncompleteAfterThreeTries() throws {
+    @Test func aProcessingMeetingThatKeepsFailingToResumeBecomesIncompleteAfterThreeTries() async throws {
         let rig = try RecoveryRig(texts: words)
-        let meeting = try rig.seed(.processing, mic: mic())
+        let meeting = try await rig.seed(.processing, mic: mic())
         let store = try #require(rig.seedStoreForTests)
         let job = RecoveryJob(
             spool: rig.spool, keys: rig.keys, now: { RecoveryRig.now }, logger: rig.harness.context.logger)
@@ -248,9 +248,9 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
         #expect(rig.spoolExists(meeting.uuid))
     }
 
-    @Test func statusAndAudioStateAreWrittenInOneTransaction() throws {
+    @Test func statusAndAudioStateAreWrittenInOneTransaction() async throws {
         let rig = try RecoveryRig(texts: words)
-        let meeting = try rig.seed(
+        let meeting = try await rig.seed(
             .recording, mic: mic(), stored: [(.mic, 16_000..<64_000, words[11]!)], writeSpool: false)
         let store = try #require(rig.seedStoreForTests)
         try store.write { db in
@@ -283,9 +283,9 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
         #expect(MeetingResumer.uncovered([], by: [(0, 100)]).isEmpty)
     }
 
-    @Test func aWipedKeychainNextToAValidSpoolWithoutALibraryStillDeletesTheUnreadableSpool() throws {
+    @Test func aWipedKeychainNextToAValidSpoolWithoutALibraryStillDeletesTheUnreadableSpool() async throws {
         let rig = try RecoveryRig(texts: words)
-        let meeting = try rig.seed(.recording, mic: mic())
+        let meeting = try await rig.seed(.recording, mic: mic())
         rig.closeSeed()
         try rig.harness.keychain.deleteGenericPassword(service: "com.lintelapp.meetings", account: "master-key")
         // The database is gone as well: no archive, a fresh library, but the old spool is still on disk.

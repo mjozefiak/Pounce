@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
-# Compatibility entrypoint; Node is already required by the harness runtime.
-exec node "$(dirname "$0")/guard.mjs" freeze
+# Compatibility entrypoint. Node is found through node.sh (hooks run in a non-interactive shell).
+source "$(dirname "$0")/node.sh"
+om_harness_run freeze
