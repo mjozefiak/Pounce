@@ -17,7 +17,8 @@ while (( $# )); do case "$1" in --key) keyfile="$2"; shift 2 ;; *) args+=("$1");
 [[ -f "$keyfile" ]] && print -r -- "$keyfile" >> "$STUB_KEYFILES"
 case "$sub" in
   submit) [[ "${STUB_SUBMIT_SLEEP:-0}" == 0 ]] || sleep "$STUB_SUBMIT_SLEEP"; print -r -- "$STUB_SUBMIT"; exit "${STUB_SUBMIT_RC:-0}" ;;
-  info) print -r -- "{\"id\":\"abc-123\",\"status\":\"$STUB_STATUS\"}"; exit "${STUB_INFO_RC:-0}" ;;
+  info) [[ "${STUB_INFO_SLEEP:-0}" == 0 ]] || sleep "$STUB_INFO_SLEEP"
+        print -r -- "{\"id\":\"abc-123\",\"status\":\"$STUB_STATUS\"}"; exit "${STUB_INFO_RC:-0}" ;;
   log) print -r -- '{"issues":[]}' > "${args[-1]}"; exit 0 ;;
 esac
 STUB
@@ -25,7 +26,8 @@ chmod +x "$tmp/bin/xcrun"
 print x > "$tmp/Lintel-app.zip"
 export PATH="$tmp/bin:$PATH" STUB_CALLS="$tmp/calls" STUB_KEYFILES="$tmp/keyfiles"
 export NOTARY_KEY_P8="SENTINEL-KEY-CONTENT-31337" NOTARY_KEY_ID="SENTINEL-KEYID-4242" NOTARY_ISSUER_ID="SENTINEL-ISSUER-9999"
-export NOTARY_POLL_SECONDS=1 NOTARY_PROGRESS_SECONDS=1 NOTARY_WAIT_SECONDS=3 NOTARY_UPLOAD_SECONDS=3
+# Generous upload and call bounds, so a loaded runner cannot hit them by accident; the timeout tests set small ones.
+export NOTARY_POLL_SECONDS=1 NOTARY_PROGRESS_SECONDS=1 NOTARY_WAIT_SECONDS=3 NOTARY_UPLOAD_SECONDS=60 NOTARY_CALL_SECONDS=60
 export STUB_SUBMIT='{"id":"abc-123","message":"Successfully uploaded file"}'
 n="$ROOT/scripts/notarize.sh"
 run() { out="$(zsh "$n" "$tmp/Lintel-app.zip" "$tmp/logs" 2>&1)"; rc=$?; }
@@ -83,9 +85,41 @@ assert_eq "2" "$rc" "an upload that hangs exits 2 at its bound"
 assert_contains "$out" "did not finish within 2 s" "the upload timeout is explained"
 
 # Status reads that keep failing give a plain error, not a verdict
-STUB_STATUS=Accepted STUB_INFO_RC=1 NOTARY_POLL_SECONDS=0 run
+: > "$tmp/calls"
+STUB_STATUS=Accepted STUB_INFO_RC=1 NOTARY_POLL_SECONDS=0 NOTARY_WAIT_SECONDS=120 run
 assert_eq "1" "$rc" "unreadable status exits 1"
 assert_contains "$out" "Could not read the status" "unreadable status is explained"
+assert_eq "10" "$(grep -c '^info ' "$tmp/calls")" "it gives up after ten failed reads in a row, not fewer"
+
+# A status read that hangs is stopped at its own bound and counts as a failed read
+: > "$tmp/calls"
+STUB_STATUS=Accepted STUB_INFO_SLEEP=30 NOTARY_CALL_SECONDS=1 NOTARY_POLL_SECONDS=0 NOTARY_WAIT_SECONDS=2 run
+assert_eq "3" "$rc" "a hanging status read ends at the wait bound, not never"
+
+# An unknown status fails at once with its own message, not as a rejection and not after the whole wait
+rm -rf "$tmp/logs"
+STUB_STATUS="Something New" NOTARY_WAIT_SECONDS=120 run
+assert_eq "1" "$rc" "an unexpected status exits 1"
+assert_contains "$out" "unexpected status 'Something New'" "the unexpected status is named"
+assert_fails "an unexpected status is not called a rejection" grep -q "Apple rejected" <<<"$out"
+
+# The upload's own error is shown when it fails (the stub prints no secret, the script adds none)
+STUB_SUBMIT='{"message":"Agreement not signed"}' STUB_STATUS=Accepted run
+assert_contains "$out" "Agreement not signed" "the notary service's message is shown for a failed upload"
+STUB_SUBMIT='{"id":"abc-123\nx=1"}' STUB_STATUS=Accepted run
+assert_eq "2" "$rc" "an id that is not a plain UUID-like value is refused"
+
+# Cancelled (TERM, as the runner does on cancel or job timeout) during the wait: the key file is still deleted
+: > "$tmp/keyfiles"
+STUB_STATUS="In Progress" NOTARY_WAIT_SECONDS=120 zsh "$n" "$tmp/Lintel-app.zip" "$tmp/logs" >/dev/null 2>&1 &
+pid=$!
+for i in {1..300}; do [[ -s "$tmp/keyfiles" ]] && break; sleep 0.1; done
+kill -TERM "$pid"
+wait "$pid"; rc=$?
+assert_eq "143" "$rc" "TERM ends the script with 143"
+keyfile="$(head -n 1 "$tmp/keyfiles")"
+assert_ok "the key file was in use before the cancel" test -n "$keyfile"
+assert_fails "the key file is deleted after TERM" test -e "$keyfile"
 
 # No secret value anywhere in any output
 for case_status in Accepted Invalid "In Progress"; do
@@ -97,7 +131,7 @@ done
 
 # NOTARY_WAIT_MINUTES: validated before anything is uploaded
 : > "$tmp/calls"
-for bad in abc 0 -5 1.5 "" " 5" 241 1000 007 "5m"; do
+for bad in abc 0 -5 1.5 "" " 5" 241 1000 007 "5m" 99999999999999999999999; do
   [[ -z "$bad" ]] && continue
   NOTARY_WAIT_MINUTES="$bad" STUB_STATUS=Accepted run
   assert_eq "64" "$rc" "NOTARY_WAIT_MINUTES='$bad' is refused"
@@ -109,7 +143,7 @@ NOTARY_WAIT_MINUTES=240 STUB_STATUS=Accepted run
 assert_eq "0" "$rc" "the upper limit itself is accepted"
 NOTARY_WAIT_MINUTES="" STUB_STATUS=Accepted run
 assert_eq "0" "$rc" "an empty value means the default"
-NOTARY_WAIT_MINUTES=1 STUB_STATUS="In Progress" NOTARY_POLL_SECONDS=1 NOTARY_UPLOAD_SECONDS=3 NOTARY_WAIT_SECONDS=2 run
+NOTARY_WAIT_MINUTES=1 STUB_STATUS="In Progress" NOTARY_POLL_SECONDS=1 NOTARY_WAIT_SECONDS=2 run
 assert_eq "3" "$rc" "NOTARY_WAIT_SECONDS wins over NOTARY_WAIT_MINUTES"
 assert_contains "$out" "after 2 s" "the bound in seconds is the one reported"
 

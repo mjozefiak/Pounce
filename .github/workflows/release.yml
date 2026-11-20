@@ -202,7 +202,8 @@ jobs:
     runs-on: xcode-27
     # Worst case = upload (10) + app wait (default 40, a manual run may raise it to 240) + DMG upload (10) + DMG wait (always
     # 40, the account is warm once the app was accepted) + about 10 minutes for the rest = 310 minutes for the largest
-    # allowed input. GitHub-hosted jobs stop at 360. A first submission can sit In Progress for hours at Apple; the
+    # allowed input; each status read is bounded at 2 minutes, so each wait overshoots by at most about 2.5 minutes and
+    # a rejection's log fetch adds at most 2: about 319. GitHub-hosted jobs stop at 360. A first submission can sit In Progress for hours at Apple; the
     # bounded wait fails the step with the submission id instead of the job being cut.
     timeout-minutes: 330
     permissions:

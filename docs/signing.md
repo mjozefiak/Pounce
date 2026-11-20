@@ -72,7 +72,10 @@ pull request). It compiles nothing, runs no tests and uses no third-party action
 5. `scripts/notarize.sh` uploads the app without waiting, prints the submission id at once (also to `$GITHUB_OUTPUT` and
    `notary-logs/<file>.submission-id`) and polls `notarytool info` for at most 40 minutes (upload at most 10; a manual run may raise the app wait to 240 with the `notary_wait_minutes` input) with a progress
    line every minute; still In Progress at the bound fails the step (exit status 3, naming the id: Apple's queue, start the run
-   again later, a new run signs a new binary). The API key is written to a temporary file that is deleted on exit. The app is stapled, `scripts/make-dmg.sh --skip-build` builds and signs the DMG from the stapled
+   again later, a new run signs a new binary). Each `notarytool info` or `log` call is bounded too (2 minutes), ten failed
+   status reads in a row fail the step, and a status other than In Progress, Accepted, Invalid or Rejected fails it at once.
+   The API key is written to a temporary file that is deleted on exit, also when the job is cancelled or cut by its
+   timeout. The app is stapled, `scripts/make-dmg.sh --skip-build` builds and signs the DMG from the stapled
    app, the DMG is notarized and stapled, and only then `Lintel.dmg.sha256` is computed. A rejection uploads the notary log.
 6. `scripts/verify-release-bundle.sh` checks `codesign --verify --strict --deep`, a requirement that names the Team ID with
    `anchor apple generic` and no `cdhash`, `spctl` ("Notarized Developer ID") and `stapler validate`, for the app and the DMG.
@@ -83,7 +86,9 @@ pull request). It compiles nothing, runs no tests and uses no third-party action
 tags are pre-releases; assets: the DMG, its checksum, `CHANGELOG.md`) and asks the website to rebuild.
 
 Pull requests get no Environment and no secrets, and always build ad-hoc. `sign` and `publish` of all tags share the
-job-level concurrency group `release-tags` (`queue: max`), so releases go one at a time and none is cancelled. The first
+job-level concurrency group `release-tags` (`queue: max`), so releases go one at a time and none is cancelled. Manual
+`sign` runs join the same group: while one waits for Apple (up to 240 minutes with `notary_wait_minutes`, the `sign` job
+may hold the macOS runner for up to 330 minutes), a tag's `sign` and `publish` queue behind it. The first
 step of `sign`, and `publish` again right before it creates the release, check that the tagged commit is a strict
 descendant of the newest published release's commit (`scripts/check-release-order.sh --github`); the second check closes
 the window in which another tag's `sign` runs between this tag's `sign` and `publish`.
