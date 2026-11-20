@@ -19,13 +19,13 @@ enum WaitOutcome: Sendable {
 ///   so a cancel that lands before the waiter is stored is seen by the registration, and a cancel that lands after
 ///   finds the stored waiter. There is no window in which neither happens.
 /// - The guard timer is a task that is cancelled and awaited before `wait` returns, so no task outlives a wait.
-final class Waitable<Value>: Sendable {
-    private struct Waiter {
+final class Waitable<Value: Sendable>: Sendable {
+    private struct Waiter: Sendable {
         let predicate: @Sendable (Value) -> Bool
         let continuation: CheckedContinuation<WaitOutcome, Never>
     }
 
-    private struct Inner {
+    private struct Inner: Sendable {
         var value: Value
         var nextID = 0
         var waiters: [Int: Waiter] = [:]
@@ -41,13 +41,13 @@ final class Waitable<Value>: Sendable {
     }
 
     /// Reads the value.
-    func read<R>(_ body: (Value) -> R) -> R {
+    func read<R: Sendable>(_ body: (Value) -> R) -> R {
         inner.withLock { body($0.value) }
     }
 
     /// Mutates the value and resumes every waiter whose predicate now holds, outside the lock.
     @discardableResult
-    func mutate<R>(_ body: (inout Value) -> R) -> R {
+    func mutate<R: Sendable>(_ body: (inout Value) -> R) -> R {
         let (result, ready) = inner.withLock { state -> (R, [CheckedContinuation<WaitOutcome, Never>]) in
             let result = body(&state.value)
             var ready: [CheckedContinuation<WaitOutcome, Never>] = []

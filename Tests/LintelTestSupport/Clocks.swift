@@ -47,6 +47,10 @@ public final class TestClock: Clock, Sendable {
     public var sleeperCount: Int { state.read { $0.sleepers.count } }
     /// Every call to `sleep`, including those that returned or threw at once.
     public var sleepCalls: Int { state.read { $0.sleepCalls } }
+
+    /// Diagnostics for the module's own tests: waiters stored and guard timers still running.
+    var pendingWaiters: Int { state.pendingWaiters }
+    var liveTimers: Int { state.liveTimers }
     /// Sleeps that ended by cancellation.
     public var cancelledSleeps: Int { state.read { $0.cancelledSleeps } }
     /// The deadlines of the sleepers `advance` resumed, in the order it resumed them.

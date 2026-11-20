@@ -9,6 +9,10 @@ public final class CountLatch: Sendable {
 
     public var count: Int { state.read { $0 } }
 
+    /// Diagnostics for the module's own tests: waiters stored and guard timers still running.
+    var pendingWaiters: Int { state.pendingWaiters }
+    var liveTimers: Int { state.liveTimers }
+
     @discardableResult
     public func increment() -> Int {
         state.mutate { value -> Int in
@@ -35,6 +39,10 @@ public final class Latch: Sendable {
     public init() {}
 
     public var isOpen: Bool { state.read { $0 } }
+
+    /// Diagnostics for the module's own tests: waiters stored and guard timers still running.
+    var pendingWaiters: Int { state.pendingWaiters }
+    var liveTimers: Int { state.liveTimers }
 
     public func open() { state.mutate { $0 = true } }
 
