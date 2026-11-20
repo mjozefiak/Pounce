@@ -312,7 +312,7 @@ extension NotesFactGuard {
             if words.contains(word) { return true }
             guard let initial = word.first else { return true }
             for other in byInitial[initial] ?? [] where Self.isClose(word, other) { return true }
-            // A garbled first letter ("girce" for "Jirze") is close by edit distance only.
+            // A garbled first letter ("prelzie" for "Brelsie") is close by edit distance only.
             for other in words where abs(other.count - word.count) <= 2 && Self.isNear(word, other) { return true }
             return false
         }
@@ -327,7 +327,7 @@ extension NotesFactGuard {
             let shortest = min(first.count, second.count)
             if shortest >= 4 {
                 // Spec: an edit distance up to 2, so a name the recognition garbled and the model corrected
-                // ("gira" → "Jirze") still stands. Two edits are allowed from five letters up.
+                // ("brelzo" → "Brelsa") still stands. Two edits are allowed from five letters up.
                 let limit = max(first.count, second.count) >= 5 ? 2 : 1
                 if editDistance(Array(first), Array(second), limit: limit) <= limit { return true }
                 let a = Array(first)
