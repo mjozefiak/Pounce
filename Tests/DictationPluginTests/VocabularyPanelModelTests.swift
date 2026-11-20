@@ -543,6 +543,20 @@ final class Shared<Value: Sendable>: Sendable {
         #expect(VocabularyRules.words(in: "  ").isEmpty)
     }
 
+    @Test func matchRangesFoldLettersLikeTheSearch() {
+        let text = "nekst kład"
+        #expect(VocabularyRules.matchRanges(of: "klad", in: text).map { String(text[$0]) } == ["kład"])
+        #expect(VocabularyRules.matchRanges(of: "KŁAD", in: text).map { String(text[$0]) } == ["kład"])
+        let postgres = "post gres ku el"
+        #expect(VocabularyRules.matchRanges(of: "post", in: "PostgreSQL").map { String("PostgreSQL"[$0]) } == ["Post"])
+        #expect(VocabularyRules.matchRanges(of: "e", in: postgres).count == 2)
+        #expect(VocabularyRules.matchRanges(of: "  ", in: text).isEmpty)
+        #expect(VocabularyRules.matchRanges(of: "wrzos", in: text).isEmpty)
+        // Every row the search shows has its match marked.
+        let entry = VocabularyStore.Term(term: "Nextcloud", aliases: ["nekst kład"])
+        #expect(VocabularyRules.matches(entry, query: "klad"))
+    }
+
     @Test func checkIgnoresTheEntryBeingEdited() {
         let entries = [VocabularyStore.Term(term: "A", aliases: ["a a"]), .init(term: "B", aliases: [])]
         #expect(VocabularyRules.check(term: "A", aliases: ["a a"], ignoring: 0, in: entries).isValid)
@@ -693,6 +707,23 @@ extension VocabularySourceRulesTests {
         #expect(store.condition == .unreadable)
         #expect(store.isReadOnly)
         #expect(FileManager.default.fileExists(atPath: store.fileURL.path))
+    }
+
+    @Test func aDamagedFileThatCannotBeMovedIsLeftAloneAndNeverOverwritten() throws {
+        let directory = try makeDirectory()
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+            try? FileManager.default.removeItem(at: directory)
+        }
+        let store = VocabularyStore(directory: directory)
+        try Data("broken".utf8).write(to: store.fileURL)
+        // A folder that can be read but not changed: the damaged file cannot be renamed to the copy.
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+        store.load()
+        #expect(store.condition == .unreadable)
+        #expect(store.isReadOnly)
+        #expect(throws: VocabularyStore.SaveError.readOnly) { try store.save([.init(term: "A", aliases: [])]) }
+        #expect(try String(contentsOf: store.fileURL, encoding: .utf8) == "broken")
     }
 
     @Test func eraseClearsTheFlag() throws {

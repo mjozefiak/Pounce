@@ -11,30 +11,43 @@ struct VocabularySection: View {
 
     @Environment(\.lintelTextSize) private var textSize
 
-    var body: some View {
+    /// Two cards as in the prototype: the switch, then the list (or the empty state or the form). The strips sit
+    /// between the title and the switch, the search between the two cards, Add Term… under the list.
+    @ViewBuilder var body: some View {
         Section {
-            if isActive {
-                ForEach(notices, id: \.self) { notice in
-                    VocabularyNoticeStrip(notice: notice, model: model)
-                }
-                if model.limitReached {
-                    VocabularyStrip(
-                        symbol: "info.circle", tint: LintelBrand.fill,
-                        text: Text(
-                            "The vocabulary is full (2,000 terms). Delete one to add another.",
-                            comment: "Vocabulary section: shown when the vocabulary holds the most terms it can")
-                    )
-                }
-            }
             switchRow
-            if isActive {
-                if model.showsSearch { searchRow }
-                VocabularyListView(model: model)
-            }
         } header: {
-            header
-        } footer: {
-            if isActive { footer }
+            VStack(alignment: .leading, spacing: 8) {
+                header
+                if isActive { strips }
+            }
+        }
+        if isActive {
+            Section {
+                VocabularyListView(model: model)
+                    // macOS ignores `listRowInsets` in a grouped form: the list reaches over the row's insets to
+                    // the card's edges and draws its own, as the prototype's card does (2 pt above and below).
+                    .padding(.horizontal, -VocabularyListView.cardInset)
+                    .padding(.vertical, -VocabularyListView.cardVerticalTrim)
+            } header: {
+                if model.showsSearch { searchRow }
+            } footer: {
+                footer
+            }
+        }
+    }
+
+    @ViewBuilder private var strips: some View {
+        ForEach(notices, id: \.self) { notice in
+            VocabularyNoticeStrip(notice: notice, model: model)
+        }
+        if model.limitReached {
+            VocabularyStrip(
+                symbol: "info.circle", tint: LintelBrand.fill,
+                text: Text(
+                    "The vocabulary is full (2,000 terms). Delete one to add another.",
+                    comment: "Vocabulary section: shown when the vocabulary holds the most terms it can")
+            )
         }
     }
 
@@ -146,12 +159,16 @@ struct VocabularyStrip<Actions: View>: View {
                 .accessibilityHidden(true)
             text
                 .font(textSize.font(.callout))
+                .foregroundStyle(LintelBrand.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
             actions
+                .font(textSize.font(.callout, weight: .semibold))
         }
+        // The prototype's `.strip`: at least 2.3 em high, 4 × 12 padding.
         .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
+        .frame(minHeight: 30 * textSize.scale)
         .background(tint, in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .contain)
     }
@@ -172,13 +189,13 @@ struct VocabularyNoticeStrip: View {
         switch notice {
         case .newerVersion:
             VocabularyStrip(
-                symbol: "lock", tint: LintelBrand.fill,
+                symbol: "info.circle", tint: LintelBrand.fill,
                 text: Text(
                     "This vocabulary was saved by a newer Lintel. It is used, but can’t be changed here.",
                     comment: "Vocabulary section: notice when the file comes from a newer version"))
         case .unreadable:
             VocabularyStrip(
-                symbol: "lock", tint: LintelBrand.fill,
+                symbol: "info.circle", tint: LintelBrand.fill,
                 text: Text(
                     "The vocabulary file couldn’t be read. It is left as it is and can’t be changed here.",
                     comment: "Vocabulary section: notice when the file exists but cannot be read"))
@@ -222,6 +239,11 @@ struct VocabularyListView: View {
 
     /// The list's height before it scrolls: about six rows (prototype `.scrollbox`, 15.4 em).
     private var scrollLimit: CGFloat { 312 * textSize.scale }
+    /// The grouped form's inset from a card's edge to its rows. The list reaches over it and pads its rows by it, so
+    /// a selected row and the form are tinted from edge to edge (prototype `.vr.sel`, `.inl`).
+    static let cardInset: CGFloat = 10
+    /// How much of the grouped form's vertical row inset the list takes back.
+    static let cardVerticalTrim: CGFloat = 6
 
     var body: some View {
         content
@@ -272,8 +294,9 @@ struct VocabularyListView: View {
         let stack = ScrollViewReader { proxy in
             ScrollView {
                 rowsStack(rows)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, Self.cardInset)
             }
+
             .scrollBounceBehavior(.basedOnSize)
             .frame(maxHeight: formOpen ? nil : scrollLimit)
             .onChange(of: model.scrollTick) {
@@ -289,6 +312,8 @@ struct VocabularyListView: View {
             .onKeyPress(.downArrow) { handle { model.moveSelection(by: 1) } }
             .onKeyPress(.return) { handle { model.editSelected() } }
             .onKeyPress(keys: [.delete, .deleteForward]) { _ in handle { model.deleteSelected() } }
+            // AppKit turns ⌫ into the `deleteBackward:` command before a key press reaches the list (D13).
+            .onDeleteCommand { _ = handle { model.deleteSelected() } }
             .onChange(of: listFocused) {
                 if listFocused, model.editor == nil, model.selectedID == nil, let first = model.visibleRows.first {
                     model.selectedID = first.id
@@ -315,7 +340,7 @@ struct VocabularyListView: View {
             }
             ForEach(Array(rows.enumerated()), id: \.element.id) { offset, row in
                 if case .editing(let id)? = model.editor?.target, id == row.id {
-                    VocabularyFormView(model: model)
+                    VocabularyFormView(model: model, isFirst: offset == 0)
                 } else {
                     VocabularyRowView(
                         row: row, position: offset + 1, total: rows.count,
@@ -383,6 +408,8 @@ struct VocabularyListView: View {
                 .foregroundStyle(LintelBrand.secondaryText)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                // Prototype `.emp .e2`: at most 30 em wide.
+                .frame(maxWidth: 390 * textSize.scale)
                 Button {
                     model.beginAdding()
                 } label: {
@@ -397,6 +424,7 @@ struct VocabularyListView: View {
                 .padding(.top, 6)
             }
         }
+        .padding(.horizontal, Self.cardInset)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .accessibilityElement(children: .contain)
@@ -431,7 +459,7 @@ struct VocabularyRowView: View {
                     WrappingLayout(horizontalSpacing: 5, verticalSpacing: 4) {
                         ForEach(Array(row.aliases.enumerated()), id: \.offset) { _, alias in
                             Text(highlighted(alias))
-                                .font(textSize.font(.callout))
+                                .font(textSize.font(.subheadline))
                                 .foregroundStyle(LintelBrand.ink)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 1)
@@ -441,26 +469,26 @@ struct VocabularyRowView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .opacity(isDimmed ? 0.55 : 1)
+            .opacity(isDimmed ? 0.5 : 1)
             if showsActions {
                 HStack(spacing: 2) {
                     iconButton("pencil", action: edit)
                     iconButton("trash", action: delete)
                 }
                 .accessibilityHidden(true)
-                .opacity(isDimmed ? 0.55 : 1)
+                .opacity(isDimmed ? 0.5 : 1)
             }
         }
         .padding(.vertical, 7)
-        // The leading inset keeps the selection bar off the first letter.
-        .padding(.leading, 10)
-        .padding(.trailing, 2)
         .background {
+            // From the card's left edge, with the bar on that edge (prototype `.vr.sel`).
             if isSelected || isHighlighted {
                 LintelBrand.windowSelectionTint
                     .overlay(alignment: .leading) {
-                        Rectangle().fill(LintelBrand.accent).frame(width: 3).padding(.vertical, 7)
+                        UnevenRoundedRectangle(bottomTrailingRadius: 2, topTrailingRadius: 2)
+                            .fill(LintelBrand.accent).frame(width: 3).padding(.vertical, 7)
                     }
+                    .padding(.horizontal, -VocabularyListView.cardInset)
             }
         }
         .contentShape(Rectangle())
@@ -492,19 +520,11 @@ struct VocabularyRowView: View {
     /// The text with the search's matches marked (prototype `mark`: tint behind accent text).
     private func highlighted(_ text: String) -> AttributedString {
         var result = AttributedString(text)
-        let wanted = VocabularyRules.tidy(query)
-        guard !wanted.isEmpty else { return result }
-        var start = text.startIndex
-        while start < text.endIndex,
-            let found = text.range(
-                of: wanted, options: [.caseInsensitive, .diacriticInsensitive], range: start..<text.endIndex)
-        {
-            if let range = Range(found, in: result) {
-                result[range].backgroundColor = LintelBrand.windowSelectionTint
-                result[range].foregroundColor = LintelBrand.accentText
-                result[range].inlinePresentationIntent = .stronglyEmphasized
-            }
-            start = found.upperBound
+        for found in VocabularyRules.matchRanges(of: query, in: text) {
+            guard let range = Range(found, in: result) else { continue }
+            result[range].backgroundColor = LintelBrand.windowSelectionTint
+            result[range].foregroundColor = LintelBrand.accentText
+            result[range].inlinePresentationIntent = .stronglyEmphasized
         }
         return result
     }

@@ -61,9 +61,12 @@ enum VocabularyQA {
             model.fill(term: "AuthServer", aliases: ["auth service", "auth serwer"])
             model.submit()
         case "err-rule":
-            model.beginAdding()
-            model.fill(term: "SwiftUI", aliases: ["swift ui", "swift"])
-            model.submit()
+            // Editing SwiftUI: its new variant "swift" is the term Swift (prototype `err-rule`, "Save").
+            if let id = index(of: "SwiftUI") {
+                model.beginEditing(id)
+                model.fill(term: "SwiftUI", aliases: ["swift ui", "swift"])
+                model.submit()
+            }
         case "err-long":
             model.beginAdding()
             model.fill(term: "RFC 9110", aliases: ["er ef ce dziewięć tysięcy sto dziesięć http semantics spec"])

@@ -6,6 +6,9 @@ import SwiftUI
 /// field, and the focus goes to that field.
 struct VocabularyFormView: View {
     @Bindable var model: VocabularyPanelModel
+    /// The form is the list's first row (a new term, or the first term being edited): rounded top corners and no
+    /// hairline above it (prototype `.inl:first-child`).
+    var isFirst = true
 
     @Environment(\.lintelTextSize) private var textSize
     @State private var termFocused = false
@@ -19,17 +22,30 @@ struct VocabularyFormView: View {
             termField
             aliasField
             if !model.unconfirmedShortAliases.isEmpty { shortAliasBox }
-            if let example = model.example { exampleBox(example) }
+            // The prototype shows the example only for a form with nothing to fix or confirm.
+            if let example = model.example, showsExample { exampleBox(example) }
             if form.saveFailed {
                 VocabularyStrip(
                     symbol: "exclamationmark.triangle", tint: LintelBrand.statusError.opacity(0.11),
                     text: Text(VocabularyText.saveFailed()), iconTint: LintelBrand.statusError)
             }
             buttons
+                .padding(.top, 6)
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(LintelBrand.fill, in: RoundedRectangle(cornerRadius: 9))
+        // The prototype's `.inl`: the fill reaches the card's edges, with rounded top corners as the first row.
+        .padding(.top, 10)
+        .padding(.bottom, 12)
+        .background {
+            Group {
+                if isFirst {
+                    UnevenRoundedRectangle(topLeadingRadius: 9, topTrailingRadius: 9).fill(LintelBrand.fill)
+                } else {
+                    // The row above already ends with the list's hairline.
+                    Rectangle().fill(LintelBrand.fill)
+                }
+            }
+            .padding(.horizontal, -VocabularyListView.cardInset)
+        }
         .onExitCommand { model.cancelEditing() }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
@@ -107,8 +123,14 @@ struct VocabularyFormView: View {
         }
     }
 
+    private var showsExample: Bool {
+        model.termMessage == nil && model.aliasMessage == nil && model.unconfirmedShortAliases.isEmpty
+            && !form.saveFailed
+    }
+
     private var hint: String {
-        if model.effectiveAliases.isEmpty, !VocabularyRules.tidy(form.term).isEmpty {
+        // Only for a term that can be saved (prototype `err-dupterm` keeps the usual hint).
+        if model.effectiveAliases.isEmpty, !VocabularyRules.tidy(form.term).isEmpty, model.termMessage == nil {
             return VocabularyText.withoutVariantsHint(VocabularyRules.tidy(form.term))
         }
         return String(
@@ -165,6 +187,7 @@ struct VocabularyFormView: View {
                 Text("Inserted", comment: "Vocabulary form: label of the example sentence after the replacement"),
                 Text(marked(example.inserted, term: example.term)))
         }
+        .font(textSize.font(.callout))
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -176,18 +199,21 @@ struct VocabularyFormView: View {
 
     private func exampleLine(_ label: Text, _ text: Text) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
+            // Prototype `.pv .k`: 0.88 of the example's size, semibold, secondary, 6.5 em wide.
             label
-                .font(textSize.font(.callout, weight: .semibold))
+                .font(textSize.font(.subheadline, weight: .semibold))
                 .foregroundStyle(LintelBrand.secondaryText)
-                .frame(width: 92 * textSize.scale, alignment: .leading)
-            text.font(textSize.font(.body))
+                .frame(width: 72 * textSize.scale, alignment: .leading)
+            text
         }
     }
 
     private func struck(_ text: String, phrase: String) -> AttributedString {
         var result = AttributedString(text)
         if let found = text.range(of: phrase), let range = Range(found, in: result) {
+            // Prototype `s.was`: struck through and in the secondary colour.
             result[range].strikethroughStyle = .single
+            result[range].foregroundColor = LintelBrand.secondaryText
         }
         return result
     }

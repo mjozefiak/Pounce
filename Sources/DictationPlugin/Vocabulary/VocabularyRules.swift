@@ -170,6 +170,36 @@ enum VocabularyRules {
         return ([entry.term] + entry.aliases).contains { TextNormalizer.normalize($0).contains(wanted) }
     }
 
+    /// Where the query occurs in `text`, compared like `matches` (case, diacritics and letters such as `ł` folded),
+    /// as ranges of `text`, so the search marks "kład" for the query "klad" (prototype `mark`).
+    static func matchRanges(of query: String, in text: String) -> [Range<String.Index>] {
+        let wanted = Array(TextNormalizer.normalize(tidy(query)).unicodeScalars)
+        guard !wanted.isEmpty else { return [] }
+        // The folded scalars of `text` and, for each, the character it came from.
+        var scalars: [Unicode.Scalar] = []
+        var owners: [String.Index] = []
+        var index = text.startIndex
+        while index < text.endIndex {
+            for scalar in TextNormalizer.normalize(String(text[index])).unicodeScalars {
+                scalars.append(scalar)
+                owners.append(index)
+            }
+            index = text.index(after: index)
+        }
+        var ranges: [Range<String.Index>] = []
+        var start = 0
+        while start + wanted.count <= scalars.count {
+            if Array(scalars[start..<start + wanted.count]) == wanted {
+                let last = owners[start + wanted.count - 1]
+                ranges.append(owners[start]..<text.index(after: last))
+                start += wanted.count
+            } else {
+                start += 1
+            }
+        }
+        return ranges
+    }
+
     // MARK: Example
 
     /// "Heard" and "Inserted" for the form (D5): a sentence built from the first usable variant, run through the

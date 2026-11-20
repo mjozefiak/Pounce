@@ -365,7 +365,7 @@ taller window, for the lower states. Add `-AppleLanguages "(pl)"`, `--qa-appeara
 | `search:<text>` | A8 | 47 terms with the search typed, for example `search:post` (matches in a term and in a variant, "2 of 47") or `search:wrzos` (no match: "Add “wrzos”…") |
 | `add` | A3 | the form as a new first row, Add Term… inactive |
 | `edit` | A3 | AuthService open for editing, "auth serwis" typed, the example under the variants |
-| `err-empty` / `err-dupterm` / `err-alias` / `err-rule` / `err-long` | A4 | the form after pressing Add with that problem (empty term; duplicate "authservice" with Show; variant of another term; variant equal to the term Swift; a 10-word variant) |
+| `err-empty` / `err-dupterm` / `err-alias` / `err-rule` / `err-long` | A4 | the form after pressing Add (Save for `err-rule`) with that problem (empty term; duplicate "authservice" with Show; variant of another term; SwiftUI edited with the variant "swift", which is the term Swift; a 10-word variant); no example while a problem is shown |
 | `noalias` | A4 | the form for "Verdigris" without variants and its hint |
 | `limit` | A4 | 2000 terms: the "full" strip, Add Term… inactive |
 | `short` / `short-ok` | A5 | "Zed" with the short variant "zet": warning and Add inactive / box ticked and Add active |

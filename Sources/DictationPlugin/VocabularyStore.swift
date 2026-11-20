@@ -187,7 +187,9 @@ final class VocabularyStore: Sendable {
         } catch {
             logger.error("Cannot set aside vocabulary.json")
         }
-        replace(terms: [], readOnly: false)
-        if movedAside { state.withLock { $0.condition = .setAside } }
+        // A damaged file that could not be moved stays where it is: the first save would replace it, so nothing is
+        // written this session (as for a file that cannot be read).
+        replace(terms: [], readOnly: !movedAside)
+        state.withLock { $0.condition = movedAside ? .setAside : .unreadable }
     }
 }
