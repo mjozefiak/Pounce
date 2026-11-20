@@ -3,7 +3,7 @@ import Testing
 
 @testable import DictationPlugin
 
-/// Regression tables for `FormatterGuard` (PR 134, review rounds 1 to 3). Every text is invented. A row says
+/// Regression tables for `FormatterGuard` (PR 134, review rounds 1 to 4). Every text is invented. A row says
 /// whether a CORRECT cleanup of the input is `ok` (true: the guard accepts it unless the id is in
 /// `GuardProbeTests.falseAlarms`, a documented fail-safe that pastes the raw text) or a text that loses the
 /// final version or other content (false: with a retraction marker the guard must reject it, no exception;
@@ -561,5 +561,47 @@ enum GuardProbeTable {
             "The build was slow yesterday, so we restarted it.", true
         ),
         ("VD4", "no to wyślij mi ten plik jeszcze dziś", "Wyślij mi ten plik jeszcze dziś.", true),
+    ]
+
+    /// Review round 4 probes (all invented): a marker that opens the chunk dropped (WB; the withdrawn version
+    /// may be in the previous chunk, or the marker word is content), digits regrouped into another number (WD),
+    /// fillers, contractions, several markers and a kept marker with the rest swapped (WF, WC, WM, WK).
+    static let round5: [Row] = [
+        ("WB1", "sorry on monday at noon in the small room", "On Monday at noon in the small room.", false),
+        ("WB2", "czekaj w poniedziałek o dziesiątej w małej sali", "W poniedziałek o 10 w małej sali.", false),
+        ("WB3", "wait for me at the entrance at eight", "For me at the entrance at 8.", false),
+        ("WB4", "um sorry for the late reply i was travelling", "For the late reply, I was travelling.", false),
+        ("WB5", "przepraszam za spóźnienie korki były straszne", "Za spóźnienie, korki były straszne.", false),
+        ("WB6", "um sorry for the late reply i was travelling", "Sorry for the late reply, I was travelling.", true),
+        (
+            "WD1", "the budget is one hundred dollars sorry two hundred dollars", "The budget is 2,100 dollars.",
+            false
+        ),
+        ("WD2", "the budget is one hundred dollars sorry two hundred dollars", "The budget is 200 dollars.", true),
+        (
+            "WD3", "zbierzmy dwadzieścia pięć tysięcy czekaj trzydzieści tysięcy złotych", "Zbierzmy 30 000 złotych.",
+            true
+        ),
+        ("WD4", "przyjdę o dziewiątej sorry o dziesiątej trzydzieści", "Przyjdę o 10:30.", true),
+        ("WF1", "wyślij to jutro czekaj nie wysyłaj tego wcale", "Wysyłaj tego wcale.", false),
+        ("WF2", "tell them yes sorry tell them no", "Tell them.", false),
+        ("WF3", "i just want tea sorry i just want coffee", "I want coffee.", false),
+        ("WC1", "we can not do it on friday sorry we can not do it on monday", "We can't do it on Monday.", true),
+        ("WC2", "we can not do it on friday sorry we can not do it on monday", "We can do it on Monday.", false),
+        ("WC3", "it is not ready actually it is ready", "It isn't ready.", false),
+        ("WC4", "he has not paid sorry he has paid", "He's paid.", true),
+        (
+            "WM1", "wyślij to w piątek czekaj w poniedziałek sorry we wtorek",
+            "Wyślij to w piątek, czekaj, w poniedziałek we wtorek.", false
+        ),
+        (
+            "WM2", "wyślij to w piątek czekaj w poniedziałek sorry we wtorek",
+            "Wyślij to w poniedziałek, sorry, we wtorek.", true
+        ),
+        (
+            "WM3", "wyślij to w piątek czekaj w poniedziałek sorry we wtorek", "Wyślij to w poniedziałek we wtorek.",
+            false
+        ),
+        ("WK1", "send it to anna sorry to mark today", "Send it to Kate, sorry, to Mark today.", false),
     ]
 }

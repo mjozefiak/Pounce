@@ -25,7 +25,7 @@ enum MainGuardReference {
     }
 }
 
-/// Runs `GuardProbeTable` (every probe of review rounds 1 to 3, all invented) against `FormatterGuard`, and
+/// Runs `GuardProbeTable` (every probe of review rounds 1 to 4, all invented) against `FormatterGuard`, and
 /// compares the chunks without a marker with `main`.
 @Suite struct GuardProbeTests {
     private func accepted(_ input: String, _ output: String) -> Bool {
@@ -37,7 +37,9 @@ enum MainGuardReference {
         FormatterGuard.selfCorrection(in: FormatterGuard.tokens(input)) != nil
     }
 
-    private static let table = GuardProbeTable.rounds12 + GuardProbeTable.round3 + GuardProbeTable.round4
+    private static let table =
+        GuardProbeTable.rounds12 + GuardProbeTable.round3 + GuardProbeTable.round4
+        + GuardProbeTable.round5
 
     /// Correct cleanups that the guard turns into the raw text (fail-safe). Each is a documented limit of the
     /// marker rule (ADR 0010, "What the guard rejects although the result is right"); the test fails when one is

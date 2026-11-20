@@ -448,15 +448,17 @@ narrower rule (fewer passes, no known hole).
   this for every possible output, but the property test (`GuardMutationTests`) rejects every one of 1410
   mutations of the 38 correct withdrawal results (a word after the marker swapped for another input word or
   an invented word, the marker dropped with both versions kept, with or without its joining word, the marker
-  moved by one word, a number changed), and none of the 102 probes with a marker in the tables of the three reviews (225 rows, `GuardProbeTable`) is
-  accepted when it is a bad output.
+  moved by one word, a number changed), and none of the probes with a marker in the tables of the four
+  reviews (`GuardProbeTable`) is accepted when it is a bad output.
 - The 30B model keeps both versions WITH the marker word between them in three cases. Rule (1) accepts that:
   nothing is lost and the reader can see which version is final. It is the shape the prompt asks for when the
   model is unsure.
-- Over-removal is the risk that remains: on 4B one negative loses a word of the text and is accepted
-  (`en-neg-7`: a marker word used as content, "I mean what ..."), because the model removed exactly the words
-  before a marker, which is rule (2). Version 1 does the same there, so the prompt did not cause it. 30B loses
-  none.
+- Over-removal is the risk that remains: on 4B one negative lost a word of the text and was accepted
+  (`en-neg-7`: a marker word used as content, "I mean what ..."). Since review round 4 a span must hold a word
+  of the chunk that is not a filler, so a marker that opens the chunk is never dropped and that answer now
+  falls back (the table above was measured before this change). Rule (2) still accepts the removal of up to
+  `min(words after the marker + 2, 8)` words before a marker word used as content, a negation included ("to
+  nie jest właściwie gotowe" to "Gotowe."), which `main` rejects by its length bound.
 - The prompt's examples are not corpus cases. `CleanupPromptCorpusSeparationTests` fails when an example or a
   quoted sample of the system prompt shares three consecutive words, once markers and fillers are removed, or
   content-word Jaccard of 0.3 or more with a corpus text. The examples still teach the same shapes, so the
@@ -473,10 +475,11 @@ chunk is judged by the length range and the language only. With one, `isDerivabl
 `aligns(spoken, written)` holds for the whole input, or for the input without a span that ends at that marker
 and starts at the beginning of the chunk or on a word that is parallel to the first word of the replacement
 (the same word after folding case and diacritics, two number words, "w"/"we", "z"/"ze", "o"/"ob"), at most
-`min(words after the marker + 2, 8)` words long. `aligns` is a plain alignment at no cost: each spoken word is
+`min(words after the marker + 2, 8)` words long, and holding a word that is not a filler (a marker that opens the
+chunk stays). `aligns` is a plain alignment at no cost: each spoken word is
 written as the same word, as digits of EQUAL value (`NumberWords`: Polish and English cardinals and ordinals as
-a stem plus a closed set of number endings, 0 to 999 999, "25 000" as one number; anything it cannot parse is
-not a number), or merged with the next into a contraction ("we are", "we're"; "will not", "won't"); only a
+a stem plus a closed set of number endings, 0 to 999 999, "25 000" and "2 100" only as one number; anything it
+cannot parse is not a number), or merged with the next into a contraction ("we are", "we're"; "will not", "won't"); only a
 filler, or a marker that ends the chunk, may be left out; nothing may be added, swapped, reordered or moved. The
 reason for every refusal is `selfCorrection` (the enum name only is logged, never text). Removed in round 4
 because each was a source of variants: the lower-bound allowance, the edit budget and its free spans, the
@@ -503,9 +506,9 @@ so these were accepted before the self-correction work and still are; none is a 
 - an unlisted marker ("a nie", "or rather", "znaczy", "nie nie", a bare "no") that drops the final version;
 - a number or clock time changed in the middle of a 40 to 60 word chunk, the words before a content marker, a
   short correction made of number words ("twenty chairs correction thirty chairs" to "20 chairs") (B10 to B13);
-- a negated imperative used as content, "napisz Piotrkowi nie czekaj na mnie z kolacją" to "Na mnie z
-  kolacją.", which rule (2) accepts as a span that ends at the marker: only the prompt (keep both versions when
-  unsure) and the raw text protect the user.
+- (not shared with `main`, which rejects it by its length bound) a negated imperative used as content,
+  "napisz Piotrkowi nie czekaj na mnie z kolacją" to "Na mnie z kolacją.", which rule (2) accepts as a span
+  that ends at the marker: only the prompt (keep both versions when unsure) and the raw text protect the user.
 
 **Condition.** Version 2 accepted no answer that kept the withdrawn version and lost the final one, on either
 catalog model, on this corpus (the models did produce such answers; the guard turned them into raw text). Should

@@ -209,8 +209,8 @@ enum NumberWords {
     }
 
     /// The value of the digit tokens starting at `index`, grouped the way the tokenizer splits "25 000":
-    /// a number of one to three digits followed by groups of exactly three digits. Gives every group length
-    /// that reads as one number: 1 token, then 2, ... ("25", "000" is 25 and 25000).
+    /// a number of one to three digits followed by groups of exactly three digits is read only as the whole
+    /// group ("25", "000" is 25000; "2", "100" is 2100, never 2 and then 100). A lone token is read as itself.
     static func digitValues(in tokens: [String], at index: Int) -> [(tokens: Int, value: Int)] {
         guard index < tokens.count, let first = value(ofDigits: tokens[index]) else { return [] }
         var result = [(tokens: 1, value: first)]
@@ -222,7 +222,7 @@ enum NumberWords {
         {
             combined += tokens[index + count]
             count += 1
-            if let value = Int(combined) { result.append((count, value)) }
+            if let value = Int(combined) { result = [(count, value)] }
         }
         return result
     }

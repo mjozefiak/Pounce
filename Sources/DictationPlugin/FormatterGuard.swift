@@ -128,7 +128,8 @@ enum FormatterGuard {
 
     /// Whether the output is the whole input with the marker kept, or the input minus one span that ends at the
     /// marker and starts at the beginning of the chunk or on a word parallel to the first word of the
-    /// replacement (at most `retractedSpanCap` words, and no more than the replacement's length plus two).
+    /// replacement (at most `retractedSpanCap` words, and no more than the replacement's length plus two). The
+    /// span holds at least one word that is not a filler, so a marker that opens the chunk is never dropped.
     /// Everything else, a lost or swapped word, a dropped marker with both versions kept, is refused.
     static func isDerivable(
         spoken: [String], written: [String], _ correction: (marker: (start: Int, end: Int), first: Int)
@@ -136,6 +137,11 @@ enum FormatterGuard {
         guard spoken.count * written.count <= derivationLimit else { return false }
         if aligns(spoken, written) { return true }
         let marker = correction.marker
+        // A span must withdraw a word of this chunk: a marker with only fillers before it (a chunk that starts
+        // with "wait", "sorry", "przepraszam") retracts nothing here, so it stays.
+        var lead = 0
+        while lead < marker.start, let length = fillerLengths(spoken, at: lead).max() { lead += length }
+        guard lead < marker.start else { return false }
         let cap = min(spoken.count - marker.end + 2, retractedSpanCap, marker.start)
         let starts =
             marker.start == 0 ? [0] : Array(stride(from: marker.start - 1, through: marker.start - cap, by: -1))
