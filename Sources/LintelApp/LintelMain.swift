@@ -53,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await coordinator.start()
             started = true
             // Off until the owner's update key is in Info.plist (`UpdaterStartPolicy`); DEBUG and QA builds never start it.
-            let updates = makeUpdateController(environment)
+            let updates = makeUpdateController(environment, host: coordinator.host)
             coordinator.attach(updates)
             updates.startIfAllowed()
             self.updates = updates
@@ -69,13 +69,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// The real updater, or in a QA run with `--qa-update-available` a fake that reports a found update at once.
-    private func makeUpdateController(_ environment: AppEnvironment) -> UpdateController {
+    private func makeUpdateController(_ environment: AppEnvironment, host: PluginHost) -> UpdateController {
+        let isBusy = { host.busyReason != nil }
         #if DEBUG
         if let version = qaOptions?.updateAvailable {
-            return QAUpdateChecker.controller(version: version, settings: environment.settings)
+            return QAUpdateChecker.controller(version: version, settings: environment.settings, isBusy: isBusy)
         }
         #endif
-        return UpdateController.live(settings: environment.settings)
+        return UpdateController.live(settings: environment.settings, isBusy: isBusy)
     }
 
     /// A file opened with Lintel goes to the plugins (`PluginHost.openFile`). Before the plugins have started it

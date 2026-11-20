@@ -146,6 +146,13 @@ final class PluginHost {
 
     private var activeEntries: [Entry] { entries.filter { $0.state.isActive } }
 
+    /// Why Lintel must not be relaunched now: `.recording` when an active plugin records, else `.processing` when
+    /// one processes, else `nil`. Inactive and `failed` plugins are not asked.
+    var busyReason: BusyReason? {
+        let reasons = activeEntries.compactMap { $0.plugin.busyReason }
+        return reasons.contains(.recording) ? .recording : reasons.first
+    }
+
     /// Commands of active plugins only; disabled or failed plugins register nothing.
     var activeCommands: [PluginCommand] { activeEntries.flatMap { $0.plugin.commands } }
 

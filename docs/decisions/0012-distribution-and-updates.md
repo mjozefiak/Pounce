@@ -114,6 +114,14 @@ Sparkle 2.10.1 is a dependency of `LintelApp` only, pinned exactly; it arrives a
 - **Channels.** Stable releases are Sparkle's default channel; pre-releases are in the channel `beta`, offered when
   `app.updates.includeBeta` is true (`UpdateChannel`).
 
+- **"Lintel is busy" (spec Step 4.6).** `LintelPlugin.busyReason` (`BusyReason`: `.recording`, `.processing`; default
+  `nil`) is the additive contract; `PluginHost.busyReason` takes the first non-nil value over the active plugins
+  (`.recording` first), and `UpdateController` passes it to the checker as `shouldPostponeRelaunch`. Because the contract
+  has no "busy ended" event, the checker reports `UpdateEvent.relaunchPostponed` and the controller polls every 5 s,
+  only while a relaunch is held back, until nothing is busy; no timer exists otherwise. Meetings (recording, finishing,
+  resumed processing, notes being written) and Dictation report it; Notes does not, because a quit cancels its revise
+  run and leaves the document as it was.
+
 ## Deferred
 
 - **Sparkle switched on, spec Steps 4.4 to 4.8.** The owner's EdDSA key (`SPARKLE_ED_PRIVATE_KEY`, in the Environment

@@ -398,6 +398,9 @@ public final class DictationPlugin: LintelPlugin {
         ]
     }
 
+    /// Recording or producing the text of a dictation (`DictationController.busyReason`); `nil` before activation.
+    public var busyReason: BusyReason? { controller?.busyReason }
+
     /// The main window's banner (prototype `set-dictation`). The shell reads it only while the plugin is active
     /// and while the view draws, so it only reads: the model's place and the microphone are re-read on
     /// activation, when the pane appears and when Lintel becomes the active app, and a change signals

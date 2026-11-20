@@ -104,4 +104,21 @@ import Testing
         #expect(await plugin.modelUsage[1].isInUse() == false)
         await lease.evictIdle()
     }
+
+    @Test func busyReasonFollowsTheControllerAndIsNilWithoutOne() async throws {
+        let harness = try DictationHarness()
+        defer { harness.tearDown() }
+        let plugin = DictationPlugin(context: harness.context)
+        #expect(plugin.busyReason == nil)
+        let rig = try DictationControllerTests.Rig()
+        defer { rig.tearDown() }
+        let controller = rig.controller()
+        plugin.relay.controller = controller
+        #expect(controller.busyReason == nil)
+        controller.menu()
+        #expect(controller.busyReason == .recording)
+        controller.cancel()
+        for _ in 0..<1_000 where controller.isBusy { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(controller.busyReason == nil)
+    }
 }

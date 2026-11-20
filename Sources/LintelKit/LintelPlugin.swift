@@ -94,6 +94,10 @@ public protocol LintelPlugin: AnyObject {
     /// The banner of the plugin's Settings pane, read only while the plugin is active. Added with the main
     /// window; the default `nil` lets the shell derive the banner from the host state and the permissions.
     var settingsStatus: SettingsStatus? { get }
+    /// Whether the plugin is recording or processing something a quit would lose, read on the main actor by the
+    /// shell only while the plugin is active, to hold back the relaunch of an update. `.recording` wins over
+    /// `.processing`. Added with the update flow; the default `nil` means never busy.
+    var busyReason: BusyReason? { get }
     /// The downloadable models the plugin uses, for the Models pane. Added with the main window; the default
     /// uses none.
     var modelUsage: [ModelUsage] { get }
@@ -148,6 +152,7 @@ extension LintelPlugin {
     public func permissionAccessory(for permission: Permission) -> AnyView? { nil }
     public var workspaceSections: [WorkspaceSection] { [] }
     public var settingsStatus: SettingsStatus? { nil }
+    public var busyReason: BusyReason? { nil }
     public var modelUsage: [ModelUsage] { [] }
     public var noteSources: [any NoteSource] { [] }
     public func keptNoteCopyCount(ofOwner owner: PluginID) async -> Int { 0 }

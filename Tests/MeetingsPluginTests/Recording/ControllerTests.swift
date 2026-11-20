@@ -25,6 +25,22 @@ import Testing
         #expect(rig.activity.isActive)
     }
 
+    @Test func busyReasonMapsEachPhaseAndIdleIsNil() async throws {
+        let rig = try ControllerRig()
+        #expect(rig.controller.busyReason == nil)
+        rig.controller.start()
+        #expect(rig.controller.phase == .preparing)
+        #expect(rig.controller.busyReason == .processing)
+        await eventually("recording") { rig.controller.phase == .recording }
+        #expect(rig.controller.busyReason == .recording)
+    }
+
+    @Test func aPluginThatIsNotActiveIsNotBusy() throws {
+        let harness = try MeetingsHarness()
+        let plugin = MeetingsPlugin(context: harness.context)
+        #expect(plugin.busyReason == nil)
+    }
+
     @Test func theActivityIsHeldFromTheStartAndGivenBackWhenARefusalEndsIt() async throws {
         let rig = try ControllerRig()
         rig.lookup = .missing

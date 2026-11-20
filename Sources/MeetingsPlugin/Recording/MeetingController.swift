@@ -141,6 +141,15 @@ final class MeetingController {
 
     var isBusy: Bool { phase != .idle }
 
+    /// `.recording` while audio is captured, `.processing` for the checks, a pending decision and finishing.
+    var busyReason: BusyReason? {
+        switch phase {
+        case .idle: nil
+        case .recording: .recording
+        case .preparing, .awaitingMicrophoneDecision, .finishing: .processing
+        }
+    }
+
     // MARK: Input
 
     /// The command: starts a recording, or ends the running one.

@@ -31,7 +31,9 @@ final class QAUpdateChecker: UpdateChecking {
     func resumePostponedRelaunch() {}
 
     /// A controller whose policy says "start" (the facts of an installed, signed release build) over this fake.
-    static func controller(version: String, settings: any SettingsStore) -> UpdateController {
+    static func controller(
+        version: String, settings: any SettingsStore, isBusy: @escaping () -> Bool = { false }
+    ) -> UpdateController {
         let home = URL(filePath: "/Users/qa", directoryHint: .isDirectory)
         return UpdateController(
             facts: UpdaterStartPolicy.Facts(
@@ -44,6 +46,7 @@ final class QAUpdateChecker: UpdateChecking {
             ),
             settings: settings,
             runningVersion: "0.0.0",
+            isBusy: isBusy,
             makeChecker: { QAUpdateChecker(version: version) }
         )
     }
