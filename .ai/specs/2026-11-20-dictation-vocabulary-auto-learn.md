@@ -1,10 +1,12 @@
 # Auto-nauka słownika dyktowania: propozycje terminów z poprawek użytkownika
 
-> Status: **projekt, zablokowany decyzjami właściciela.** Sekcja „Open Questions" poniżej jest twardą bramką: żadne z 27 pytań (U1–U14, P1–P13) nie ma odpowiedzi i żaden wariant nie został wybrany przez autora. Spec opisuje architekturę **parametryzowaną** tymi decyzjami. Nic z tego dokumentu nie jest zaimplementowane.
+> Status: **projekt, zablokowany decyzjami właściciela.** Sekcja „Open Questions" poniżej jest twardą bramką. **Rozstrzygnięte przez właściciela 2026-11-20: P1 = D w wersji A+B i P2 = D z dwoma odczytami (i), limit 60 s; K1 zamknięte.** Pozostałe 25 pytań (U1–U14, P3–P13), pytania K2–K4 i potwierdzenie twardych odmów nie mają odpowiedzi i żaden z ich wariantów nie został wybrany przez autora ani przez recenzenta. Spec opisuje architekturę **parametryzowaną** tymi decyzjami. Nic z tego dokumentu nie jest zaimplementowane. Zmergowanie specu nie oznacza akceptacji żadnej dalszej decyzji ani treści poprawki ADR.
+>
+> **Skutek decyzji P1/P2, termin twardy: przed PR DICT-2.1.** P2 = D („do utraty fokusu") wymaga trzech nowych, addytywnych członów zamrożonego kontraktu `FocusContextReader` (tożsamość pola, ponowny odczyt tego samego pola, powiadomienie o utracie fokusu; każdy z wartością domyślną). Ten kształt i zmiany ADR 0010, które z P1/P2 wynikają (plik propozycji, status nadal Proposed do akceptacji treści przez właściciela), muszą zostać zaakceptowane **przed** PR DICT-2.1 i wchodzą do tego samego PR kontraktowego, bez drugiego PR w jednej kolejce `LintelKit` (jeden PR kontraktowy naraz, razem z DICT-3.3 i MEET). Szczegóły: „Wybrane źródło poprawki i kontrakt `LintelKit`".
 >
 > Decyzja właściciela z 2026-11-20, która wyznacza ramy: panel słownika (DICT-1.2) wychodzi teraz i jest na `main` (PR #157); auto-nauka wchodzi **po** fundamencie kontekstu (DICT-2.1 `FocusContextReader` w `LintelKit`, DICT-2.2 realizacja Accessibility). Decyzje UX i prywatności właściciel podejmuje osobno.
 >
-> Dokumenty powiązane: backlog `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md` (story DICT-2.8, dopisana razem z tym specem), ADR `docs/decisions/0010-dictation-context.md` (bez zmian) i propozycja jego poprawki `docs/decisions/0010-dictation-context-amendment-auto-learn.md` (status Proposed).
+> Dokumenty powiązane: backlog `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md` (story DICT-2.8, dopisana razem z tym specem, i zakres story DICT-2.1 rozszerzony o człony obserwacji po decyzji P2 = D), ADR `docs/decisions/0010-dictation-context.md` (bez zmian) i propozycja jego poprawki `docs/decisions/0010-dictation-context-amendment-auto-learn.md` (status Proposed).
 >
 > Wszystkie przykłady w tym pliku są wymyślone. Żaden nie pochodzi z prawdziwego dyktowania ani spotkania.
 
@@ -12,17 +14,17 @@
 
 **Kto:** osoba, która dyktuje i po wklejeniu ręcznie poprawia te same nazwy własne („kubernetis" → „Kubernetes").
 **Dziś:** słownik (`vocabulary.json`, `TermReplacer`) działa, ale każdy termin trzeba wpisać ręcznie w Ustawienia → Dyktowanie → Słownik. Lintel nie wie, że użytkownik poprawił słowo.
-**Propozycja (przyszłe zachowanie):** po wklejeniu podyktowanego tekstu Lintel dowiaduje się o poprawce (sposób: decyzja P1), liczy powtarzające się pary „usłyszane → poprawione" i po przekroczeniu progu pokazuje **propozycję** w sekcji Słownik. Nic nie trafia do słownika bez zatwierdzenia. Odrzucona para nie wraca.
-**Dlaczego to wymaga osobnego specu:** wariant z obserwacją pola łamie dwie reguły ADR 0010 (odczyt tylko przy naciśnięciu skrótu; nic z pola nie jest zapisywane) i przy jednym z wariantów zmienia zamrożony kontrakt `FocusContextReader`, zanim DICT-2.1 go zamrozi.
+**Propozycja (przyszłe zachowanie):** po wklejeniu podyktowanego tekstu Lintel dowiaduje się o poprawce (decyzja P1 = A+B: obserwacja pola przez Dostępność po wklejeniu do utraty fokusu, najdłużej 60 s, oraz jawne polecenie „Dodaj poprawkę do słownika" na zaznaczeniu), liczy powtarzające się pary „usłyszane → poprawione" i po przekroczeniu progu pokazuje **propozycję** w sekcji Słownik. Nic nie trafia do słownika bez zatwierdzenia. Odrzucona para nie wraca.
+**Dlaczego to wymaga osobnego specu:** wariant z obserwacją pola łamie dwie reguły ADR 0010 (odczyt tylko przy naciśnięciu skrótu; nic z pola nie jest zapisywane) a wybrany wariant P2 = D rozszerza kontrakt `FocusContextReader`, który zamraża dopiero DICT-2.1; dlatego rozszerzenie musi wejść do tego PR.
 
 ## ⚠️ Open Questions — otwarte decyzje właściciela (twarda bramka)
 
 Zasady tej sekcji:
 
-- Pole „Decyzja właściciela" jest **puste we wszystkich wierszach** i wypełnia je wyłącznie właściciel. Ten spec powstał w trybie autonomicznym, ale wartości domyślne **celowo nie zostały przyjęte** (decyzja właściciela z 2026-11-19, punkt 10, i z 2026-11-20). Dlatego nie ma tu sekcji „Resolved assumptions".
-- „Rekomendacja" to opinia autora z uzasadnieniem. Nie jest wyborem i nie wolno jej implementować jako wyboru.
+- Pole „Decyzja właściciela" wypełnia wyłącznie właściciel. Wypełnione są tylko P1, P2 i K1 (właściciel, 2026-11-20); we wszystkich pozostałych wierszach jest **puste**. Ten spec powstał w trybie autonomicznym, ale wartości domyślne **celowo nie zostały przyjęte**: zasada z decyzji właściciela z 2026-11-19, punkt 10 (spisana dla czatu i akcji po spotkaniu: agent nie podejmuje decyzji produktowych i UX sam), właściciel rozciągnął 2026-11-20 na tę funkcję. Dlatego nie ma tu sekcji „Resolved assumptions".
+- „Rekomendacja" to opinia autora z uzasadnieniem. Nie jest wyborem i nie wolno jej implementować jako wyboru. To samo dotyczy każdego zdania w dalszych sekcjach, które opisuje wariant: jeśli przy zdaniu stoi numer decyzji (np. „P10.5"), zdanie obowiązuje tylko wtedy, gdy właściciel wybierze ten wariant.
 - Implementacja żadnego kroku nie zaczyna się, dopóki nie są wypełnione decyzje wymienione przy tym kroku w „Implementation Plan" (kolumna „Bramka decyzji").
-- Kolejność odpowiadania, która oszczędza pracy: P1 → P2 (bo od nich zależy kontrakt `LintelKit` przed DICT-2.1) → P5 → P3, P4 → P6–P10 → P11–P13 → U1–U14.
+- P1 i P2 są rozstrzygnięte (2026-11-20). Kolejność odpowiadania na resztę, która oszczędza pracy: P4 (kształt `reread` w DICT-2.1 przyjmuje oba warianty, ale limity trafiają do tej samej poprawki ADR) → P5 → P3 → P6–P10 → P11–P13 → U1–U14.
 - Warianty i źródła rynkowe pochodzą z makiety v2 i jej listy decyzji (rewizja 2, 2026-11-20; makieta jest poza repozytorium, zrzuty części B są w `assets/dictation-vocabulary-auto-learn/`).
 
 **Twarde odmowy proponowane dla każdego wariantu** (jedno potwierdzenie): pola bezpieczne; aktywne Secure Event Input; własne okna Lintel; aplikacje z listy `contextDeniedApps`; brak uprawnienia Dostępność; nic z pola, par ani kandydatów w logach, raportach awarii, diagnostyce i `ranking.sqlite`.
@@ -32,17 +34,17 @@ Decyzja właściciela: ___
 
 | ID | Pytanie | Warianty | Konsekwencje techniczne | Rekomendacja i uzasadnienie | Decyzja właściciela |
 |---|---|---|---|---|---|
-| **P1** | Skąd Lintel wie o poprawce | **A** obserwacja pola przez Dostępność po wklejeniu · **B** tylko jawne polecenie („Dodaj poprawkę do słownika" na zaznaczeniu) · **C** tylko poprawki w oknach Lintel (np. edycja dyktowania w Notatkach) · **D** A+B albo A+C | A: nowy cel uprawnienia Dostępność, port odczytu z DICT-2.1/2.2, poprawka ADR (zmiany 1, 3, 5, 7, 11). B: źródło `selection` z DICT-2.1/2.2, odczyt na polecenie poza naciśnięciem skrótu dyktowania (zmiany 3, 5, 7); nowa komenda `PluginCommand`. C: zero zmian w ADR i `LintelKit`, nie zależy od DICT-2.x; do sprawdzenia w kodzie, czy edycja w Notatkach daje parę „przed/po" (Notes nie importuje `DictationPlugin`). Sekcja „Propozycje", magazyn i filtry są dla A, B i C te same. | A spełnia zlecenie, ale tylko z ograniczeniami P2–P6. C jest jedynym wariantem bez zależności od DICT-2.x i bez zmiany ADR, ale obejmuje mało poprawek (tekst poprawia się tam, gdzie został wklejony). | ___ |
-| **P2** | Jak długo trwa obserwacja i ile razy pole jest czytane (dotyczy P1 = A) | **A** do utraty fokusu przez pole, z limitem czasu (np. 60 s) · **B** jeden odczyt po stałym czasie N s (10/30/60) · **C** tylko przy następnym dyktowaniu (porównanie z migawką, którą kontekst i tak robi) · **D** A, a dodatkowo koniec przy następnym dyktowaniu. Niezależnie: **(i)** dwa odczyty (bazowy i końcowy) albo **(ii)** nasłuch każdej zmiany wartości | A/D: **rozszerzenie zamrożonego kontraktu** (tożsamość pola, ponowny odczyt tego samego pola, powiadomienie o utracie fokusu); kształt musi wejść do ADR **przed** PR DICT-2.1 albo kosztuje drugi PR kontraktowy w kolejce `LintelKit`. B: kontrakt bez zmian, drugie `snapshot(.field)` po czasie; „to samo pole" tylko przez pid i odnalezienie wklejonego tekstu; ADR musi dopuścić odczyt poza naciśnięciem skrótu. C: żadnego nowego momentu odczytu, kontrakt i reguła „czytamy tylko przy skrócie" bez zmian; uczy się tylko, gdy użytkownik dyktuje ponownie w tym samym polu, z 500 znaków przed kursorem, i wymaga włączonego kontekstu ze źródłem `field`. (ii) to w praktyce śledzenie pisania w cudzej aplikacji przez czas obserwacji. | (i) w każdym przypadku. Między A–D bez wyboru autora: C ma najmniejszy koszt prywatności i uczy się najmniej; A z limitem 60 s uczy się najwięcej i wymaga zmiany ADR oraz kontraktu. Jeśli celem jest najpierw bezpieczne wdrożenie: C, potem ewentualnie A po dogfoodzie. | A–D: ___ · (i)/(ii): ___ · limit czasu albo N: ___ |
+| **P1** | Skąd Lintel wie o poprawce | **A** obserwacja pola przez Dostępność po wklejeniu · **B** tylko jawne polecenie („Dodaj poprawkę do słownika" na zaznaczeniu) · **C** tylko poprawki w oknach Lintel (np. edycja dyktowania w Notatkach) · **D** A+B albo A+C | A: nowy cel uprawnienia Dostępność, port odczytu z DICT-2.1/2.2, poprawka ADR (zmiany 1, 3, 5, 7, 11). B: źródło `selection` z DICT-2.1/2.2, odczyt na polecenie poza naciśnięciem skrótu dyktowania (zmiany 3, 5, 7); nowa komenda `PluginCommand`. C: zero zmian w ADR 0010, nie zależy od DICT-2.x, ale **prawie na pewno wymaga addytywnego członu w `LintelKit`**: na `main` nic nie przekazuje edycji notatki z dyktowania do `DictationPlugin` (`NoteSource` i `NoteSourceEditing` tylko listują, czytają, usuwają i zmieniają nazwy; pluginy się nie importują; „Utwórz notatkę" kopiuje tekst do nowej notatki bez powiązania), więc potrzebny jest np. opcjonalny człon „edycja warstwy notatki właściciela" z wartością domyślną i PR kontraktowy w kolejce `LintelKit`. Sekcja „Propozycje", magazyn i filtry są dla A, B i C te same. | A spełnia zlecenie, ale tylko z ograniczeniami P2–P6. C jest jedynym wariantem bez zależności od DICT-2.x i bez zmiany ADR 0010, ale obejmuje mało poprawek (tekst poprawia się tam, gdzie został wklejony) i zajmuje miejsce w kolejce `LintelKit`. | **D w wersji A+B** (obserwacja pola przez Dostępność po wklejeniu + jawne polecenie „Dodaj poprawkę do słownika" na zaznaczeniu); właściciel, 2026-11-20. Wariant C nie jest wybrany. |
+| **P2** | Jak długo trwa obserwacja i ile razy pole jest czytane (dotyczy części A z P1) | **A** do utraty fokusu przez pole, z limitem czasu (np. 60 s) · **B** jeden odczyt po stałym czasie N s (10/30/60) · **C** tylko przy następnym dyktowaniu (porównanie z migawką, którą kontekst i tak robi) · **D** A, a dodatkowo koniec przy następnym dyktowaniu. Niezależnie: **(i)** dwa odczyty (bazowy i końcowy) albo **(ii)** nasłuch każdej zmiany wartości | A/D: **rozszerzenie zamrożonego kontraktu** (tożsamość pola, ponowny odczyt tego samego pola, powiadomienie o utracie fokusu); kształt musi wejść do ADR **przed** PR DICT-2.1 albo kosztuje drugi PR kontraktowy w kolejce `LintelKit`. B: kontrakt bez zmian, drugie `snapshot(.field)` po czasie; „to samo pole" tylko przez pid i odnalezienie wklejonego tekstu; ADR musi dopuścić odczyt poza naciśnięciem skrótu. C: żadnego nowego momentu odczytu, kontrakt i reguła „czytamy tylko przy skrócie" bez zmian; uczy się tylko, gdy użytkownik dyktuje ponownie w tym samym polu, z 500 znaków przed kursorem, i wymaga włączonego kontekstu ze źródłem `field`. (ii) to w praktyce śledzenie pisania w cudzej aplikacji przez czas obserwacji. | (i) w każdym przypadku. Między A–D bez wyboru autora: C ma najmniejszy koszt prywatności i uczy się najmniej; A z limitem 60 s uczy się najwięcej i wymaga zmiany ADR oraz kontraktu. Jeśli celem jest najpierw bezpieczne wdrożenie: C, potem ewentualnie A po dogfoodzie. | **D**: do utraty fokusu, limit **60 s**, koniec także przy następnym dyktowaniu · **(i)** dwa odczyty (bazowy i końcowy), **bez** nasłuchu każdej zmiany; właściciel, 2026-11-20 |
 | **P3** | W jakich aplikacjach | **A** wszystkie poza listą odmów (start: `contextDeniedApps`) · **B** tylko dozwolone (lista użytkownika) · **C** A plus kategorie domyślnie wykluczone, każda osobno: (1) terminale, (2) przeglądarki: wykluczyć / nie / tylko dozwolone, (3) zdalne pulpity i maszyny wirtualne. Dodatkowo: jedna lista wspólna z kontekstem czy osobna | A/C: `CorrectionPolicy` czyta `contextDeniedApps` (klucz z DICT-2.3) i ewentualnie drugi klucz. Osobna lista = nowy klucz ustawień (`BACKWARD_COMPATIBILITY.md` §3) i drugi edytor listy w UI; wspólna = jeden model, ale wyklucza kontekst w terminalu (DICT-3.x) razem z nauką. Kategorie = zamknięte listy identyfikatorów pakietów w kodzie, każdy sprawdzony na zainstalowanej kopii (reguła ADR: niepotwierdzony identyfikator wypada). B: edytor listy dozwolonych i pusty stan „nauka nigdzie nie działa". | C z (1) wykluczyć i (3) wykluczyć; lista wspólna plus kategorie nauki jako dodatkowe wpisy. Punkt (2) bez rekomendacji: to wybór między ryzykiem (pole hasła zbudowane ze zwykłego pola na stronie) a użytecznością (poczta, czat i dokumenty w przeglądarce). | A/B/C: ___ · (1): ___ · (2): ___ · (3): ___ · lista: ___ |
 | **P4** | Ile pola jest czytane i co jest w pamięci | **A** tylko fragment wokół wklejonego tekstu, odczytem po zakresie · **B** cała wartość pola. Dodatkowo: górny limit długości wklejonego tekstu, powyżej którego obserwacji nie ma | A: odczyt przez atrybut zakresu jak w DICT-2.2; limit 500 znaków przed kursorem z ADR nie wystarcza dla dłuższych dyktowań, więc tabela limitów ADR dostaje osobny wiersz „odczyt obserwacji" albo dłuższe dyktowania nie są obserwowane. Wykonalność w głównych aplikacjach nieznana do prób DICT-0.2. B: w pamięci cały dokument lub rozmowa, także tekst niedyktowany; prostszy algorytm odnajdywania. W obu: odczyty tylko w pamięci, kasowane na końcu obserwacji. | A. Jeśli próby pokażą, że odczyt po zakresie nie działa w danej aplikacji, to w tej aplikacji nie ma nauki; nie ma przejścia na B. | A/B: ___ · limit wklejonego tekstu: ___ |
-| **P5** | Wartość domyślna i relacja do wyłącznika kontekstu | (1) **A** wyłączone, włączane po arkuszu zgody · **B** włączone. (2) **a** auto-nauka podlega `contextEnabled` · **b** niezależny wyłącznik. (3) osobny arkusz zgody czy wiersz w arkuszu zgody na kontekst (DICT-2.4), domyślnie odznaczony | 1B łamie zasadę ADR i `BACKWARD_COMPATIBILITY.md` §3 (ustawienie, które czyta więcej, wymaga zgody). 2a: reguła 1 ADR bez zmian; auto-nauka nie może wejść przed DICT-2.3/2.4; wyłącznik jest nieaktywny, gdy kontekst jest wyłączony. 2b: reguła 1 ADR do przepisania („kontekst wyłączony" przestaje znaczyć „nic nie czytamy"); auto-nauka zależy tylko od DICT-2.1/2.2. 3: osobny arkusz = osobny widok i teksty; wiersz = zmiana arkusza DICT-2.4. | 1A, 2a, 3 osobny arkusz. Jedna prosta obietnica („wyłączam kontekst = Lintel nie czyta cudzych aplikacji") jest warta więcej niż elastyczność. | (1): ___ · (2): ___ · (3): ___ |
+| **P5** | Wartość domyślna i relacja do wyłącznika kontekstu | (1) **A** wyłączone, włączane po arkuszu zgody · **B** włączone. (2) **a** auto-nauka podlega `contextEnabled` · **b** niezależny wyłącznik. (3) osobny arkusz zgody czy wiersz w arkuszu zgody na kontekst (DICT-2.4), domyślnie odznaczony | 1B jest sprzeczne z zasadą zgody ADR 0010 (nowy cel odczytu = arkusz zgody w aplikacji, nic nie pojawia się samo) i jako wartość domyślna osłabiająca prywatność wymaga wyraźnej zgody właściciela w PR (`BACKWARD_COMPATIBILITY.md` §3). 2a: reguła 1 ADR bez zmian; auto-nauka nie może wejść przed DICT-2.3/2.4; wyłącznik jest nieaktywny, gdy kontekst jest wyłączony. 2b: reguła 1 ADR do przepisania („kontekst wyłączony" przestaje znaczyć „nic nie czytamy"); auto-nauka zależy tylko od DICT-2.1/2.2. 3: osobny arkusz = osobny widok i teksty; wiersz = zmiana arkusza DICT-2.4. | 1A, 2a, 3 osobny arkusz. Jedna prosta obietnica („wyłączam kontekst = Lintel nie czyta cudzych aplikacji") jest warta więcej niż elastyczność. | (1): ___ · (2): ___ · (3): ___ |
 | **P6** | Co jest przechowywane | (1) propozycja: **a** tylko para i licznik · **b** plus data pierwszej i ostatniej poprawki · **c** plus identyfikator aplikacji · **d** plus fragment zdania. (2) kandydaci pod progiem: **a** jawnie na dysku · **b** tylko skrót z kluczem i licznik, jawna para dopiero przy osiągnięciu progu · **c** tylko w pamięci. (3) nigdy: treść pola, zdanie wokół poprawki, tytuł okna, logi z jakimkolwiek słowem | 1b jest konieczne, jeśli P8 ma wygaszanie. 1c to nowa dana o zachowaniu (wymagana tylko przez U10.2b). 1d przeczy punktowi 3. 2b: potrzebny klucz HMAC z Pęku kluczy (`MasterKeyStore`), więc błąd Pęku kluczy wstrzymuje liczenie; jawna para jest w pamięci w chwili osiągnięcia progu, więc da się ją zapisać. 2c: licznik zeruje się przy zamknięciu aplikacji i przy `deactivate()`; przy progu 1 (U13.1) pytanie 2 znika. | 1a + 1b, bez c i d; 2b. Sama para jest treścią (słowo wpisane w cudzej aplikacji); przy 2b jednorazowa poprawka nigdy nie leży na dysku w czytelnej postaci. | (1): ___ · (2): ___ · (3) potwierdzenie: ___ |
 | **P7** | Gdzie | **A** `Plugins/dictation/suggestions.json` (0600, `AtomicFile`) · **B** nowe tabele w `dictation.sqlite` (SQLCipher, migracja addytywna) · **C** osobny zaszyfrowany plik z podkluczem HKDF z `MasterKeyStore(service: com.lintelapp.dictation)` | A: nowy utrwalony format JSON z wersją, jawny dla każdego procesu użytkownika. B: szyfrowanie istniejącym mechanizmem; gdy historii nie da się otworzyć (błąd Pęku kluczy), nauka stoi; reset bazy po `errSecItemNotFound` zabiera też propozycje i odrzucone; kolejność migracji względem `v2-context` (DICT-1.4); P10.4 musi powiedzieć wprost, czy „Wyczyść historię" je rusza. C: szyfrowane i niezależne od historii; nowy format do utrzymania (AES-GCM, wersja, polityka resetu jak w `EncryptedDatabaseOpener`). Zatwierdzony wpis i tak trafia do jawnego `vocabulary.json`; szyfrowanie chroni to, czego użytkownik **nie** zatwierdził. | B albo C (różnica to koszt i powiązanie z historią). A tylko przy P6.2 = b lub c i P9 = A, bo wtedy jawnie leżą wyłącznie propozycje czekające na decyzję. | ___ |
 | **P8** | Jak długo | (1) kandydaci pod progiem: 30 dni / 90 dni / nigdy; limit liczby (np. 200). (2) czekające propozycje: **a** do decyzji użytkownika, z limitem liczby (np. 50) · **b** wygasają po 30/90 dniach. (3) odrzucenie przez brak odpowiedzi: tak / nie | Retencja uruchamiana jak `DictationHistory` (co godzinę i przy otwarciu magazynu), na wstrzykniętym zegarze. Wygaśnięcie to zapomnienie, nie odrzucenie: para może wrócić. Limity trafiają do tabeli limitów ADR (zmiana 8). | (1) 30 dni, jak domyślna retencja historii; (2) a; (3) nie, bo propozycje czekają w Ustawieniach i nie ma wyskakującego okna. | (1): ___ · (2): ___ · (3): ___ |
 | **P9** | Odrzucone: skrót czy jawnie | **A** HMAC-SHA-256 znormalizowanej pary z kluczem z Pęku kluczy · **B** jawnie (w zaszyfrowanym magazynie przy P7 = B/C) · **C** zwykły skrót bez klucza. Dodatkowo: (1) na zawsze czy z limitem; (2) „to samo" = dokładnie ta para, czy każda propozycja z tym samym poprawionym słowem | A: nie da się ich wyświetlić, jedyna operacja to „Zapomnij odrzucone" (U7 = A); po utracie klucza lista jest bezużyteczna i pary mogą wrócić. B: lista i „Przywróć" (U7 = B); Lintel trzyma słowa, których użytkownik nie chciał. C: dla pojedynczych słów daje się odwrócić przez zgadywanie. Limit łamie „nigdy nie wracają" po jego przekroczeniu. | A; (1) na zawsze z wysokim limitem technicznym opisanym w dokumentacji; (2) dokładnie ta para. | A/B/C: ___ · (1): ___ · (2): ___ |
 | **P10** | Wyłączenie i wymazanie | (1) wyłączenie: **A** przestaje czytać, wszystko zostaje · **B** kasuje kandydatów pod progiem, zostawia propozycje i odrzucone · **C** kasuje wszystko poza odrzuconymi (albo łącznie). (2) „Wymaż dane nauki…": kandydaci, propozycje i odrzucone; nie terminy w słowniku. (3) „Usuń dane" w Funkcjach usuwa także to; wyłączenie wtyczki = jak wyłączenie wyłącznika. (4) „Wyczyść historię": nie rusza / rusza. (5) trwająca obserwacja przerywana natychmiast, bez końcowego odczytu | Patrz sekcja „Wymazanie danych" (macierz). 1B i 1C wymagają operacji magazynu `purge(scope:)`; 3 dopisuje krok do `DictationPlugin.eraseData()` przed historią (jak dziś słownik); przy P7 = B punkt 4 wymaga, by „Wyczyść historię" nie kasowała tabel nauki (albo kasowała: decyzja). 5: anulowanie zadania obserwacji i `release` uchwytu pola. | 1B; 2 i 3 jak opisano; 4 nie rusza; 5 tak. | (1): ___ · (2): ___ · (3): ___ · (4): ___ · (5): ___ |
-| **P11** | Co użytkownik widzi | (1) czwarty cel w wierszu Dostępność w Ustawienia → Uprawnienia. (2) nowy wiersz „poprawki" w tabeli zaufania (panel Kontekst, strona produktu). (3) sygnał w trakcie obserwacji: **A** brak · **B** znak w HUD albo w pasku menu. (4) wiersze „Dane nauki" z liczbami i przyciskami w panelu Dyktowanie | 1: zmiana tekstu celu uprawnienia (`BACKWARD_COMPATIBILITY.md` §4 i §5, nota wydania); zależy od kolejności z DICT-2.4 (trzy cele → cztery). 2: tabela zaufania jest jednym źródłem dla trzech miejsc. 3B: HUD widoczny do 60 s po każdym dyktowaniu (przy P2 = A) albo nowy stan ikony paska menu; HUD jest widoczny przy udostępnianiu ekranu. 4: liczby z magazynu, bez treści. | 1, 2, 4 tak; 3A przy P2 = B lub C, do rozważenia 3B przy P2 = A. | (1): ___ · (2): ___ · (3): ___ · (4): ___ |
+| **P11** | Co użytkownik widzi | (1) czwarty cel w wierszu Dostępność w Ustawienia → Uprawnienia. (2) nowy wiersz „poprawki" w tabeli zaufania (panel Kontekst, strona produktu). (3) sygnał w trakcie obserwacji: **A** brak · **B** znak w HUD albo w pasku menu. (4) wiersze „Dane nauki" z liczbami i przyciskami w panelu Dyktowanie | 1: zmiana tekstu celu uprawnienia (`BACKWARD_COMPATIBILITY.md` §4 i §5, nota wydania); zależy od kolejności z DICT-2.4 (trzy cele → cztery). 2: tabela zaufania jest jednym źródłem dla trzech miejsc. 3B: HUD widoczny do 60 s po każdym dyktowaniu (P2 = D) albo nowy stan ikony paska menu; HUD jest widoczny przy udostępnianiu ekranu. 4: liczby z magazynu, bez treści. | 1, 2, 4 tak; (3): przy wybranym P2 = D obserwacja trwa do 60 s po każdym dyktowaniu, więc 3B jest do rozważenia; bez silnej rekomendacji między A i B. | (1): ___ · (2): ___ · (3): ___ · (4): ___ |
 | **P12** | Co nigdy nie opuszcza Maca i modele | (1) pary, kandydaci i odrzucone nigdy nie trafiają do zewnętrznego dostawcy, do „Mojego serwera" ani do synchronizacji. (2) recenzja propozycji przez model: **A** brak, tylko reguły w Swifcie · **B** wbudowany model lokalny ocenia parę | 1: test skanujący, że typy auto-nauki nie są importowane przez formatery ani przez kod dostawców; dopisek do reguły 4 ADR. 2B: para trafia do promptu lokalnego modelu (zmiana reguły 3 ADR), `LLMLease` z priorytetem `background`, nowy wersjonowany prompt i korpus regresyjny. | 1 tak; 2A. | (1): ___ · (2): ___ |
 | **P13** | Testy, QA i diagnostyka | Testy i fixture wyłącznie syntetyczne; QA przez atrapę czytnika (`--qa-focus-context` z DICT-2.2), bez czytania prawdziwych aplikacji; „Kopiuj diagnostykę": tylko liczby (obserwacje, pominięcia według powodu, propozycje) | Liczniki w pamięci procesu albo w magazynie (liczby bez treści); test skanujący logowanie jak w DICT-2.3. | Potwierdzić wszystkie trzy. | ___ |
 
@@ -71,9 +73,10 @@ Litery w nawiasach (B1–B12) to sekcje części B makiety.
 
 | ID | Pytanie | Dlaczego | Rekomendacja | Decyzja właściciela |
 |---|---|---|---|---|
-| **K1** | Jeśli P2 nie będzie rozstrzygnięte, zanim zacznie się PR DICT-2.1: czy dopisać opcjonalny kształt obserwacji do DICT-2.1 „na zapas", czy przyjąć osobny PR kontraktowy później? | ADR 0010, decyzja 3: żaden inny kształt bez zmiany ADR. Kolejka `LintelKit` jest jedna dla DICT i MEET. | Nie blokować DICT-2.1 i nie zamrażać kształtu, którego próby DICT-0.2 jeszcze nie potwierdziły; osobny PR w kolejce. | ___ |
+| **K1** | Jeśli P2 nie będzie rozstrzygnięte, zanim zacznie się PR DICT-2.1: czy dopisać opcjonalny kształt obserwacji do DICT-2.1 „na zapas", czy przyjąć osobny PR kontraktowy później? | ADR 0010, decyzja 3: żaden inny kształt bez zmiany ADR. Kolejka `LintelKit` jest jedna dla DICT i MEET. | Nie blokować DICT-2.1 i nie zamrażać kształtu, którego próby DICT-0.2 jeszcze nie potwierdziły; osobny PR w kolejce. | **Zamknięte** (2026-11-20): P2 zapadło przed DICT-2.1, więc kształt wchodzi do PR DICT-2.1 (człony opcjonalne, z wartościami domyślnymi; negatywny wynik prób zmienia zachowanie, nie kształt). |
 | **K2** | Reguła 5 ADR: czy `dictation_entry.context_sources` ma notować, że dyktowanie było obserwowane? | Zmiana 10 z listy poprawek ADR. | Nie: historia nie musi wiedzieć o obserwacji, a nowa wartość na zamkniętej liście to zmiana utrwalonego formatu. | ___ |
-| **K3** | Czy jeden spec obejmuje też wariant P1 = B (jawne polecenie) i P1 = C (wewnątrz Lintel)? | Są to osobno wdrażalne źródła poprawek; wspólne są magazyn, filtry i sekcja „Propozycje". | Zostają w tym specu jako fazy opcjonalne (C1, C2), bo bez wspólnego rdzenia nie działają; po wyborze P1 niewybrane fazy są usuwane. | ___ |
+| **K3** | Czy jeden spec obejmuje też wariant P1 = B (jawne polecenie) i P1 = C (wewnątrz Lintel)? | Są to osobno wdrażalne źródła poprawek; wspólne są magazyn, filtry i sekcja „Propozycje". | Zostają w tym specu jako fazy opcjonalne (C1, C2), bo bez wspólnego rdzenia nie działają; po wyborze P1 niewybrane fazy są usuwane. Stan po P1 = A+B: C1 (jawne polecenie) jest w zakresie, C2 (wewnątrz Lintel) jest poza wybranym wariantem; czy usunąć jej opis, rozstrzyga ta decyzja. | ___ |
+| **K4** | Dotyczy tylko skrótów z kluczem (P6.2 = b albo P9 = A): klucz HMAC jako podklucz HKDF wspólnego klucza dyktowania (`MasterKeyStore(service: com.lintelapp.dictation)`) czy osobny wpis Pęku kluczy tylko dla nauki? | Przy kluczu wspólnym „Wymaż dane nauki…" kasuje wiersze, ale klucz zostaje (żyje razem z historią), więc stara kopia magazynu, np. w kopii zapasowej Time Machine, nadal pozwala sprawdzić zgadywaną parę. Osobny wpis daje wymazanie kryptograficzne (usunięcie klucza = każdy stary skrót jest bezużyteczny, także w kopiach zapasowych), ale to nowy wpis Pęku kluczy, nowa polityka resetu i odstępstwo od zasady „bez nowego wpisu" z sekcji „Magazyn". Szczegóły: „Zarządzanie kluczem skrótów". | Brak silnej. Osobny wpis, jeśli właściciel uzna kopie zapasowe za realne zagrożenie (T21); wspólny klucz, jeśli liczy się prostota i spójność z historią. | ___ |
 
 ## 📝 Problem Statement
 
@@ -85,13 +88,18 @@ Litery w nawiasach (B1–B12) to sekcje części B makiety.
 
 **Cel.** Skrócić drogę od „poprawiłem słowo" do „Lintel pisze je dobrze", bez dodania czegokolwiek do słownika bez zgody użytkownika i bez osłabienia modelu zaufania ADR 0010 poza tym, na co właściciel wprost się zgodzi.
 
-**Nie-cele (niezależnie od decyzji):**
+**Nie-cele (niezależnie od decyzji; wynikają ze zlecenia albo z obowiązującego ADR 0010):**
 
-- Dodawanie terminów po cichu, bez zatwierdzenia (model Wispr Flow i Typeless).
-- Wyskakujące okna z propozycją i odrzucenie przez upływ czasu (model VoiceInk).
-- Wysyłanie par, kandydatów albo odrzuconych poza proces: do dostawcy zewnętrznego, do „Mojego serwera", do synchronizacji.
-- Zapis treści pola, zdania wokół poprawki albo tytułu okna gdziekolwiek.
-- Zapis jakiegokolwiek atrybutu do cudzej aplikacji; włączanie `AXManualAccessibility` (D-Q9).
+- Dodawanie terminów po cichu, bez zatwierdzenia (model Wispr Flow i Typeless): zlecenie.
+- Zapis treści pola albo tytułu okna gdziekolwiek: ADR 0010, reguła 2 (żadna poprawka ADR tego nie zmienia).
+- Zapis jakiegokolwiek atrybutu do cudzej aplikacji; włączanie `AXManualAccessibility` (D-Q9): ADR 0010.
+
+**Proponowane nie-cele, które są decyzjami właściciela** (rekomendacja autora; obowiązują dopiero po wyborze):
+
+- Odrzucenie przez upływ czasu bez odpowiedzi (model VoiceInk): P8.3, rekomendacja „nie".
+- Wyskakujące okno z propozycją po dyktowaniu: propozycje czekają w Ustawieniach (U1); notka w HUD tylko przy U9 = C, rekomendacja: bez okien.
+- Wysyłanie par, kandydatów albo odrzuconych poza proces (dostawca zewnętrzny, „Mój serwer", synchronizacja): P12.1, rekomendacja „nigdy"; reguła 4 ADR już zakazuje wysyłania kontekstu, P12.1 rozstrzyga, czy obejmuje wprost pary.
+- Zapis zdania wokół poprawki: P6.1d i P6.3, rekomendacja „nie".
 - Odczyt Accessibility bezpośrednio w `DictationPlugin` z pominięciem portu.
 - Dopasowanie fonetyczne i kandydaci z migawki (DICT-4.1): osobna story z własnym pomiarem.
 - Nauka z poprawek w notatkach ze spotkań (MEET): poza zakresem.
@@ -106,7 +114,7 @@ flowchart LR
   classDef fixed fill:#d1fae5,color:#111,stroke:#047857
   classDef param fill:#ede9fe,color:#111,stroke:#6d28d9
   classDef existing fill:#e5e7eb,color:#111,stroke:#4b5563
-  A[Dyktowanie i wklejenie<br/>istniejące]:::existing --> B[Źródło poprawki<br/>P1, P2, P3, P4]:::param
+  A[Dyktowanie i wklejenie<br/>istniejące]:::existing --> B[Źródło poprawki<br/>pole po wklejeniu + polecenie; P3, P4]:::param
   B --> C[CorrectionDiff<br/>pary słów]:::fixed
   C --> D[CorrectionFilters<br/>U12]:::fixed
   D --> E[Magazyn: kandydat<br/>P6, P7, P8, P9]:::param
@@ -120,10 +128,10 @@ Szare elementy istnieją na `main`, zielone są stałe we wszystkich wariantach,
 Kroki:
 
 1. **Dyktowanie i wklejenie.** Bez zmian. Punkt zaczepienia: `DictationController.produceAndPaste()`, tylko wynik `.pasted` (nie `.copied`) i tylko główne wklejenie (nie „Wklej surową wersję"). Tekst odniesienia to `output.text`, czyli tekst po formaterze i po słowniku: usłyszana forma musi być taka, jaką `TermReplacer` zobaczy w następnym dyktowaniu.
-2. **Obserwacja poprawki.** Źródło poprawki (`CorrectionSource`) dostarcza najwyżej jedną parę tekstów „wklejone / po poprawkach" na dyktowanie. Które źródło i kiedy czyta: P1–P4.
+2. **Obserwacja poprawki.** Źródło poprawki (`CorrectionSource`) dostarcza najwyżej jedną parę tekstów „wklejone / po poprawkach" na dyktowanie. Źródła (P1 = A+B): obserwacja pola po wklejeniu, do utraty fokusu, najdłużej 60 s albo do następnego dyktowania, dwoma odczytami (P2 = D, (i)), oraz jawne polecenie na zaznaczeniu. W jakich aplikacjach i ile pola: P3, P4.
 3. **Kandydat.** `CorrectionDiff` wyznacza zmienione ciągi słów; `CorrectionFilters` odrzuca to, co nie jest poprawką pisowni; para już obsługiwana przez słownik albo odrzucona wcześniej nie jest liczona.
 4. **Propozycja.** Para, która osiągnęła próg (U13.1), staje się propozycją w sekcji Słownik.
-5. **Zatwierdzenie albo odrzucenie.** „Dodaj" przechodzi przez `VocabularyRules` (D7, D8) i `VocabularyStore.save`; „Odrzuć" zapisuje parę jako odrzuconą i para nie wraca.
+5. **Zatwierdzenie albo odrzucenie.** „Dodaj" przechodzi przez `VocabularyRules` (D7, D8) i `VocabularyStore.save`; „Odrzuć" zapisuje parę jako odrzuconą i para nie wraca (zlecenie; zakres „tej samej pary" i ewentualny limit, po którego przekroczeniu para może wrócić, wybiera P9).
 
 ### Rozważone alternatywy
 
@@ -132,7 +140,7 @@ Kroki:
 | Ciche dodawanie (Wispr Flow, Typeless) | Błędna reguła zamienia poprawne słowa w każdym dyktowaniu i użytkownik nie wie dlaczego; sprzeczne ze zleceniem. |
 | Wyskakująca propozycja po dyktowaniu z odrzuceniem po 10 s (VoiceInk) | Przerywa pracę; okno widoczne przy udostępnianiu ekranu pokazałoby słowo; odrzucenie przez brak odpowiedzi jest trwałe i przypadkowe. |
 | Recenzja par przez model | Para trafia do promptu (zmiana reguły 3 ADR); zostaje jako decyzja P12.2, rekomendacja: nie. |
-| Nasłuch każdej zmiany wartości pola | Śledzenie pisania w cudzej aplikacji; zostaje jako P2 (ii), rekomendacja: nie. |
+| Nasłuch każdej zmiany wartości pola | Śledzenie pisania w cudzej aplikacji; odrzucone decyzją właściciela P2 = (i) z 2026-11-20. |
 | Odczyt Accessibility wprost w `DictationPlugin` | Dwa miejsca odczytu i dwa modele zaufania; sprzeczne z architekturą (jedno miejsce w `LintelApp`). |
 
 ### Wzorce rynkowe
@@ -147,7 +155,7 @@ Dostęp do źródeł: 2026-11-20 (lista decyzji makiety v2) oraz raport `.ai/spe
 | OpenWhispr | opcja do włączenia | „Can watch for the moment you fix a transcription" (dokumentacja słownika). | Szczegóły. |
 | Superwhisper, Aqua Voice | tylko ręczny słownik | — | — |
 
-**Co bierzemy:** model „propozycja + zatwierdzenie" (VoiceInk), dwa odczyty zamiast nasłuchu, limity długości. **Co pomijamy:** wyskakujące okna, odrzucenie przez upływ czasu, fragmenty zdań na dysku, recenzję przez zewnętrzny model, synchronizację.
+**Co bierzemy (zlecenie):** model „propozycja + zatwierdzenie" (VoiceInk). **Decyzja właściciela (2026-11-20):** dwa odczyty zamiast nasłuchu i koniec przy utracie fokusu, po 60 s albo przy następnym dyktowaniu (P2 = D, (i)). **Co autor rekomenduje wziąć:** limity długości (P4, U12.4). **Co autor rekomenduje pominąć:** wyskakujące okna (U1, U9), odrzucenie przez upływ czasu (P8.3), fragmenty zdań na dysku (P6.1d), recenzję przez model (P12.2), synchronizację (P12.1). Wszystkie poza pierwszym punktem czekają na decyzję właściciela.
 
 ## 📝 Architecture
 
@@ -165,9 +173,9 @@ Dostęp do źródeł: 2026-11-20 (lista decyzji makiety v2) oraz raport `.ai/spe
 | Komponent | Rodzaj | Rola | Zależy od decyzji |
 |---|---|---|---|
 | `CorrectionSource` (protokół wewnętrzny) | port w pluginie | `func corrections(for: PastedDictation) async -> CorrectionSample?`; realizacje niżej | P1 |
-| `FieldCorrectionObserver` | realizacja | Obserwacja pola przez `FocusContextReader` po wklejeniu | P1 = A; kształt od P2, P4 |
-| `SelectionCorrectionCommand` | realizacja | Jawne polecenie na zaznaczeniu | P1 = B |
-| `InAppCorrectionSource` | realizacja | Poprawki w oknach Lintel | P1 = C |
+| `FieldCorrectionObserver` | realizacja | Obserwacja pola przez `FocusContextReader` po wklejeniu: odczyt bazowy z uchwytem, odczyt końcowy przy utracie fokusu, po 60 s albo przy następnym dyktowaniu | wybrane (P1 = A+B, P2 = D); zakres odczytu od P4 |
+| `SelectionCorrectionCommand` | realizacja | Jawne polecenie na zaznaczeniu | wybrane (P1 = A+B) |
+| `InAppCorrectionSource` | realizacja | Poprawki w oknach Lintel | niewybrane (P1 = A+B); opis zostaje do decyzji K3 |
 | `ScriptedCorrectionSource` | atrapa (testy, DEBUG QA) | Podaje pary z pliku albo z testu | — |
 | `CorrectionPolicy` | czysta logika | Czy wolno obserwować: wyłącznik, relacja do `contextEnabled`, lista odmów, kategorie, limity długości | P3, P4, P5 |
 | `CorrectionDiff` | czysta logika | Z dwóch tekstów wyznacza zmienione ciągi słów | U12.4 |
@@ -179,17 +187,19 @@ Dostęp do źródeł: 2026-11-20 (lista decyzji makiety v2) oraz raport `.ai/spe
 
 ### Co zmienia każdy wariant
 
-**Źródło poprawki i kontrakt `LintelKit` (P1, P2)**
+**Wybrane źródło poprawki i kontrakt `LintelKit` (P1 = A+B, P2 = D: decyzje właściciela 2026-11-20)**
+
+Tabela zostaje jako zapis rozważonych wariantów; obowiązują wiersze oznaczone „wybrane".
 
 | Wybór | Kiedy czytane | Co jest potrzebne z `LintelKit` | Zmiana ADR 0010 | Najwcześniejsze wejście |
 |---|---|---|---|---|
-| P1 = C | nigdy poza oknami Lintel | nic | brak | niezależnie od DICT-2.x |
-| P1 = B | raz, na polecenie użytkownika | `snapshot` ze źródłem `selection` (kształt z DICT-2.1) | odczyt poza naciśnięciem skrótu dyktowania; wiersz tabeli zaufania; cel Dostępności | po DICT-2.2 |
-| P1 = A, P2 = C | przy następnym naciśnięciu skrótu (istniejąca migawka `field`) | nic ponad DICT-2.1 | tylko wyjątek od zakazu zapisu (zmiana 1) i wiersz „poprawki" | po DICT-2.3 (migawka przy skrócie) |
-| P1 = A, P2 = B | drugi odczyt N sekund po wklejeniu | nic ponad DICT-2.1: drugie `snapshot(.field)` | odczyt poza naciśnięciem skrótu; limity | po DICT-2.2 |
-| P1 = A, P2 = A lub D | odczyt bazowy po wklejeniu i końcowy przy utracie fokusu albo po limicie | **rozszerzenie kontraktu** (niżej) | nowy kształt w decyzji 3; limity; [0.2] | po DICT-2.2; kształt **przed** DICT-2.1 albo drugi PR kontraktowy |
+| P1 = C (niewybrane) | nigdy poza oknami Lintel | nic z `FocusContextReader`; prawie na pewno addytywny człon kontraktu notatek (edycja warstwy notatki przekazana właścicielowi, z wartością domyślną), bo `NoteSource` dziś tego nie niesie | brak | niezależnie od DICT-2.x; PR kontraktowy w kolejce `LintelKit` |
+| P1 = B (**wybrane** jako część D) | raz, na polecenie użytkownika | `snapshot` ze źródłem `selection` (kształt z DICT-2.1) | odczyt poza naciśnięciem skrótu dyktowania; wiersz tabeli zaufania; cel Dostępności | po DICT-2.2 |
+| P1 = A, P2 = C (niewybrane) | przy następnym naciśnięciu skrótu (istniejąca migawka `field`) | nic ponad DICT-2.1 | tylko wyjątek od zakazu zapisu (zmiana 1) i wiersz „poprawki" | po DICT-2.3 (migawka przy skrócie) |
+| P1 = A, P2 = B (niewybrane) | drugi odczyt N sekund po wklejeniu | nic ponad DICT-2.1: drugie `snapshot(.field)` | odczyt poza naciśnięciem skrótu; limity | po DICT-2.2 |
+| P1 = A, P2 = D (**wybrane**) | odczyt bazowy po wklejeniu i końcowy przy utracie fokusu, po 60 s albo przy następnym dyktowaniu | **rozszerzenie kontraktu** (niżej) | nowy kształt w decyzji 3; limity; [0.2] | kształt w PR DICT-2.1 (przed nim akceptacja zmian ADR); realizacja po DICT-2.2 |
 
-**Kształt kontraktu potrzebny przed DICT-2.1 dla wariantu „do utraty fokusu" (P2 = A/D).** Dzisiejszy zamrożony kształt (ADR 0010, decyzja 3) ma jedno wywołanie `snapshot` i nie ma tożsamości pola. Obserwacja do utraty fokusu potrzebuje trzech rzeczy, których w nim nie ma:
+**Kształt kontraktu, który wchodzi do PR DICT-2.1 (wynika z P2 = D).** Dzisiejszy zamrożony kształt (ADR 0010, decyzja 3) ma jedno wywołanie `snapshot` i nie ma tożsamości pola. Obserwacja do utraty fokusu potrzebuje trzech rzeczy, których w nim nie ma:
 
 1. **Tożsamość pola.** Odczyt końcowy musi dotyczyć tego samego elementu, także po tym, jak fokus go opuścił. Bez tego porównanie z innym polem daje bzdurne pary.
 2. **Ponowny odczyt tego samego zakresu.** Po poprawce kursor jest gdzie indziej, więc „500 znaków przed kursorem" nie obejmuje już wklejonego tekstu. Port musi pamiętać bezwzględny zakres odczytu bazowego i czytać ten sam zakres z zapasem; plugin nie operuje przesunięciami w cudzym polu.
@@ -239,7 +249,7 @@ Właściwości tego kształtu:
 - Uchwyt nie niesie treści; test kontraktu sprawdza, że `FocusFieldHandle` nie ma pola tekstowego ani identyfikatora aplikacji.
 - Port zwalnia uchwyt sam po własnym limicie (górna granica w tabeli limitów ADR), więc plugin, który zapomni `release`, nie trzyma cudzego elementu.
 - Wiarygodność powiadomienia o zmianie fokusu i możliwość odczytu elementu po utracie fokusu są **[0.2]** (kryteria prób niżej). Jeśli próby wypadną źle, człony zostają w kontrakcie i zwracają `unsupported` (ta sama zasada co dla `documentURL` i `terminal`).
-- Kiedy: jeśli P2 = A/D zapadnie przed startem DICT-2.1, kształt wchodzi do tego samego PR kontraktowego. Jeśli nie zapadnie: pytanie K1.
+- Kiedy: P2 = D zapadło przed startem DICT-2.1 (2026-11-20), więc kształt wchodzi do tego samego PR kontraktowego (K1 zamknięte). Warunek: właściciel akceptuje treść zmian ADR 0010 z pliku propozycji, które wynikają z P1/P2 (zmiany 1, 3, 5, 7, 8 i 11 w części zależnej od P1/P2), zanim PR DICT-2.1 zostanie otwarty; dokładne sygnatury zamraża ta poprawka.
 
 **Magazyn (P6, P7, P9)**
 
@@ -253,8 +263,16 @@ Wspólne dla każdego wariantu:
 
 - `SuggestionStore` jest protokołem wewnętrznym pluginu; pierwsza realizacja to `InMemorySuggestionStore` (testy i faza A), druga to wybrana w P7. Zmiana wyboru po wdrożeniu to migracja danych, więc P7 trzeba rozstrzygnąć przed krokiem A2.
 - Skróty (P6.2 = b, P9 = A): HMAC-SHA-256 z podkluczem HKDF z `MasterKeyStore(service: com.lintelapp.dictation)` (nowa etykieta podklucza, nie nowy wpis Pęku kluczy). Wejście: `VocabularyRules.key(usłyszane)` + separator + poprawione po `tidy` i normalizacji NFC. Brak klucza albo błąd Pęku kluczy: liczenie stoi, nic nie jest kasowane, sekcja pokazuje stan wstrzymania (ta sama reguła co historia).
-- Żaden wariant nie dodaje wpisu Pęku kluczy ani zależności.
+- Żaden wariant nie dodaje zależności. Żaden nie dodaje wpisu Pęku kluczy, chyba że właściciel wybierze osobny klucz w K4.
 - `Plugins/dictation/` zostaje 0700, pliki 0600.
+
+**Zarządzanie kluczem skrótów (tylko P6.2 = b albo P9 = A).** Propozycja techniczna; wybory właściciela są w P6, P9, P10 i K4.
+
+- **Pochodzenie.** Klucz HMAC jest podkluczem HKDF (`MasterKeyStore.derived(info:)`) z nową etykietą, np. `autolearn-hmac-v1`, z klucza dyktowania albo z osobnego wpisu (K4). Nigdy nie jest zapisywany na dysku, w ustawieniach ani w logach; żyje w pamięci procesu tylko na czas liczenia.
+- **Wejście.** `VocabularyRules.key(usłyszane)`, separator spoza tekstu (np. U+001F) i poprawione po `VocabularyRules.tidy` oraz normalizacji NFC; ta sama normalizacja co w `TermReplacer` (forma `TextNormalizer`), żeby pary różniące się tylko wielkością liter albo znakami diakrytycznymi nie dawały dwóch skrótów. Etykieta z wersją pozwala zmienić normalizację bez mieszania starych i nowych skrótów (stare tracą ważność).
+- **Siła.** Para to krótki tekst o małej entropii: skrót bez klucza (P9 = C) da się odwrócić przez zgadywanie; skrót z kluczem chroni tylko, dopóki klucz jest tajny. Kto ma dostęp do klucza w Pęku kluczy (proces Lintel), może sprawdzić dowolną zgadywaną parę. Skrót chroni więc przed odczytem pliku przez inny proces i przed kopią pliku, nie przed samym Lintel.
+- **Błędy Pęku kluczy.** Ta sama reguła co historia (`EncryptedDatabaseOpener`): tylko `errSecItemNotFound` pozwala utworzyć nowy klucz, a wtedy stare skróty są bezużyteczne (kandydaci liczą od zera, odrzucone pary mogą wrócić: sekcja pokazuje to jednym zdaniem); każdy inny błąd wstrzymuje liczenie i niczego nie kasuje.
+- **Wymazanie.** „Wymaż dane nauki…" i „Zapomnij odrzucone…" usuwają wiersze (i przy P7 = B wykonują `VACUUM`, przy plikach zapisują je od nowa). Przy kluczu wspólnym z historią klucz zostaje, więc kopia zapasowa starego magazynu nadal pozwala sprawdzić zgadywaną parę (T21); przy osobnym wpisie (K4) „Wymaż dane nauki…" usuwa też ten wpis i wymazanie jest kryptograficzne. „Usuń dane" w Funkcjach i tak usuwa wpis dyktowania (`DictationHistory.erase()`), a powłoka katalog `Plugins/dictation/`.
 
 **Retencja (P8).** Zadanie retencji uruchamia się przy otwarciu magazynu i co godzinę (jak `DictationHistory`), na wstrzykniętym zegarze. Parametry z P8: wiek kandydatów, limit liczby kandydatów, limit albo wiek propozycji, limit odrzuconych (P9.1). Wygaśnięcie usuwa wiersz i niczego nie oznacza jako odrzucone.
 
@@ -277,7 +295,7 @@ Wspólne dla każdego wariantu:
 | `wholeTextRemoved` | wklejony tekst zniknął w całości (cofnięcie ⌘Z) | — |
 | `anchorLost` | w odczycie nie da się odnaleźć wklejonego tekstu ani jego otoczenia | — |
 
-Filtry działają na tekście w pamięci i zwracają tylko powód; odrzucona para nie jest nigdzie zapisywana.
+Filtry działają na tekście w pamięci i zwracają tylko powód; odrzucona przez filtr para nie jest nigdzie zapisywana. Porównania „ta sama forma" (`alreadyCovered`, `caseOnly`, grupowanie) używają formy `TextNormalizer`, tak jak `TermReplacer`: poprawka, która dodaje tylko znaki diakrytyczne („zrodlo" → „źródło"), zachowuje się jak `caseOnly`, bo sam termin jest już aliasem (U12.2 obejmuje oba przypadki).
 
 ### Punkty styku z istniejącym kodem (`origin/main`, 2026-11-20)
 
@@ -289,7 +307,7 @@ Filtry działają na tekście w pamięci i zwracają tylko powód; odrzucona par
 | `DictationPlugin.eraseData()` | słownik, potem historia | dochodzi wymazanie danych nauki, przed historią |
 | `DictationPlugin.deactivate()` | kończy sesję | przerywa trwającą obserwację i zwalnia uchwyt |
 | `LintelApp/Settings/PermissionsPane` | opis celu Dostępności | nowy cel (P11.1) |
-| `LintelKit` | `FocusContextReader` jeszcze nie istnieje (brak PR DICT-2.1) | tylko przy P2 = A/D |
+| `LintelKit` | `FocusContextReader` jeszcze nie istnieje (brak PR DICT-2.1); `NoteSource`/`NoteSourceEditing` nie przekazują edycji treści właścicielowi | człony obserwacji z P2 = D w PR DICT-2.1; człon edycji notatki tylko, gdyby właściciel kiedyś wybrał wariant C (dziś niewybrany) |
 
 ## 📝 Data Model
 
@@ -317,9 +335,9 @@ Dane wrażliwe: `Suggestion.corrected` i `heardForms` to słowa wpisane albo wyp
 
 Każdy nowy klucz dostaje wpis w `SettingsKeyCoverageTests` i w §3 z uzasadnieniem wartości domyślnej.
 
-**`LintelKit`.** Bez zmian, poza P2 = A/D (kształt wyżej) i ewentualnie U9 = B (jeśli liczba w pasku bocznym wymaga nowej wartości w `SettingsStatus`).
+**`LintelKit`.** Kształt obserwacji z P2 = D (wyżej) wchodzi do PR DICT-2.1. Poza tym bez zmian, chyba że właściciel wybierze później wariant C (addytywny człon kontraktu notatek, krok C2) albo U9 = B (jeśli liczba w pasku bocznym wymaga nowej wartości w `SettingsStatus`). Każda z tych zmian to osobny PR w jednej kolejce `LintelKit`, chyba że wejdzie do PR, który i tak jest w kolejce.
 
-**Komendy.** `dictation.addCorrection` tylko przy P1 = B (`PluginCommand` bez domyślnego skrótu, w menu).
+**Komendy.** `dictation.addCorrection` (P1 = A+B; `PluginCommand` bez domyślnego skrótu, w menu; nazwa robocza, tekst według U14).
 
 **Diagnostyka.** „Kopiuj diagnostykę" dostaje blok liczb (P13); format tekstowy nie jest kontraktem.
 
@@ -350,7 +368,7 @@ Stany sekcji, które implementacja musi obsłużyć niezależnie od wariantów:
 | słownik tylko do odczytu (`VocabularyStore.Condition`) | „Dodaj" nieaktywne z wyjaśnieniem; odrzucanie działa |
 | limit 2000 terminów | „Dodaj" otwiera komunikat limitu z DICT-1.2 |
 
-Wymagania stałe: kolory tylko z `LintelBrand`; rozmiary przez `lintelTextSize` (S, M, XL); każdy wiersz, przycisk i wyłącznik ma etykietę VoiceOver; nowa propozycja nie jest ogłaszana, gdy użytkownik jest w innej aplikacji (U14.3); teksty `en` i `pl` w `Resources/Localizable.xcstrings`; `settingsPane()` nie otwiera magazynu ani Pęku kluczy, gdy plugin jest nieaktywny (`InactiveSettingsPaneTests`).
+Wymagania stałe: kolory tylko z `LintelBrand`; rozmiary przez `lintelTextSize` (S, M, XL); każdy wiersz, przycisk i wyłącznik ma etykietę VoiceOver; zachowanie ogłoszeń VoiceOver według U14.3 (rekomendacja: nowa propozycja nie jest ogłaszana, gdy użytkownik jest w innej aplikacji); teksty `en` i `pl` w `Resources/Localizable.xcstrings`; `settingsPane()` nie otwiera magazynu ani Pęku kluczy, gdy plugin jest nieaktywny (`InactiveSettingsPaneTests`).
 
 Zgodnie z regułą backlogu (wspólne DoD, punkt 8) i z decyzją właściciela o zgodności 1:1: implementacja UI zaczyna się dopiero po akceptacji prototypu ekranów z wybranymi wariantami U1–U14.
 
@@ -363,18 +381,26 @@ Aktywa: treść pola cudzej aplikacji (także tekst niedyktowany), pary „usły
 | T1 | Treść pola trafia na dysk | Cudzy tekst w pliku Lintel | Odczyty żyją tylko w pamięci jednej obserwacji i są kasowane na każdej ścieżce wyjścia (koniec, anulowanie, błąd, wyłączenie); magazyn przyjmuje wyłącznie typ `CorrectionPair`, nie `String` pola (test typów i test skanujący) | P6.3 | Sama para jest treścią |
 | T2 | Treść pola albo para trafia do logów, raportu awarii albo diagnostyki | Wyciek poza kontrolę użytkownika | Test skanujący źródła `AutoLearn/` (wzorzec z DICT-2.3): żadne wywołanie loggera nie przyjmuje `CorrectionSample`, `CorrectionPair`, `Suggestion`; test z atrapą loggera na ścieżkach błędów; diagnostyka tylko z liczb | P13 | — |
 | T3 | Pole bezpieczne albo Secure Event Input | Odczyt hasła | Odmowa w porcie (DICT-2.2: `field == .secure`, brak tekstu) i ponowne sprawdzenie przy odczycie końcowym; obserwacja nie startuje, gdy migawka bazowa ma `secure` | twarde odmowy | — |
-| T4 | Pole hasła zbudowane ze zwykłego pola na stronie WWW | Hasło wpisane po dyktowaniu wygląda jak poprawka | Filtry (jedno „słowo" bez podobieństwa do usłyszanego to `rephrase`); próg ≥ 2 (U13.1); skrót pod progiem (P6.2 = b); kategoria przeglądarek (P3.2) | P3, P6, U13 | Znane ograniczenie z ADR 0010: Lintel tego nie wykryje. Jeśli przeglądarki nie są wykluczone, ryzyko jest przyjęte przez właściciela |
+| T4 | Pole hasła zbudowane ze zwykłego pola na stronie WWW | Hasło wpisane po dyktowaniu wygląda jak poprawka | Filtry (jedno „słowo" bez podobieństwa do usłyszanego to `rephrase`); przy progu ≥ 2 (U13.1) jednorazowa poprawka nie staje się propozycją; przy P6.2 = b kandydat pod progiem jest tylko skrótem; kategoria przeglądarek (P3.2) | P3, P6, U13 | Znane ograniczenie z ADR 0010: Lintel tego nie wykryje. Jeśli przeglądarki nie są wykluczone, ryzyko jest przyjęte przez właściciela |
 | T5 | Menedżery haseł | Odczyt sejfu | `contextDeniedApps` obowiązuje naukę; port nie jest wywoływany; niepotwierdzony identyfikator wypada z listy, a pola bezpieczne są odmawiane niezależnie od aplikacji | P3 | Menedżer spoza listy z polem niezabezpieczonym |
 | T6 | Terminale | Odczyt to często cały bufor; polecenia i wklejane sekrety | Kategoria wykluczona (P3.1); przy braku wykluczenia odczyt po zakresie (P4 = A) i filtr `codeSymbol` | P3, P4 | Zakresowy odczyt w terminalach niepotwierdzony [0.2] |
 | T7 | Zdalne pulpity i maszyny wirtualne | Pole należy do innego systemu; odczyt może zwrócić obraz albo nic, a tekst należy do innej osoby lub organizacji | Kategoria wykluczona (P3.3) | P3 | Lista identyfikatorów nigdy nie jest pełna |
-| T8 | Niewłaściwe pole | Bzdurne pary z cudzego tekstu | Uchwyt pola (P2 = A/D) albo pid + odnalezienie wklejonego tekstu (P2 = B/C); `anchorLost` kończy obserwację bez nauki | P2 | Przy P2 = B/C brak tożsamości pola |
+| T8 | Niewłaściwe pole | Bzdurne pary z cudzego tekstu | Uchwyt pola (P2 = D) i odnalezienie wklejonego tekstu; `anchorLost` kończy obserwację bez nauki | — | Wiarygodność uchwytu po utracie fokusu: kryterium 10 |
+| T8a | **Wyścig fokusu**: wklejenie (⌘V wysłane przez `EventPoster`) trafia w jeden element, a odczyt bazowy albo końcowy pochodzi z **innego** pola (fokus zmienił się w ułamku sekundy po wklejeniu, okno dialogowe, autouzupełnianie, pole wyszukiwania tej samej aplikacji) | Para z tekstu, którego użytkownik nie dyktował ani nie poprawiał; w skrajnym przypadku słowa z innego dokumentu albo rozmowy | Odczyt bazowy jest ważny tylko wtedy, gdy (1) pid celu wklejenia równa się pid odczytu, (2) wklejony tekst jest w odczycie na oczekiwanej pozycji przed kursorem (zakotwiczenie), (3) uchwyt pola pochodzi z tego odczytu, nie z późniejszego; w przeciwnym razie `anchorLost` i brak obserwacji. Odczyt końcowy idzie przez uchwyt (P2 = D), nigdy przez „bieżący fokus". Opóźnienie odczytu bazowego z kryterium 7 prób | P4 | Kryterium 7 mierzy wyścig; przy jawnym poleceniu (P1 część B) odczyt dotyczy zaznaczenia w chwili polecenia |
 | T9 | Odczytany plik magazynu przez inny proces użytkownika | Lista poprawek użytkownika | 0600; szyfrowanie (P7 = B/C); skróty pod progiem i dla odrzuconych | P6, P7, P9 | Zatwierdzone terminy są w jawnym `vocabulary.json` (stan dzisiejszy) |
 | T10 | Para trafia do modelu albo poza Mac | Złamanie reguł 3 i 4 ADR | Typy auto-nauki nie są importowane przez formatery, `CleanupPrompt` ani kod dostawców (test skanujący); brak synchronizacji | P12 | — |
 | T11 | Zawieszona aplikacja blokuje odczyt | Dyktowanie albo okna Lintel czekają | Kolejka na pid i limit na wywołanie z DICT-2.2; obserwacja poza ścieżką wklejenia; budżet w `docs/perf.md` | — | Brak pomiarów do DICT-0.2 |
 | T12 | Błędna reguła po zatwierdzeniu | Poprawne słowa zamieniane w każdym dyktowaniu | Zatwierdzanie przez użytkownika; D7 i D8; `TermReplacer` dopasowuje tylko całe słowa; wpis da się usunąć w panelu | U5, U13 | Polska odmiana da wiele form jednego terminu |
 | T13 | Prawdziwe dane właściciela w repozytorium | Trwały wyciek w publicznej historii | Fixture, testy, zrzuty i przykłady wyłącznie syntetyczne; QA na atrapie; punkt obowiązkowy recenzji | P13 | — |
-| T14 | Obserwacja trwa po wyłączeniu | Odczyt wbrew woli użytkownika | Wyłączenie wyłącznika, `deactivate()`, wyłączenie kontekstu (P5.2 = a) i cofnięcie Dostępności anulują zadanie natychmiast, bez odczytu końcowego (P10.5) | P5, P10 | — |
-| T15 | Udostępnianie ekranu | Widać poprawione słowo | Propozycje tylko w Ustawieniach; HUD nigdy nie pokazuje słowa (U9 = C: tylko liczba) | U9, P11.3 | Otwarte okno Ustawień podczas udostępniania |
+| T14 | Obserwacja trwa po wyłączeniu | Odczyt wbrew woli użytkownika | Wyłączenie wyłącznika, `deactivate()`, wyłączenie kontekstu (przy P5.2 = a) i cofnięcie Dostępności anulują zadanie; czy natychmiast i bez odczytu końcowego, rozstrzyga P10.5 (rekomendacja: tak) | P5, P10 | Przy innym wyborze P10.5: jeden odczyt końcowy po wyłączeniu |
+| T15 | Udostępnianie ekranu | Widać poprawione słowo | Propozycje w Ustawieniach (U1); HUD nigdy nie pokazuje słowa (U9 = C: tylko liczba) | U9, P11.3 | Otwarte okno Ustawień podczas udostępniania |
+| T16 | Okna prywatne przeglądarki (tryb incognito) | Słowa z sesji, której użytkownik celowo nie chce zostawiać na dysku, trafiają do magazynu | Przy P3.2 = „wykluczyć" przeglądarki nie są obserwowane wcale. Przy innym wyborze: okno prywatne jest odmawiane, jeśli próby (kryterium 11) pokażą atrybut, który je pewnie rozpoznaje; jeśli nie pokażą, Lintel nie odróżni okna prywatnego od zwykłego i arkusz zgody musi to powiedzieć | P3 | Zależy od kryterium 11; bez pewnego rozpoznania ryzyko przyjmuje właściciel razem z P3.2 |
+| T17 | Aplikacje bez Accessibility albo z niepełnym AX (część aplikacji Electron, gry, aplikacje rysujące tekst same; wartość nieaktualna albo cały dokument zamiast zakresu) | Brak nauki albo para z nieaktualnej wartości; przy odczycie całej wartości więcej cudzego tekstu w pamięci | `unsupported` i brak nauki; brak przejścia na odczyt całej wartości przy P4 = A; odczyt, który zwraca więcej niż żądany zakres, jest przycinany w porcie i liczony jako pominięcie; `AXManualAccessibility` nie jest włączane (D-Q9) | P4 | Zasięg nieznany do kryteriów 7, 8 i 11 |
+| T18 | „Poprawka" zrobiona przez **inną aplikację albo osobę**: ekspander tekstu, korektor gramatyki, asystent AI w polu, autokorekta, synchronizacja z innego urządzenia, współpracownik w dokumencie współdzielonym | Lintel uczy się słów, których użytkownik nie wpisał (także cudzych, w dokumencie współdzielonym) | Liczy się tylko zmiana wewnątrz zakresu wklejonego tekstu; próg (U13.1) i zatwierdzenie przez użytkownika; filtry; przy zmianie, która obejmuje więcej niż wklejony zakres albo wiele miejsc naraz, obserwacja kończy się bez nauki (`tooLong`) | U12, U13 | Nieodróżnialne od poprawki użytkownika na poziomie AX; zatwierdzenie jest ostatnią linią obrony |
+| T19 | **Słowa wrażliwe jako kandydaci**: nazwisko klienta albo pacjenta, adres, numer, hasło lub kod wpisany jawnie w miejsce podyktowanego słowa | Wrażliwe słowo leży w magazynie (kandydat albo propozycja) i jest widoczne w Ustawieniach | Filtry `number`, `url`, `emoji`, `codeSymbol`, `rephrase` (hasło zwykle nie jest podobne do usłyszanego słowa); przy P6.2 = b pod progiem tylko skrót; szyfrowany magazyn (P7 = B/C); retencja (P8); „Wymaż dane nauki…"; imiona i nazwiska świadomie nie są filtrowane, jeśli U12.6 tak zdecyduje | P6, P7, P8, U12 | Nazwisko poprawione dwa razy staje się czytelną propozycją: to cena funkcji, opisana w arkuszu zgody |
+| T20 | Klucz HMAC i wymazanie skrótów | Utrata klucza przywraca odrzucone pary; klucz wspólny z historią przeżywa „Wymaż dane nauki…" | „Zarządzanie kluczem skrótów" (sekcja Architecture): pochodzenie, normalizacja, reguła resetu jak w historii, brak klucza na dysku i w logach | P6, P9, K4 | Przy kluczu wspólnym wymazanie nie jest kryptograficzne (T21) |
+| T21 | Kopie zapasowe (Time Machine, kopia dysku) magazynu nauki | „Wymaż dane nauki…" nie sięga kopii; jawne propozycje (i przy P7 = A wszystko) zostają w kopii | Szyfrowanie (P7 = B/C) sprawia, że kopia bez klucza jest nieczytelna; przy osobnym kluczu (K4) jego usunięcie unieważnia także kopie; dokumentacja mówi wprost, że kopie zapasowe nie są czyszczone | P7, K4 | Przy P7 = A kopia jest czytelna dla każdego, kto ma do niej dostęp |
+| T22 | Zmiana pola na bezpieczne albo włączenie Secure Event Input w trakcie obserwacji | Odczyt końcowy hasła | `reread` sprawdza stan bezpieczeństwa i Secure Event Input ponownie i zwraca `secureField`; obserwacja kończy się bez nauki | twarde odmowy | Zależy od kryterium 10 |
 
 ## 📝 Wymazanie danych
 
@@ -383,10 +409,10 @@ Macierz parametryzowana P10 (✔ usuwa, — zostawia, ? decyzja):
 | Akcja | Kandydaci | Propozycje | Odrzucone | Terminy w słowniku | Trwająca obserwacja |
 |---|---|---|---|---|---|
 | Wyłączenie wyłącznika | ? (P10.1) | ? (P10.1) | ? (P10.1) | — | przerwana (P10.5) |
-| „Zapomnij odrzucone…" | — | — | ✔ | — | — |
-| „Wymaż dane nauki…" (arkusz potwierdzenia) | ✔ | ✔ | ✔ | — | przerwana |
+| „Zapomnij odrzucone…" (tylko U7 = A) | — | — | ✔ | — | — |
+| „Wymaż dane nauki…" (arkusz potwierdzenia; zakres proponowany, potwierdza P10.2) | ✔ | ✔ | ✔ | — | przerwana (P10.5) |
 | „Wyczyść historię" dyktowania | ? (P10.4) | ? (P10.4) | ? (P10.4) | — | — |
-| „Usuń dane" w Funkcjach (`eraseData()`) | ✔ | ✔ | ✔ | ✔ (jak dziś) | przerwana |
+| „Usuń dane" w Funkcjach (`eraseData()`; proponowane, potwierdza P10.3) | ✔ | ✔ | ✔ | ✔ (jak dziś) | przerwana (P10.5) |
 | Wyłączenie wtyczki Dyktowanie | jak wyłączenie wyłącznika (P10.3) | | | — | przerwana |
 | Reset bazy po `errSecItemNotFound` (tylko P7 = B) | ✔ (z archiwum bazy) | ✔ | ✔ | — | — |
 
@@ -394,7 +420,7 @@ Reguły stałe: każda akcja kasująca idzie przez `.destructiveConfirmation` (`
 
 ## 📝 Uprawnienia
 
-- **Żadnego nowego uprawnienia systemowego.** Odczyt używa uprawnienia Dostępność, które dyktowanie już deklaruje (wklejanie). Nowy jest **cel**: czytanie pola po wklejeniu (P1 = A) albo zaznaczenia na polecenie (P1 = B). P1 = C nie używa Dostępności.
+- **Żadnego nowego uprawnienia systemowego.** Odczyt używa uprawnienia Dostępność, które dyktowanie już deklaruje (wklejanie). Nowy jest **cel**: czytanie pola po wklejeniu i zaznaczenia na polecenie (P1 = A+B, oba).
 - Tekst wiersza Dostępność w Ustawienia → Uprawnienia: z trzech celów (stan po DICT-2.4) robią się cztery (P11.1). To zmiana opisu celu uprawnienia: `BACKWARD_COMPATIBILITY.md` §4 i §5, nota wydania, etykieta `risk-high`.
 - Brak uprawnienia: obserwacja nie startuje, port zwraca `notPermitted`, sekcja pokazuje linię wstrzymania (U10.1). `settingsStatus` tylko czyta zapamiętany stan; o uprawnienie pyta wyłącznie kliknięcie użytkownika. Cofnięcie uprawnienia w trakcie obserwacji kończy ją bez nauki.
 - Uprawnienie nie jest dopisywane do `requiredPermissions` po raz drugi; `StatusDerivation` nie liczy auto-nauki jako osobnej „rzeczy do zrobienia", gdy wyłącznik jest wyłączony.
@@ -409,10 +435,10 @@ Reguły stałe: każda akcja kasująca idzie przez `.destructiveConfirmation` (`
 | Użytkownik dopisuje zdanie, nic nie poprawia | różnica poza zakresem wklejonego tekstu jest ignorowana | nic |
 | Użytkownik przepisuje całe zdanie | `tooLong` albo `rephrase` | nic |
 | Poprawka to odmiana („Kubernetesa") | osobna usłyszana forma; grupowanie według U13.2 | jeden albo kilka wierszy |
-| Nowe dyktowanie w trakcie obserwacji | obserwacja kończy się według P2 (D: odczyt końcowy; inne: anulowanie) | nic |
+| Nowe dyktowanie w trakcie obserwacji | obserwacja kończy się odczytem końcowym przez uchwyt, przed migawką nowego dyktowania (P2 = D) | nic |
 | Aplikacja nie udostępnia tekstu albo zakresu | `unsupported`, brak nauki | według U10.2 |
 | Aplikacja nie odpowiada | limit wywołania, `timeout`, brak nauki | nic; dyktowanie nie jest opóźnione |
-| Fokus przechodzi do innego okna tej samej aplikacji | przy P2 = A/D koniec obserwacji i odczyt uchwytu; przy P2 = B `anchorLost` | nic |
+| Fokus przechodzi do innego okna tej samej aplikacji | koniec obserwacji i odczyt końcowy przez uchwyt (P2 = D) | nic |
 | Wklejony tekst dłuższy niż limit (P4) | obserwacja nie startuje | nic |
 | Tekst wklejony do pola, w którym już był ten sam tekst | zakotwiczenie na zakresie odczytu bazowego; przy niejednoznaczności `anchorLost` | nic |
 | Propozycja koliduje z istniejącym wpisem (D7) | „Dodaj" otwiera formularz z komunikatem | formularz DICT-1.2 |
@@ -434,8 +460,8 @@ Swift Testing, porty w pamięci, katalogi tymczasowe; nic nie zostaje po teście
 | `SuggestionEngine` | próg, grupowanie, `alreadyCovered`, `rejectedBefore`, „odrzucona nie wraca", limity |
 | `SuggestionStore` | każda realizacja przechodzi ten sam zestaw testów kontraktu portu; retencja na atrapie zegara; uszkodzony plik albo baza; `InMemoryKeychainClient` dla skrótów; błąd Pęku kluczy inny niż `errSecItemNotFound` niczego nie kasuje |
 | Migracja (P7 = B) | w górę z poprzedniego schematu; starszy kod wobec nowszego schematu (§2) |
-| `FieldCorrectionObserver` | atrapa `FocusContextReader` (scenariusze: poprawka, brak zmian, utrata fokusu, limit czasu, `secure`, `denied`, `notPermitted`, `timeout`, `unsupported`) i atrapa zegara; zero wywołań portu przy wyłączonym wyłączniku, przy wyłączonym kontekście (P5.2 = a), w aplikacji z listy odmów i we własnych oknach |
-| Realizacja AX nowych członów (P2 = A/D) | w `LintelAppTests` na atrapie warstwy AX z DICT-2.2 (protokół nad `AXUIElementCopy…`): uchwyt, ponowny odczyt tego samego zakresu, zwolnienie po limicie, brak zapisu atrybutów; TSan dla kolejek |
+| `FieldCorrectionObserver` | atrapa `FocusContextReader` (scenariusze: poprawka, brak zmian, utrata fokusu, limit czasu, pole `FieldKind.secure`, pominięcia `SkipReason` `secureField`, `denied`, `notPermitted`, `timeout`, `unsupported`, wyścig fokusu: inny pid albo brak wklejonego tekstu w odczycie bazowym, pole, które staje się bezpieczne przed odczytem końcowym, zmiana poza wklejonym zakresem) i atrapa zegara; zero wywołań portu przy wyłączonym wyłączniku, przy wyłączonym kontekście (P5.2 = a), w aplikacji z listy odmów i we własnych oknach |
+| Realizacja AX nowych członów (P2 = D) | w `LintelAppTests` na atrapie warstwy AX (protokół nad `AXUIElementCopy…`; jeśli DICT-2.2 go nie wprowadzi, dodaje go krok B1, bez zmiany zachowania DICT-2.2): uchwyt, ponowny odczyt tego samego zakresu, zwolnienie po limicie, brak zapisu atrybutów; TSan dla kolejek |
 | Czyszczenie pamięci | po każdej ścieżce wyjścia obserwator nie trzyma tekstu (test na trzech ścieżkach, jak DICT-2.3 kryterium 4) |
 | Logowanie | test skanujący źródła `AutoLearn/` i test z atrapą loggera |
 | Granice modułów | test skanujący: brak `import ApplicationServices` i `AX…` w `DictationPlugin`; typy auto-nauki nieużywane w formaterach |
@@ -455,18 +481,18 @@ Swift Testing, porty w pamięci, katalogi tymczasowe; nic nie zostaje po teście
 
 ## 📝 Kryteria prób DICT-0.2 dopisane dla auto-nauki
 
-Propozycja kryteriów 7–12 (wchodzą do DICT-0.2 i do tabeli „Open points" ADR dopiero po akceptacji poprawki ADR; potrzebne tylko przy P1 = A albo B). Skrypt próbny drukuje typy, długości i czasy, nigdy treść; pola testowe zawierają tekst syntetyczny.
+Propozycja kryteriów 7–12 (wchodzą do DICT-0.2 i do tabeli „Open points" ADR dopiero po akceptacji poprawki ADR; potrzebne, bo P1 = A+B). Skrypt próbny drukuje typy, długości i czasy, nigdy treść; pola testowe zawierają tekst syntetyczny.
 
 | # | Given / When / Then | Wynik potrzebny do |
 |---|---|---|
-| 7 | Given 12 aplikacji z kryterium 1, When skrypt wkleja tekst syntetyczny i czyta pole ponownie po 0,2 s, 1 s i 5 s, Then tabela „aplikacja × czy wklejony tekst jest w odczycie" z czasem, po którym wartość jest aktualna (20 prób) | opóźnienie odczytu bazowego; lista aplikacji, w których nauka działa |
+| 7 | Given 12 aplikacji z kryterium 1, When skrypt wkleja tekst syntetyczny i czyta pole ponownie po 0,2 s, 1 s i 5 s, Then tabela „aplikacja × czy wklejony tekst jest w odczycie" z czasem, po którym wartość jest aktualna (20 prób); dodatkowo wyścig fokusu: skrypt przenosi fokus do innego pola 0, 50 i 200 ms po ⌘V, Then tabela „czy odczyt bazowy pochodzi z pola, do którego wklejono, i czy zakotwiczenie to wykrywa" | opóźnienie odczytu bazowego; lista aplikacji, w których nauka działa; T8a |
 | 8 | Given to samo pole z kursorem przeniesionym w inne miejsce, When skrypt czyta zapamiętany bezwzględny zakres przez atrybut zakresu, Then tabela „aplikacja × odczyt po zakresie działa / puste / błąd" | wykonalność P4 = A |
-| 9 | Given obserwator powiadomień o zmianie fokusowanego elementu, When fokus przechodzi do innego pola, innego okna i innej aplikacji, Then tabela „aplikacja × powiadomienie przyszło / nie", opóźnienie, liczba fałszywych powiadomień w 20 próbach | wykonalność P2 = A/D |
-| 10 | Given element, który stracił fokus, When skrypt czyta jego zakres przez zachowaną referencję, Then tabela „aplikacja × odczyt po utracie fokusu działa" (także po zamknięciu okna: oczekiwany błąd, bez zawieszenia) | kształt `reread` |
-| 11 | Given pole w terminalu, w przeglądarce (zwykłe, `contenteditable`, pole hasła zbudowane ze zwykłego pola) i w aplikacji Electron, When kryteria 7–10 są powtarzane, Then osobne wiersze oraz to, ile tekstu zwraca odczyt terminala (cały bufor czy zakres) | decyzje P3.1, P3.2 |
+| 9 | Given obserwator powiadomień o zmianie fokusowanego elementu, When fokus przechodzi do innego pola, innego okna i innej aplikacji, Then tabela „aplikacja × powiadomienie przyszło / nie", opóźnienie, liczba fałszywych powiadomień w 20 próbach | wykonalność wybranego P2 = D |
+| 10 | Given element, który stracił fokus, When skrypt czyta jego zakres przez zachowaną referencję, Then tabela „aplikacja × odczyt po utracie fokusu działa" (także po zamknięciu okna: oczekiwany błąd, bez zawieszenia); dodatkowo pole zmienione na bezpieczne i włączone Secure Event Input między odczytami: `reread` zwraca `secureField` | kształt `reread`; T22 |
+| 11 | Given pole w terminalu, w przeglądarce (zwykłe, `contenteditable`, pole hasła zbudowane ze zwykłego pola) i w aplikacji Electron, When kryteria 7–10 są powtarzane, Then osobne wiersze oraz to, ile tekstu zwraca odczyt terminala (cały bufor czy zakres), i czy jakikolwiek atrybut okna pewnie odróżnia okno prywatne przeglądarki od zwykłego (Safari, Chrome, Firefox) | decyzje P3.1, P3.2; T16, T17 |
 | 12 | Given aplikacja z zatrzymanym wątkiem głównym w trakcie obserwacji, Then czas powrotu ponownego odczytu i potwierdzenie, że kolejka pid nie blokuje innych procesów | limit na wywołanie, budżet |
 
-Proponowane progi decyzji (do potwierdzenia razem z poprawką ADR): aplikacja jest „obsługiwana", gdy kryteria 7 i 8 przechodzą w 20 z 20 prób; krok B1 w wariancie P2 = A/D startuje, gdy kryteria 9 i 10 przechodzą w co najmniej 8 z 12 aplikacji, w przeciwnym razie człony kontraktu zostają `unsupported`, a właściciel wybiera ponownie między P2 = B i C.
+Proponowane progi decyzji (do potwierdzenia razem z poprawką ADR): aplikacja jest „obsługiwana", gdy kryteria 7 i 8 przechodzą w 20 z 20 prób; krok B1 startuje, gdy kryteria 9 i 10 przechodzą w co najmniej 8 z 12 aplikacji; w przeciwnym razie człony kontraktu zostają `unsupported`, a właściciel decyduje ponownie (P2 = D zostało wybrane przed próbami).
 
 ## 📝 Risks & Impact Review
 
@@ -474,8 +500,8 @@ Proponowane progi decyzji (do potwierdzenia razem z poprawką ADR): aplikacja je
 
 | Element | Dlaczego trudny do cofnięcia | Jak ograniczyć |
 |---|---|---|
-| Rozszerzenie `FocusContextReader` (P2 = A/D) | chroniony kontrakt `LintelKit`, tylko zmiany addytywne | wszystkie człony opcjonalne z wartością domyślną; kształt w ADR przed PR; decyzja po próbach albo K1 |
-| Nowy cel uprawnienia Dostępność | obietnica wobec użytkownika; cofnięcie to kolejna zmiana tekstu i nota wydania | domyślnie wyłączone (P5.1 = A), arkusz zgody |
+| Rozszerzenie `FocusContextReader` (P2 = D) | chroniony kontrakt `LintelKit`, tylko zmiany addytywne | wszystkie człony opcjonalne z wartością domyślną; kształt w zaakceptowanej poprawce ADR przed PR DICT-2.1; negatywny wynik prób = `unsupported`, bez zmiany kształtu |
+| Nowy cel uprawnienia Dostępność | obietnica wobec użytkownika; cofnięcie to kolejna zmiana tekstu i nota wydania | przy P5.1 = A domyślnie wyłączone; arkusz zgody (U11) |
 | Klucze ustawień | chronione po wydaniu | nazwy zatwierdzone w kroku, który je wprowadza |
 | Format magazynu (P7) | utrwalony format albo migracja bazy | wersja w formacie; migracja tylko addytywna; wybór przed krokiem A2 |
 | Reguły 1 i 2 ADR 0010 | fundament modelu zaufania i tekstów na stronie produktu | zmiana tylko przez zaakceptowaną poprawkę ADR |
@@ -486,24 +512,24 @@ Proponowane progi decyzji (do potwierdzenia razem z poprawką ADR): aplikacja je
 |---|---|---|---|
 | Fałszywe propozycje | szum; po zatwierdzeniu błędna reguła | zatwierdzanie, próg, filtry, D7 i D8, pomiar na syntetycznym zbiorze | próg podobieństwa bez danych; polska odmiana |
 | Wyciek treści pola | patrz model zagrożeń T1–T9 | odczyt po zakresie, dwa odczyty, odmowy, skróty, szyfrowanie | pole hasła na stronie WWW; para jest treścią |
-| Utrata zaufania („Lintel czyta, co piszę po dyktowaniu") | podważa obietnicę lokalnego, przewidywalnego narzędzia | domyślnie wyłączone, zgoda, jeden wyłącznik, „Wymaż dane nauki…" | zależy od zrozumiałości tekstów: do sprawdzenia z użytkownikiem |
+| Utrata zaufania („Lintel czyta, co piszę po dyktowaniu") | podważa obietnicę lokalnego, przewidywalnego narzędzia | zależnie od decyzji: domyślnie wyłączone (P5.1 = A), zgoda (U11), jeden wyłącznik (P5.2 = a), „Wymaż dane nauki…" (P10.2) | zależy od zrozumiałości tekstów: do sprawdzenia z użytkownikiem |
 | Wydajność i zawieszenia | odczyt blokuje się na cudzej aplikacji | kolejka pid, limit na wywołanie, obserwacja poza ścieżką wklejenia | brak pomiarów (DICT-0.2, DICT-2.7) |
 | Aplikacje bez Accessibility (część Electron, terminale) | nauka nie działa tam, gdzie użytkownik dyktuje najwięcej; funkcja wygląda na zepsutą | linia stanu pustego (U4), nota w dokumentacji | zasięg nieznany do macierzy z prób |
 | Brak dowodu popytu | funkcja mało używana | każdy krok wdrażany osobno; faza A nie dotyka kontraktu; krok B5 jest bramką | bramka DICT-0.1 przeszła bez linii bazowej |
-| Zależności | DICT-2.1–2.4 niezmergowane, próby niewykonane | faza A na atrapie; decyzja P2 przed DICT-2.1 | termin fazy B zależy od DICT-0.2 |
-| Kolejka `LintelKit` | drugi PR kontraktowy blokuje DICT-3.3 i MEET | kształt w DICT-2.1 albo świadome K1 | — |
+| Zależności | DICT-2.1–2.4 niezmergowane, próby niewykonane | faza A na atrapie; P2 rozstrzygnięte 2026-11-20, akceptacja zmian ADR przed DICT-2.1 | termin fazy B zależy od DICT-0.2 |
+| Kolejka `LintelKit` | spóźniona akceptacja zmian ADR opóźnia PR DICT-2.1, a z nim DICT-3.3 i MEET | zmiany ADR wynikające z P1/P2 do akceptacji jako pierwsze (krok 0.2) | — |
 | Dane właściciela w repozytorium | trwały wyciek | tylko dane syntetyczne; punkt recenzji | — |
 
 ## 📋 Phasing
 
 | Faza | Treść | Warunek wejścia | Wdrażalna osobno |
 |---|---|---|---|
-| **0. Decyzje i dokumenty** (bez kodu) | odpowiedzi właściciela; akceptacja poprawki ADR; kryteria prób 7–12 w DICT-0.2 i ich wykonanie; przy P2 = A/D kształt w DICT-2.1; prototyp ekranów | ten spec | tak (dokumenty) |
+| **0. Decyzje i dokumenty** (bez kodu) | odpowiedzi właściciela; akceptacja poprawki ADR; kryteria prób 7–12 w DICT-0.2 i ich wykonanie; kształt z P2 = D w DICT-2.1; prototyp ekranów | ten spec | tak (dokumenty) |
 | **A. Rdzeń na atrapie** (bez Accessibility, bez `LintelKit`) | różnicowanie, filtry, silnik, magazyn, sekcja „Propozycje" zasilana tylko przez atrapę QA | decyzje z kolumny „Bramka decyzji"; DICT-1.2 na `main` (jest) | tak; w wydaniu sekcja jest niewidoczna, dopóki nie ma źródła poprawek |
 | **B. Obserwacja pola** | `FieldCorrectionObserver`, polityka, zgoda, Uprawnienia, diagnostyka, dogfood | DICT-2.2 zmergowane, próby DICT-0.2 z kryteriami 7–12 wykonane, poprawka ADR zaakceptowana; przy P5.2 = a także DICT-2.3 i DICT-2.4 | tak; domyślnie według P5.1 |
-| **C. Źródła opcjonalne** | C1 jawne polecenie (P1 = B/D), C2 poprawki w oknach Lintel (P1 = C/D) | wybór P1; C1 po DICT-2.2; C2 niezależnie od DICT-2.x | tak |
+| **C. Źródła dodatkowe** | C1 jawne polecenie (**wybrane**, P1 = A+B), C2 poprawki w oknach Lintel (niewybrane; opis zostaje do K3) | wybór P1; C1 po DICT-2.2; C2 niezależnie od DICT-2.x, ale po PR kontraktowym z członem edycji notatki (kolejka `LintelKit`) | tak |
 
-Jeśli P1 = C, faza B odpada, a faza C2 następuje bezpośrednio po A i jest pierwszym źródłem w wydaniu.
+Po P1 = A+B w zakresie są fazy A, B i C1; C2 nie jest planowana.
 
 ## 📋 Implementation Plan
 
@@ -513,8 +539,8 @@ Każdy krok to jedna gałąź `feat/` i jeden PR oparty na `main`, pełna bramka
 
 | Krok | Treść | Zależy od | Wynik sprawdzalny |
 |---|---|---|---|
-| 0.1 | Właściciel wypełnia P1, P2 i K1 | — | wypełnione pola w tym specu |
-| 0.2 | Przy P2 = A/D: kształt z sekcji „Architecture" przeniesiony do poprawki ADR i do zakresu DICT-2.1 | 0.1 | PR DICT-2.1 zawiera nowe człony i testy `LintelKitTests` wartości domyślnych |
+| 0.1 | Właściciel wypełnia P1, P2 i K1 | — | **zrobione 2026-11-20** (P1 = A+B, P2 = D z (i), 60 s; K1 zamknięte) |
+| 0.2 | **Przed PR DICT-2.1:** właściciel akceptuje treść zmian ADR 0010, które P1/P2 przesądzają (plik propozycji, sekcja „Przesądzone przez P1/P2"); kształt z sekcji „Architecture" przeniesiony do zakresu DICT-2.1 (backlog: story DICT-2.1 już go wymienia) | 0.1 | PR DICT-2.1 zawiera nowe człony i testy `LintelKitTests` wartości domyślnych; ADR 0010 ma dopisany nowy kształt w decyzji 3 |
 | 0.3 | Właściciel wypełnia pozostałe P i U; poprawka ADR zmienia status na Accepted i jest wpisana do ADR 0010 | 0.1 | ADR 0010 z dopisanymi zmianami, które wynikają z wybranych wariantów |
 | 0.4 | Kryteria 7–12 dopisane do DICT-0.2; próby wykonane, wyniki w ADR | 0.3 | wypełnione tabele w ADR |
 | 0.5 | Prototyp ekranów z wybranymi wariantami, zaakceptowany przez właściciela | 0.3 | linia `Prototype:` w tym specu |
@@ -529,12 +555,12 @@ Każdy krok to jedna gałąź `feat/` i jeden PR oparty na `main`, pełna bramka
 
 Po fazie A sekcja istnieje w kodzie, ale w wydaniu nie jest pokazywana (nie ma źródła poprawek i wyłącznika). Test źródłowy sprawdza, że widoczność zależy od istnienia aktywnego źródła.
 
-### Faza B — obserwacja pola (P1 = A/D)
+### Faza B — obserwacja pola (P1 = A+B, P2 = D)
 
 | Krok | Treść | Bramka decyzji | Zależy od | Test, który go zamyka | Etykiety |
 |---|---|---|---|---|---|
-| B1 | Przy P2 = A/D: realizacja `reread`, `focusLoss`, `release` w `AXFocusContextReader` i w atrapie QA | P2, P4 | DICT-2.2, krok 0.2, krok 0.4 | testy na atrapie warstwy AX, TSan; macierz ręczna w PR | `feature`, `risk-high`, `skip-qa` |
-| B2 | `CorrectionPolicy`, `FieldCorrectionObserver` w wariancie z P2, zaczep w `DictationController`, klucz wyłącznika (bez UI, więc bez zmiany dla użytkownika) | P1–P5 | A2, DICT-2.2 (i B1 przy P2 = A/D; DICT-2.3 przy P2 = C albo P5.2 = a) | zero wywołań portu przy każdej odmowie; czyszczenie pamięci na trzech ścieżkach; test skanujący logowanie | `feature`, `risk-high`, `skip-qa` |
+| B1 | Realizacja `reread`, `focusLoss`, `release` w `AXFocusContextReader` i w atrapie QA | P4 | DICT-2.2, krok 0.2, krok 0.4 | testy na atrapie warstwy AX, TSan; macierz ręczna w PR | `feature`, `risk-high`, `skip-qa` |
+| B2 | `CorrectionPolicy`, `FieldCorrectionObserver` (P2 = D: koniec przy utracie fokusu, po 60 s albo przy następnym dyktowaniu; dwa odczyty), zaczep w `DictationController`, klucz wyłącznika (bez UI, więc bez zmiany dla użytkownika) | P3–P5 | A2, B1, DICT-2.2 (DICT-2.3 przy P5.2 = a) | zero wywołań portu przy każdej odmowie; czyszczenie pamięci na trzech ścieżkach; test skanujący logowanie | `feature`, `risk-high`, `skip-qa` |
 | B3 | Wyłącznik w UI, arkusz zgody, wiersz Dostępność, wiersz „poprawki" w tabeli zaufania, stan „brak Dostępności" | U2, U11, P5, P11; krok 0.5 | A3, B2 (i DICT-2.4 przy U2 = B/C albo P5.3 = wiersz) | testy modelu; QA natywne z `--qa-focus-context` i `--qa-accessibility`; test ścieżki odmowy uprawnienia | `feature`, `risk-high`, `needs-qa` |
 | B4 | Liczniki diagnostyki, budżet w `docs/perf.md`, procedura w `docs/qa.md`, nota wydania | P13 | B3 | test, że diagnostyka zawiera tylko liczby | `feature`, `risk-low`, `skip-qa` |
 | B5 | Dogfood właściciela: liczby obserwacji, pominięć według powodu, propozycji, zatwierdzeń, odrzuceń i ręcznie zanotowane fałszywe propozycje; decyzja o dalszym losie funkcji | — | B4 | raport w PR dokumentacyjnym (tylko liczby) | `documentation`, `risk-low`, `skip-qa` |
@@ -543,8 +569,8 @@ Po fazie A sekcja istnieje w kodzie, ale w wydaniu nie jest pokazywana (nie ma �
 
 | Krok | Treść | Bramka decyzji | Zależy od |
 |---|---|---|---|
-| C1 | `dictation.addCorrection`: odczyt zaznaczenia na polecenie, otwarcie wypełnionego formularza słownika | P1 = B/D | A3, DICT-2.2 |
-| C2 | `InAppCorrectionSource`: najpierw sprawdzenie w kodzie, czy edycja dyktowania w Notatkach daje parę „przed/po" bez importu między pluginami (jeśli wymaga nowego portu w `LintelKit`, to osobna decyzja i PR kontraktowy) | P1 = C/D | A3 |
+| C1 | `dictation.addCorrection`: odczyt zaznaczenia na polecenie, otwarcie wypełnionego formularza słownika | P3, U14 (P1 = A+B rozstrzygnięte) | A3, DICT-2.2 |
+| C2 | `InAppCorrectionSource`: addytywny człon kontraktu notatek w `LintelKit` (np. opcjonalne powiadomienie właściciela `NoteSource` o zmianie warstwy, z wartością domyślną; na `main` taki kanał nie istnieje, a pluginy się nie importują), jego realizacja w `NotesPlugin` i odbiór w `DictationPlugin`; kształt zatwierdza właściciel w PR kontraktowym | tylko gdyby właściciel wybrał wariant C (dziś niewybrany) | A3; PR kontraktowy w kolejce `LintelKit` |
 
 ### Mapa zależności
 
@@ -561,7 +587,7 @@ flowchart TD
   A2 --> A3[A3 sekcja Propozycje na atrapie]
   X --> A3
   D21[DICT-2.1 kontrakt]:::contract --> D22[DICT-2.2 realizacja AX]:::existing
-  O -. P2 = A/D: kształt przed PR .-> D21
+  O ==>|P2 = D: kształt i akceptacja zmian ADR przed PR| D21
   P --> B1
   D22 --> B1[B1 człony obserwacji w porcie]:::contract
   B1 --> B2[B2 obserwator i polityka]
@@ -577,7 +603,7 @@ flowchart TD
 
 ### Dokumenty do zmiany przy implementacji (nie w tym PR)
 
-- `BACKWARD_COMPATIBILITY.md`: §1 (przy P2 = A/D), §2 (format albo migracja z P7), §3 (klucze), §4–§5 (cel Dostępności, nota wydania, skróty z U14).
+- `BACKWARD_COMPATIBILITY.md`: §1 (człony z P2 = D, w PR DICT-2.1), §2 (format albo migracja z P7), §3 (klucze), §4–§5 (cel Dostępności, nota wydania, skróty z U14).
 - `AGENTS.md`: wiersz „Dictation plugin" (typy `AutoLearn/`, klucze, zasady logowania).
 - `docs/perf.md` (budżet obserwacji, „not yet measured"), `docs/qa.md` (klucze QA), `CHANGELOG.md`.
 - ADR 0010: zmiany z pliku propozycji, po akceptacji.
