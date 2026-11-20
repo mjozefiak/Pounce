@@ -348,7 +348,7 @@ probe without the configuration flags and with the product flags. Both calls kep
 
 Source: the owner's notes on the provider/model selection mock-up v2 (2026-11-20, with the addendum), the owner's
 condition on the core pull request (#205) and the owner's decision D15. Status of this amendment: **the owner fully accepted mock-up v2 on 2026-11-20 and
-settled D5–D10 and D12–D15 (recorded below as "owner decision 2026-11-20")**; the mitigations stay undecided options. It **supersedes decisions 2 and 3 in the parts marked "superseded"** and adds the conditions below to decision 8. Nothing here
+settled D5–D10 and D12–D15 (recorded below as "owner decision 2026-11-20")**; the mitigations stay undecided options (A6 starts without them but is to be designed so that an information version with suspension after a data-scope change can be added without a rebuild). It **supersedes decisions 2 and 3 in the parts marked "superseded"** and adds the conditions below to decision 8. Nothing here
 softens a limit on the owner's behalf: mitigations are listed as undecided options.
 
 ### Decisions (owner, 2026-11-20)
@@ -363,7 +363,7 @@ softens a limit on the owner's behalf: mitigations are listed as undecided optio
 2. **Provider, then model; it must scale** to several providers and ways of connecting: local models; CLI tools
    on a subscription (Claude Code today; Codex/ChatGPT, Pi, OpenCode are a direction, **not a commitment**); an API
    key (Phase 2). The notice is one shared sentence pattern with the chosen company's name.
-3. **D15 = B (owner decision 2026-11-20): Claude Code models are the four aliases `sonnet`, `haiku`, `opus`, `fable`, each only after its canary/measurement; the default is `sonnet`.** A model that has not passed is neither shown nor selectable in the menu until it does (wording ambiguity: the mock-up said "canary and gate G" for B, the owner chose "canary/measurement"; whether "measurement" for `opus`/`fable` includes G is to be confirmed, this text takes the narrower reading). Quality
+3. **D15 = B (owner decision 2026-11-20): Claude Code models are the four aliases `sonnet`, `haiku`, `opus`, `fable`, each only after its canary/measurement; the default is `sonnet`.** A model that has not passed is neither shown nor selectable in the menu until it does (wording ambiguity: the mock-up said "canary and gate G" for B, the owner chose "canary/measurement"; settled by the owner the same evening: `opus` and `fable` need only a short canary (alias, JSON shape, time, budget), full gate G is not required; `haiku` gets the full G once, after A6 starts, and is HIDDEN in the menu until its result; A6 starts with `sonnet`, `opus`, `fable` active). Quality
    gate G is measured only for `sonnet`; the other three are "not measured" in the docs, and the input budgets for
    `opus` and `fable` are an assumption. The UI notes the higher use of the subscription limit and the longer time
    for `opus` and `fable`. An alias points to the newest model known to the CLI version and changes over time.
