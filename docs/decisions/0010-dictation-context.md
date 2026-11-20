@@ -432,13 +432,10 @@ rewritten (they had been corpus cases) and the guard was rewritten twice, so eve
 | Model | Prompt | Pass, all (79) | Pass, withdrawals (38) | Pass, negatives (21) | Kept withdrawn | Kept withdrawn and lost final (accepted) | Model answer kept withdrawn and lost final (before the guard) | Fell back to raw | `known_bad` text returned | Negatives that lost a `must_keep` word |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Qwen3 4B Instruct 2507 Q4_K_M | v1 | 52 | 14 | 19 | 24 | 1 | not saved | 1 | 1 | 2 (`en-neg-7`, `pl-neg-10`) |
-| Qwen3 4B Instruct 2507 Q4_K_M | v2 | 70 | 31 | 20 | 4 | 0 | 2 (`pl-ret-9`, `pl-cor-9`) | 5 | 0 | 2 (`en-neg-7` accepted, `pl-neg-10` caught by the guard) |
-| Qwen3 30B-A3B Instruct 2507 Q4_K_M | v1 | 49 | 12 | 19 | 27 | 0 | not saved | 0 | 1 | 2 (`pl-neg-10`, `pl-neg-12`) |
-| Qwen3 30B-A3B Instruct 2507 Q4_K_M | v2 | 68 | 29 | 21 | 6 | 0 | 1 (`pl-rth-3`) | 4 | 0 | 0 |
+| Qwen3 4B Instruct 2507 Q4_K_M | v2 | 70 | 31 | 20 | 1 (`pl-fil-4`, flagged by the report's heuristic; no real retraction kept) | 0 | 2 (`pl-ret-9`, `pl-cor-9`) | 8 | 0 | 1 (`en-neg-7` accepted; `pl-neg-10` caught by the guard) |
+| Qwen3 30B-A3B Instruct 2507 Q4_K_M | v2 | 68 | 29 | 21 | 4 (`pl-rth-3`, `pl-rth-4`, `en-rth-1` with the marker kept; `pl-fil-4` as above) | 0 | 1 (`pl-rth-3`, measured before the prompt rule) | 6 | 0 | 0 |
 
-The v2 rows were measured again on the final guard (`LINTEL_CORPUS_VERBOSE=1`, the fallback ids and the model's
-own answer on each fallback are in the run's output); the v1 rows are from the earlier measurement with the
-previous guard and were not repeated.
+The v2 rows were measured again on the round 3 guard and the prompt with the marker rule (`LINTEL_CORPUS_VERBOSE=1`); the v1 rows are from the earlier measurement and were not repeated. Without the marker rule in the prompt the pass counts were the same (70 and 68) and the fallbacks 7 (4B) and 8 (30B). "Kept withdrawn" now means both versions WITH the marker word between them; an answer that drops the marker and keeps both versions is rejected (`replacementLost`) and counted under fallbacks (4B: `pl-rth-3`, `pl-rth-4`, `pl-cor-7`; 30B: `pl-ret-9`, `pl-rth-1`, `pl-rth-2`, `pl-rth-5`). The report's `keptWithoutMarker` lists `pl-fil-4` for both models; that is a filler case the report's heuristic flags, not a retraction.
 
 - "Kept withdrawn" and "lost final" are counted on answers the model gave and the guard accepted, not on raw
   fallbacks. `known_bad` texts are reported on their own and never counted as passes. The column "model
@@ -448,16 +445,18 @@ previous guard and were not repeated.
   with the retracted version kept and the final one lost. That is a property of the guard on the cases tested
   (`GuardReplacementTests`, probes with a second marker, number words of another value, unlisted markers), not a
   claim about every possible output: see "What the guard still cannot see". The cases in which the guard can
-  still accept a text with the withdrawn version are those that keep BOTH versions.
+  still accept a text with the withdrawn version are those that keep BOTH versions together with the marker word,
+  so the reader can see which one is final.
 - Version 1 did keep the wrong version on this corpus (24 and 27 cases keep a withdrawn word; on 4B one of them
   also lost the final version). Version 2 reduces that to 4 and 6 cases, which keep both versions (the safe
   failure).
-- The stricter guard costs more raw fallbacks than the first measurement (4B: 5, 30B: 4; they were 2 and 1).
-  On 4B two of the five are the model returning only the withdrawn version (`pl-ret-9`, `pl-cor-9`, and the
-  same shape as the QA sentence), one is the negative `pl-neg-10` (over-removal), one is the documented fail-safe
-  `en-cor-3`, and one is a false alarm (`en-rth-3`: "just" dropped in the replacement). On 30B `pl-rth-3` is the
-  model returning only the withdrawn version, `en-cor-3` is the fail-safe, and `en-rth-1` and `en-rth-3` are
-  false alarms of the same kind. A fallback is the safe outcome: the raw text is pasted.
+- The stricter guard costs more raw fallbacks than the first measurement (4B: 8, 30B: 6; they were 2 and 1).
+  4B: `pl-ret-9` and `pl-cor-9` are the model returning only the withdrawn version (correct rejections);
+  `pl-rth-3`, `pl-rth-4` and `pl-cor-7` are the model dropping the marker and keeping both versions (rejected by
+  design); `pl-neg-10` is over-removal (correct rejection); `en-rth-3` ("just" dropped) and `en-cor-3` (the
+  correct answer, rejected because the bare "no" is no marker) are false alarms. 30B: `pl-ret-9`, `pl-rth-1`,
+  `pl-rth-2` and `pl-rth-5` are marker-dropped answers (in `pl-ret-9` the meaning is inverted: "we wtorek, a nie w
+  środę"); `en-rth-3` and `en-cor-3` are false alarms. A fallback is the safe outcome: the raw text is pasted.
 - Over-removal is the risk that remains: on 4B one negative loses a word of the text and is accepted (`en-neg-7`: a marker word
   used as content, "I mean what …"); a second (`pl-neg-10`) is caught by the guard. Version 1 does the same there, so the prompt did not cause it. On 30B
   version 2 loses none. The guard cannot see it when the model deletes exactly the words before a marker.
@@ -497,7 +496,16 @@ deleted. `NumberWords` reads Polish and English cardinals and ordinals as a stem
 endings (so "piątek", "piętro", "trzeba" and "jednak" are not numbers), 0 to 999 999, "25 000" as one number;
 anything it cannot parse is not a number. Every chunk of five words or more is derived from the input, not only
 the ones with a listed marker, so an unlisted marker ("a nie", "znaczy", "nie nie", "or rather") cannot drop
-the final version for free. The output must also end on the input's last word that is not a filler or marker
+the final version for free in a short chunk; in a chunk of 40 to 60 words the edit budget can still absorb a
+short correction (see the limits). Round 3 changes: a word the speaker did not say may stand for a replacement
+word only as a contraction or a close spelling (edit distance at most a third of the longer word), because any
+other unsaid word let the withdrawn name come back in another form ("Tomka" for "Tomasza") or swapped the final
+version for an invented word; two spoken words written as one contraction ("we are" and "we're") cost nothing,
+so a run of contractions in a long chunk no longer falls back; two plain deletions in a row are not allowed; a
+whole word that starts the next is no stutter; and an output that drops the first marker with words after it but
+keeps the last withdrawn word more often than the replacement says it is rejected as `replacementLost`.
+The end rule also accepts a trailing particle ("no", "prawda", "right") dropped, the same unit ("%" for
+"procent", "zł" for "złotych") and "OK" for "okay". `GuardProbeTests` holds every probe of the three review rounds. The output must also end on the input's last word that is not a filler or marker
 (or a near form of it, or digits equal to the number words the input ends on), else the reason is
 `endChanged`, and a relaxed chunk may add at most 20% novel words. A dropped or replaced replacement word is
 logged as `replacementLost` (the enum name only, never text). Any chunk of at least five words is rejected as
@@ -513,7 +521,15 @@ itself, not by the guard.
 **What the guard still cannot see.** Stated as limits, not as a guarantee that holds "whatever the model does":
 - An unlisted marker is caught only where the derivation catches it. A bare "no" is not a marker (it is content
   too often), so the corpus case `en-cor-3` ("the twelfth no the thirteenth of March") falls back to the raw
-  text even for the correct answer: a documented fail-safe, the one `expected` text the guard rejects.
+  text even for the correct answer: this is a false alarm, the one `expected` text the guard rejects.
+- In a chunk of 40 to 60 words the edit budget (a tenth of the words) absorbs: a short correction made of number
+  words whose digits replace them ("twenty chairs correction thirty chairs" to "20 chairs"), one dropped "nie",
+  a clock time or number changed to another value in the middle of the chunk, and up to eight words before a
+  content "właściwie", "actually" and the like. Texts of this kind are accepted as `main` accepts them
+  (`GuardProbeTests.knownLimits`).
+- An output that keeps both versions WITH the marker word is accepted (nothing is lost). An output that drops the
+  marker and keeps both is rejected, except when the last withdrawn word is a word the replacement repeats more
+  often than the output (the count test is by word, not by meaning).
 - A chained correction ("o dziesiątej nie czekaj o jedenastej przepraszam o dwunastej") falls back to the raw
   text.
 - An output that keeps BOTH versions (three corpus `known_bad` texts, listed in `GuardReplacementTests`):
@@ -526,9 +542,13 @@ itself, not by the guard.
 - A spoken number the parser does not know (a year read as "twenty twenty-five", "półtora tysiąca") is not
   absorbed by digits and falls back to the raw text, as does a recognition fix of a name in the last word
   ("Steven" written "Stephen").
-- A chunk that starts with a content "actually", "sorry", "właściwie" or "I mean" protects the whole rest of the
-  chunk, so a contraction ("I am" to "I'm") or a dropped weak word falls back; real 40 to 60 word chunks may
-  fall back more often than the corpus shows.
+- A chunk with a content "actually", "sorry", "właściwie", "jednak" or "to znaczy" is checked as a correction, so
+  a dropped weak word or a changed word after it falls back (5 of 9 such long probes). Other fallbacks of
+  correct outputs: a year spoken as two pairs ("twenty twenty six"), a recognition error in the very last
+  word, a clock time spoken "wpół do ósmej" and written "7:30" in a chunk of under about 30 words, "półtora",
+  a currency sign before a number, and a chained correction. Real 40 to 60 word chunks were not measured with a
+  model; on more than 150 generated chunks of 5 to 60 words without a marker (`GuardProbeTests`) the guard accepts everything the old
+  length-and-language guard of `main` accepts, except the cases listed here.
 
 **Condition.** Version 2 accepted no answer that kept the withdrawn version and lost the final one, on either catalog model, on this corpus (the models did produce such answers; the guard turned them into raw text). Should a smaller model be added to the
 catalog, it must pass the same report before it may use version 2; until then the choice is the model's, not a
