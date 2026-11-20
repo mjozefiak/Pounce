@@ -2,8 +2,7 @@ cask "lintel@beta" do
   version "0.1.0"
   sha256 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
-  url "https://github.com/mjozefiak/lintel/releases/download/v#{version}/Lintel.dmg",
-      verified: "github.com/mjozefiak/lintel/"
+  url "https://github.com/mjozefiak/lintel/releases/download/v#{version}/Lintel.dmg"
   name "Lintel"
   desc "Launcher with file search, clipboard history, dictation and meeting notes"
   homepage "https://lintelapp.com/"

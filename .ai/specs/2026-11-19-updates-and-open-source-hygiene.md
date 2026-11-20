@@ -239,8 +239,7 @@ cask "lintel" do
   version "0.1.0"
   sha256 "<the release's .dmg.sha256>"
 
-  url "https://github.com/mjozefiak/lintel/releases/download/v#{version}/Lintel.dmg",
-      verified: "github.com/mjozefiak/lintel/"
+  url "https://github.com/mjozefiak/lintel/releases/download/v#{version}/Lintel.dmg"
   name "Lintel"
   desc "Launcher with file search, clipboard history, dictation and meeting notes"
   homepage "https://lintelapp.com/"
@@ -272,7 +271,7 @@ end
 ```
 
 - `version` is the tag without `v`, the same string as `CFBundleShortVersionString`, with no comma part, so Homebrew can compare it with the installed bundle. `auto_updates true` is correct only once Sparkle is in the build: `brew upgrade` then skips a copy that updated itself and never downgrades it.
-- Both casks install `Lintel.app`, so each declares `conflicts_with cask:` naming the other. Stanzas follow the Cask Cookbook's order (`depends_on` entries alphabetically), which `brew style` enforces.
+- Both casks install `Lintel.app`, so each declares `conflicts_with cask:` naming the other. Stanzas follow the Cask Cookbook's order (`depends_on` entries alphabetically), which `brew style` enforces. The `url` has no `verified:` parameter: Homebrew deprecated it in 2026-09 (a warning on every load, an error with `HOMEBREW_DEVELOPER`, checked against Homebrew 7.0.14 on 2026-11-20).
 - `zap` removes the data folder (models included), caches and settings. It cannot remove the Keychain items (`com.lintelapp.clipboard`, `.dictation`, `.meetings`, `.notes`); the tap's README says so. The path list is checked in Step 5.1 with `brew generate-zap` against a real install.
 - The release workflow is the only writer. The `livecheck` block is there for `brew livecheck` and for a later move to the official repository, where Homebrew's own automation reads it.
 

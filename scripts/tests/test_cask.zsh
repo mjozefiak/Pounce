@@ -55,6 +55,11 @@ if command -v brew >/dev/null; then
   mkdir -p "$tmp/tap/homebrew-lintel/Casks"
   cp "$tmp"/stable/*.rb "$tmp/tap/homebrew-lintel/Casks/"
   assert_ok "brew style passes" brew style "$tmp"/tap/homebrew-lintel/Casks/*.rb
+  # Loading in developer mode turns every Homebrew deprecation (such as `url ... verified:`) into an error.
+  for f in "$tmp"/tap/homebrew-lintel/Casks/*.rb; do
+    assert_ok "brew loads ${f:t} without a deprecation" env HOMEBREW_DEVELOPER=1 HOMEBREW_NO_AUTO_UPDATE=1 \
+      brew ruby -e 'Cask::CaskLoader::FromPathLoader.new(ARGV.fetch(0)).load(config: nil)' "$f"
+  done
 else
   print "note: brew not installed, brew style skipped (brew audit --cask needs a real tap and is not run here)"
 fi
