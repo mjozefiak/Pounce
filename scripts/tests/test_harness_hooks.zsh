@@ -5,9 +5,9 @@ trap 'rm -rf "$tmp"' EXIT
 
 # A hermetic environment: no node on the PATH, no usual install folders, an empty nvm folder.
 base_path="/usr/bin:/bin:/usr/sbin:/sbin"
-run_hook() { # <hook> <cwd> [VAR=value...]
+run_hook() { # <hook> <cwd> [VAR=value...]; the hook input is $INPUT (a harmless command by default)
   local hook="$1" cwd="$2"; shift 2
-  (cd "$cwd" && print -r -- '{"tool_input":{"command":"true"}}' \
+  (cd "$cwd" && print -r -- "${INPUT:-{\"tool_input\":{\"command\":\"true\"}}}" \
     | env -i HOME="$tmp/home" PATH="$base_path" NVM_DIR="$tmp/nvm" OM_HARNESS_NODE_DIRS="" "$@" "$hooks/$hook")
 }
 mkdir -p "$tmp/home" "$tmp/nvm"
@@ -66,16 +66,29 @@ mkdir -p "$repo/.git/worktrees/linked/om-harness"
 print -r -- '{}' > "$repo/.git/worktrees/linked/om-harness/stage-only.json"
 run_hook block-push-and-pr.sh "$repo" >/dev/null 2>&1; assert_eq 2 $? "a staged run in a linked worktree is seen from the main one"
 
+# the input's cwd counts, not only the hook's working directory
+INPUT="{\"tool_input\":{\"command\":\"git push\"},\"cwd\":\"$repo\"}" run_hook block-push-and-pr.sh "$tmp/home" >/dev/null 2>&1
+assert_eq 2 $? "a staged run in the input's cwd denies from another working directory"
+
+
 # no node and frozen tests above the working directory: refused
 mkdir -p "$tmp/frozen/a/b"
 print -r -- '[]' > "$tmp/frozen/.om-freeze-tests"
 run_hook freeze-tests.sh "$tmp/frozen/a/b" >/dev/null 2>&1; assert_eq 2 $? "freeze without node under a frozen-test manifest denies"
+INPUT="{\"tool_input\":{\"file_path\":\"$tmp/frozen/a/b/Tests/x.swift\"},\"cwd\":\"$tmp/home\"}" run_hook freeze-tests.sh "$tmp/home" >/dev/null 2>&1
+assert_eq 2 $? "the edited file's folder counts, not only the working directory"
+INPUT="{\"tool_input\":{\"file_path\":\"$tmp/home/Tests/x.swift\"},\"cwd\":\"$tmp/home\"}" run_hook freeze-tests.sh "$tmp/home" >/dev/null 2>&1
+assert_eq 0 $? "an edit outside any manifest is allowed"
 
 # with a real node (when one exists here), a harmless command passes the real guard
 real_node="$(OM_HARNESS_NODE_DIRS= bash -c "source '$hooks/node.sh'; om_harness_node")"
 if [[ -n "$real_node" ]]; then
   rm -rf "$repo/.git/worktrees/linked/om-harness"
   run_hook block-push-and-pr.sh "$repo" OM_HARNESS_NODE="$real_node"; assert_eq 0 $? "the real guard allows a harmless command"
+  mkdir -p "$repo/.git/worktrees/linked/om-harness"
+  print -r -- '{"version":1,"runId":"t","startState":"/tmp"}' > "$repo/.git/worktrees/linked/om-harness/stage-only.json"
+  INPUT="{\"tool_input\":{\"command\":\"git push origin main\"},\"cwd\":\"$tmp/linked\"}" run_hook block-push-and-pr.sh "$tmp/linked" OM_HARNESS_NODE="$real_node" >/dev/null 2>&1
+  assert_eq 2 $? "the real guard denies a push during a staged run"
 fi
 
 finish

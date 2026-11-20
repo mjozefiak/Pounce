@@ -44,26 +44,49 @@ om_harness_deny() {
   exit 2
 }
 
-# Without Node the guard cannot parse the tool input, so it denies whenever a marker it would act on exists:
-# a staged-only run in this repository (any worktree) for "block", a frozen-test manifest above the working
-# directory for "freeze". Otherwise there is nothing the guard would refuse, and the call goes ahead.
+# The values of one JSON string field ("cwd", "file_path", ...) in the hook input, one per line. Good enough
+# for paths; a field this cannot read only means fewer folders are checked, and the checks below fail closed.
+om_harness_field() {
+  printf '%s' "$2" | tr '\n' ' ' | grep -o "\"$1\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | sed 's/.*:[[:space:]]*"//; s/"$//'
+}
+
+# Without Node the guard cannot parse the tool input, so it denies whenever a marker it would act on exists for a
+# folder the call may touch: the hook's working directory, the input's "cwd" and, for edits, the edited files'
+# folders. A staged-only run (any worktree of that repository) denies "block"; a frozen-test manifest above
+# that folder denies "freeze". A folder whose repository cannot be read denies too, as the guard does.
+# Otherwise there is nothing the guard would refuse, and the call goes ahead.
 om_harness_without_node() {
-  local mode="$1" common directory
+  local mode="$1" input="$2" common directory start output
+  local -a starts=("$PWD")
+  while IFS= read -r start; do [[ -n "$start" ]] && starts+=("$start"); done < <(om_harness_field cwd "$input")
   case "$mode" in
     block)
-      common="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" || return 0
-      if [[ -e "$common/om-harness/stage-only.json" ]] \
-        || compgen -G "$common/worktrees/*/om-harness/stage-only.json" >/dev/null; then
-        om_harness_deny "Node.js was not found, and a staged-only run is active: install Node or set OM_HARNESS_NODE."
-      fi
+      for start in "${starts[@]}"; do
+        [[ -d "$start" ]] || continue
+        if ! output="$(git -C "$start" rev-parse --path-format=absolute --git-common-dir 2>&1)"; then
+          [[ "$output" == *"not a git repository"* ]] && continue
+          om_harness_deny "Node.js was not found, and the repository at $start cannot be read: install Node or set OM_HARNESS_NODE."
+        fi
+        common="$output"
+        if [[ -e "$common/om-harness/stage-only.json" ]] \
+          || compgen -G "$common/worktrees/*/om-harness/stage-only.json" >/dev/null; then
+          om_harness_deny "Node.js was not found, and a staged-only run is active: install Node or set OM_HARNESS_NODE."
+        fi
+      done
       ;;
     freeze)
-      directory="$PWD"
-      while :; do
-        [[ -e "$directory/.om-freeze-tests" ]] \
-          && om_harness_deny "Node.js was not found, and tests are frozen: install Node or set OM_HARNESS_NODE."
-        [[ "$directory" == "/" ]] && break
-        directory="$(dirname "$directory")"
+      while IFS= read -r start; do
+        [[ -n "$start" ]] || continue
+        [[ "$start" == /* ]] || start="${starts[${#starts[@]}-1]}/$start"
+        starts+=("$(dirname "$start")")
+      done < <(om_harness_field file_path "$input"; om_harness_field notebook_path "$input")
+      for directory in "${starts[@]}"; do
+        while :; do
+          [[ -e "$directory/.om-freeze-tests" ]] \
+            && om_harness_deny "Node.js was not found, and tests are frozen: install Node or set OM_HARNESS_NODE."
+          [[ "$directory" == "/" || "$directory" == "." ]] && break
+          directory="$(dirname "$directory")"
+        done
       done
       ;;
   esac
@@ -76,6 +99,6 @@ om_harness_run() {
   if [[ -n "$node" ]]; then
     exec "$node" "$(dirname "${BASH_SOURCE[0]}")/guard.mjs" "$mode"
   fi
-  om_harness_without_node "$mode"
+  om_harness_without_node "$mode" "$(cat)"
   exit 0
 }
