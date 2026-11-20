@@ -150,12 +150,14 @@ enum FormatterGuard {
             .first(where: { parallel(spoken[$0], spoken[correction.first]) })
         {
             // A number is withdrawn as a whole: "osiemnaście tysięcy to znaczy dwadzieścia pięć tysięcy",
-            // "one hundred and five".
-            func isNumber(_ index: Int) -> Bool { NumberWords.value(of: [spoken[index]]) != nil }
+            // "one hundred and five". Only words that read as ONE number with it: "pokój pięć dwadzieścia osób"
+            // is a room and a count, and the room is not withdrawn.
+            let last = near
+            func isNumber(from index: Int) -> Bool { NumberWords.value(of: Array(spoken[index...last])) != nil }
             while near > 0, near > marker.start - cap {
-                if isNumber(near), isNumber(near - 1) {
+                if isNumber(from: near - 1) {
                     near -= 1
-                } else if isNumber(near), near >= 2, spoken[near - 1] == "and", isNumber(near - 2) {
+                } else if near >= 2, spoken[near - 1] == "and", isNumber(from: near - 2) {
                     near -= 2
                 } else {
                     break

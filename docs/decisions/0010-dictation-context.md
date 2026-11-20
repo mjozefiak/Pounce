@@ -468,7 +468,12 @@ difference is the price of the narrower rule (fewer passes, no known hole).
   delay") are all rejected too (`GuardProbeTable.round6`, 38 invented rows, 0 holes). What remains: a
   removal of the words between the nearest parallel word and the marker that the speaker did not mean to
   withdraw ("send it to anna and bob sorry to carol" to "Send it to Carol."), which the prompt and the raw text
-  cover.
+  cover. This is NOT shared with main: main rejects these by length when the cut is large. It can also invert
+  the meaning in two ways (round 7 review, invented probes): a negation BEFORE the span start stays and now
+  governs the replacement ("nie przyjdę jutro czekaj przyjdę jutro" to "Nie przyjdę jutro.", "don't ever send it
+  to them sorry send it" to "Don't ever send it."), and a nearest function word ("w", "o", "on", "to") inside a
+  part that was not withdrawn removes that part and keeps both versions ("przyjdę o ósmej o ile zdążę czekaj o
+  dziewiątej" to "Przyjdę o 8 o 9."). Main rejects every one of these.
 - The prompt's examples are not corpus cases. `CleanupPromptCorpusSeparationTests` fails when an example or a
   quoted sample of the system prompt shares three consecutive words, once markers and fillers are removed, or
   content-word Jaccard of 0.3 or more with a corpus text. The examples still teach the same shapes, so the
@@ -505,7 +510,7 @@ marker, the end rule with units, trailing particles and "OK", the novel-word sha
 exact (rule 1 and 2) or fall back.
 
 **What the guard rejects although the result is right** (false alarms; the raw text is pasted, which is safe).
-`GuardProbeTests.falseAlarms` lists the 32 of 122 correct cleanups in the probe tables, `GuardMutationTests` the
+`GuardProbeTests.falseAlarms` lists the 32 of 126 correct cleanups in the probe tables, `GuardMutationTests` the
 6 of 79 corpus `expected` texts:
 - the replacement is another word of the same slot, so the retracted span does not start on a word parallel
   to it, or the nearest parallel word is not the start of what was withdrawn, or the fragment is withdrawn with

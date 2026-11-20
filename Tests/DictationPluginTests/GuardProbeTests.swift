@@ -39,7 +39,7 @@ enum MainGuardReference {
 
     private static let table =
         GuardProbeTable.rounds12 + GuardProbeTable.round3 + GuardProbeTable.round4
-        + GuardProbeTable.round5 + GuardProbeTable.round6
+        + GuardProbeTable.round5 + GuardProbeTable.round6 + GuardProbeTable.round7
 
     /// Correct cleanups that the guard turns into the raw text (fail-safe). Each is a documented limit of the
     /// marker rule (ADR 0010, "What the guard rejects although the result is right"); the test fails when one is
