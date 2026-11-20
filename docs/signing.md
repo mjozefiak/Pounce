@@ -69,8 +69,10 @@ pull request). It compiles nothing, runs no tests and uses no third-party action
    in `scripts/release-team-id.txt`); the name is not written in the repository.
 4. `scripts/make-app.sh --sign-only` re-signs the bundle inside-out (`SQLCipher.framework`, `llama.framework`, then the app)
    with the hardened runtime, `--timestamp` and `Resources/Lintel.entitlements`.
-5. `scripts/notarize.sh` submits the app (`xcrun notarytool submit --wait`; the API key is written to a temporary file that
-   is deleted on exit), the app is stapled, `scripts/make-dmg.sh --skip-build` builds and signs the DMG from the stapled
+5. `scripts/notarize.sh` uploads the app without waiting, prints the submission id at once (also to `$GITHUB_OUTPUT` and
+   `notary-logs/<file>.submission-id`) and polls `notarytool info` for at most 40 minutes (upload at most 10; a manual run may raise the app wait to 240 with the `notary_wait_minutes` input) with a progress
+   line every minute; still In Progress at the bound fails the step (exit status 3, naming the id: Apple's queue, start the run
+   again later, a new run signs a new binary). The API key is written to a temporary file that is deleted on exit. The app is stapled, `scripts/make-dmg.sh --skip-build` builds and signs the DMG from the stapled
    app, the DMG is notarized and stapled, and only then `Lintel.dmg.sha256` is computed. A rejection uploads the notary log.
 6. `scripts/verify-release-bundle.sh` checks `codesign --verify --strict --deep`, a requirement that names the Team ID with
    `anchor apple generic` and no `cdhash`, `spctl` ("Notarized Developer ID") and `stapler validate`, for the app and the DMG.
