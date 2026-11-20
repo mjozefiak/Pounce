@@ -11,9 +11,9 @@ struct MoveToApplicationsPrompt {
         /// (`/Applications` or `~/Applications`).
         case move(folder: String)
         /// `/Applications` cannot be written without an administrator: offer `~/Applications` instead.
-        /// `olderCopyStays`: a copy in the system Applications folder exists and cannot be replaced, so two copies
+        /// `otherCopyStays`: a copy in the system Applications folder exists and cannot be replaced, so two copies
         /// will exist.
-        case fallbackToUserApplications(olderCopyStays: Bool)
+        case fallbackToUserApplications(otherCopyStays: Bool)
         /// A copy with a higher build number is already in Applications: Open Installed Copy, Don't Move. Nothing
         /// is replaced.
         case newerInstalled
@@ -86,7 +86,7 @@ struct MoveToApplicationsPrompt {
                     path: ApplicationLocation.bundleName, directoryHint: .isDirectory))
             let user = InstallDestination.userApplications(home: home)
             mover.destination = user.appending(path: ApplicationLocation.bundleName, directoryHint: .isDirectory)
-            variant = .fallbackToUserApplications(olderCopyStays: stays)
+            variant = .fallbackToUserApplications(otherCopyStays: stays)
         }
         // A newer copy in either Applications folder is never replaced or shadowed by an older one in the other
         // (the chosen folder first); the alert offers to open that copy.
@@ -144,14 +144,14 @@ struct MoveToApplicationsPrompt {
             comment: "Move to Applications alert: title when the system Applications folder is not writable")
     }
 
-    static func fallbackMessage(olderCopyStays: Bool) -> String {
+    static func fallbackMessage(otherCopyStays: Bool) -> String {
         let base = String(
             localized:
                 "Lintel cannot write to the Applications folder without an administrator. Move it to the Applications folder in your home folder instead?",
             comment: "Move to Applications alert: explanation when the system Applications folder is not writable")
-        guard olderCopyStays else { return base }
+        guard otherCopyStays else { return base }
         let note = String(
-            localized: "An older copy stays in Applications; an administrator can remove it.",
+            localized: "Another copy stays in Applications; an administrator can remove it.",
             comment: "Move to Applications alert: added when an existing copy in the system Applications folder stays")
         return base + " " + note
     }
@@ -177,9 +177,9 @@ struct MoveToApplicationsPrompt {
         case .move(let folder):
             alert.messageText = title
             alert.informativeText = message(folder: folder)
-        case .fallbackToUserApplications(let olderCopyStays):
+        case .fallbackToUserApplications(let otherCopyStays):
             alert.messageText = fallbackTitle
-            alert.informativeText = fallbackMessage(olderCopyStays: olderCopyStays)
+            alert.informativeText = fallbackMessage(otherCopyStays: otherCopyStays)
         case .newerInstalled:
             alert.messageText = newerInstalledTitle
             alert.informativeText = newerInstalledMessage
@@ -346,8 +346,9 @@ struct QAInstallFakes: InstallFileManaging, RunningAppListing, QuarantineRemovin
         guard scenario == .newer else { return nil }
         return isInstalledCopy(url) ? "200" : "100"
     }
-    func open(_ url: URL, newInstance: Bool) async throws {
-        logger.info("QA: would open \(url.path, privacy: .public) and quit")
+    func open(_ url: URL, newInstance: Bool, files: [URL]) async throws {
+        let count = files.count
+        logger.info("QA: would open \(url.path, privacy: .public) with \(count, privacy: .public) file(s) and quit")
     }
     /// QA never quits on Move; the run keeps going so the tester sees the rest of the session.
     func quit() {}
