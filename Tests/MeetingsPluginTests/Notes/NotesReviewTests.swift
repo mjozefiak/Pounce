@@ -290,10 +290,12 @@ final class StuckLoadLLM: LLMRuntime, @unchecked Sendable {
         let mic = TrackScript.build([(1, 11, 3), (4, 12, 3)], tail: 1)
         let meeting = try rig.seed(.processing, mic: mic, stored: [(.mic, 16_000..<64_000, words[11]!)])
         let library = rig.library(resumer: rig.resumerFactory(mic: mic))
-        let told = Shared<[Int64]>([])
-        library.onMeetingReady = { id in told.update { $0.append(id) } }
+        let told = ReadyEvents()
+        library.onMeetingReady = { id in told.tell(id) }
         library.open()
-        #expect(await waitFor { told.get() == [meeting.id] })
+        // The callback comes after the whole resume, the spool removal included (#165).
+        #expect(await told.next(hangGuard: .seconds(120)) == meeting.id)
+        #expect(told.all == [meeting.id])
         #expect(try #require(library.store).status(of: meeting.id) == .ready)
     }
 
@@ -302,14 +304,14 @@ final class StuckLoadLLM: LLMRuntime, @unchecked Sendable {
         let mic = TrackScript.build([(1, 11, 3), (4, 12, 3)], tail: 1)
         let meeting = try rig.seed(.incomplete, mic: mic, stored: [(.mic, 16_000..<64_000, words[11]!)])
         let library = rig.library(resumer: rig.resumerFactory(mic: mic))
-        let told = Shared<[Int64]>([])
-        library.onMeetingReady = { id in told.update { $0.append(id) } }
+        let told = ReadyEvents()
+        library.onMeetingReady = { id in told.tell(id) }
         library.open()
         let handle = try #require(library.finish(meetingID: meeting.id))
         #expect(await handle.outcome == .ready)
-        #expect(await waitFor { told.get() == [meeting.id] })
+        #expect(await told.next(hangGuard: .seconds(120)) == meeting.id)  // #165
         // Another finish of the same meeting does nothing and tells nothing.
         #expect(library.finish(meetingID: meeting.id) == nil)
-        #expect(told.get() == [meeting.id])
+        #expect(told.all == [meeting.id])
     }
 }
