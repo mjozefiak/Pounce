@@ -75,9 +75,11 @@ om_harness_without_node() {
       done
       ;;
     freeze)
+      # Relative paths are resolved against the input's cwd (else the hook's), as the guard does.
+      local base="${starts[${#starts[@]}-1]}"
       while IFS= read -r start; do
         [[ -n "$start" ]] || continue
-        [[ "$start" == /* ]] || start="${starts[${#starts[@]}-1]}/$start"
+        [[ "$start" == /* ]] || start="$base/$start"
         starts+=("$(dirname "$start")")
       done < <(om_harness_field file_path "$input"; om_harness_field notebook_path "$input")
       for directory in "${starts[@]}"; do
