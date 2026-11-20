@@ -6,7 +6,7 @@ import Testing
 @testable import NotesPlugin
 
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct NotesPruneTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct NotesPruneTests {
     private func fill(_ rig: DocRig, humans count: Int, agentSeed: Bool = true) throws -> (docID: Int64, ids: [Int64]) {
         let created = try rig.store.insertDocument(.overlay("m1", author: agentSeed ? "agent" : "human"))
         var ids = [created.revisionID]

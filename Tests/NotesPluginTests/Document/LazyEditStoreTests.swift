@@ -9,7 +9,7 @@ import Testing
 /// `notes.sqlite` appear at the first real write (the first typed character, a comment or a save), and from then
 /// on the writer behaves exactly as with an eager store.
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct LazyEditStoreTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct LazyEditStoreTests {
     private let key = NoteKey(pluginID: "meetings", id: "lazy-1")
     private let started = Date(timeIntervalSince1970: 1_800_000_000)
 
@@ -102,13 +102,14 @@ import Testing
     private func lazyWriter(_ rig: DocRig, opens: Opens) throws -> RevisionWriter {
         let store = rig.store
         let plan = try rig.plan(rig.layer("seed text"))
-        return RevisionWriter(
-            storeProvider: {
-                opens.hit()
-                return store
-            }, target: .seed(plan), clock: rig.clock,
-            observer: RevisionWriter.Observer(wrote: { [wrote = rig.wrote] _ in wrote.increment() }),
-            log: rig.log)
+        return rig.adopt(
+            RevisionWriter(
+                storeProvider: {
+                    opens.hit()
+                    return store
+                }, target: .seed(plan), clock: rig.clock,
+                observer: RevisionWriter.Observer(wrote: { [wrote = rig.wrote] _ in wrote.increment() }),
+                log: rig.log))
     }
 
     @Test func theDebouncedAutosaveOpensTheStoreOnceAndWrites() async throws {
@@ -182,9 +183,10 @@ import Testing
 
     @Test func aProviderThatCannotOpenKeepsTheTextForARetry() async throws {
         let rig = try DocRig()
-        let writer = RevisionWriter(
-            storeProvider: { nil }, target: .seed(try rig.plan(rig.layer("seed text"))), clock: rig.clock,
-            log: rig.log)
+        let writer = rig.adopt(
+            RevisionWriter(
+                storeProvider: { nil }, target: .seed(try rig.plan(rig.layer("seed text"))), clock: rig.clock,
+                log: rig.log))
         writer.submit("typed")
         await #expect(throws: NotesError.keyUnavailable) { try await writer.flush() }
         #expect(writer.hasPendingText)

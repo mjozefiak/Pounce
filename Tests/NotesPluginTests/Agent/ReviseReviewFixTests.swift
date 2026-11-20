@@ -7,7 +7,7 @@ import Testing
 /// delimiters cannot be forged by the note, more URL schemes are caught, runs never overlap and a failed resolve is
 /// reported.
 @MainActor
-@Suite(.timeLimit(.minutes(2))) struct ReviseReviewFixTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(2))) struct ReviseReviewFixTests {
     private let blockText = "- Pricing page moves to the next sprint."
 
     // MARK: M1 an answer equal to the input
