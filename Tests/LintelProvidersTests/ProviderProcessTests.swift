@@ -124,10 +124,14 @@ import Testing
         let childPID = pid_t(cli.read("childpid").trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
         #expect(childPID > 0)
         #expect(kill(childPID, 0) == 0)  // alive before
+        let cancelledAt = Date()
         task.cancel()
         await #expect(throws: ProviderError.cancelled) { try await task.value }
+        // The guard is generous so a loaded machine cannot fail it by accident; the duration is asserted apart from
+        // it. SIGTERM goes out at once and SIGKILL 2 s later, so the group is gone well inside 10 s.
         let gone = await eventually(timeout: 30) { kill(childPID, 0) != 0 }
         #expect(gone, "the grandchild must die with the group")
+        #expect(Date().timeIntervalSince(cancelledAt) < 10, "the group kill must not be delayed")
     }
 
     @Test func aGrandchildThatLeavesTheGroupCannotHoldTheRunOpen() async throws {
@@ -145,19 +149,24 @@ import Testing
         let request = ProviderRequest(
             feature: .meetingsNotes, model: "sonnet",
             messages: [ChatMessage(role: "user", content: String(repeating: "zebra ", count: 60_000))],
-            timeout: .seconds(30))
+            timeout: .seconds(120))  // the grandchild sleeps 120 s: neither it nor this timeout can end the run early
         let done = DoneFlag()
+        let began = Date()
         let task = Task {
             defer { done.set() }
-            return try await runner.run(request, authorization: allowed)
+            let result = try await runner.run(request, authorization: allowed)
+            return (result, Date().timeIntervalSince(began))
         }
+        // The guard only keeps a hang from stalling the suite; how long the run took is asserted separately below.
         let finished = await eventually(timeout: 30) { done.value }
         #expect(finished, "an escaped grandchild must not keep the run (and the gate slot) open")
         guard finished else {
             task.cancel()
             return
         }
-        #expect(try await task.value.text == "Fake answer.")
+        let (result, elapsed) = try await task.value
+        #expect(result.text == "Fake answer.")
+        #expect(elapsed < 10, "the run must end soon after the leader exits (drain grace 2 s), not at the timeout")
         #expect(await gate.queuedCount == 0)
     }
 

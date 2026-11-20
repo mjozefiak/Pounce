@@ -77,8 +77,9 @@ struct FakeCLI {
           exit 0
         fi
         if [ "$mode" = "escape" ]; then
-          # A grandchild that leaves the process group (new session) and keeps stdin, stdout and stderr open.
-          perl -e 'use POSIX qw(setsid); setsid(); open(my $f, ">", $ARGV[0]); close $f; sleep 30' "$here/escaped" &
+          # A grandchild that leaves the process group (new session) and keeps stdin, stdout and stderr open. It lives
+          # far longer than any limit a test waits for, so only the runner can end the run, never the grandchild.
+          perl -e 'use POSIX qw(setsid); setsid(); open(my $f, ">", $ARGV[0]); close $f; sleep 120' "$here/escaped" &
           echo $! > "$here/escapedpid"
           while [ ! -e "$here/escaped" ]; do sleep 0.05; done
           echo '{"type":"result","is_error":false,"result":"Fake answer."}'
