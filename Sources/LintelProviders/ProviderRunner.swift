@@ -48,7 +48,11 @@ public struct ProviderRunner: Sendable {
 
     // MARK: content
 
-    public func run(_ request: ProviderRequest, authorization: ProviderAuthorization) async throws -> GenerationResult {
+    /// `onExactModel` gets the model the CLI reports it used (the alias is not the exact version), when it reports one.
+    public func run(
+        _ request: ProviderRequest, authorization: ProviderAuthorization,
+        onExactModel: (@Sendable (String) -> Void)? = nil
+    ) async throws -> GenerationResult {
         let descriptor = try self.descriptor(for: request.provider)
         let (argv, stdin) = try prepare(request, descriptor: descriptor)
         let id = descriptor.id
@@ -68,23 +72,36 @@ public struct ProviderRunner: Sendable {
         }
         try Self.check(output.ending, provider: id)
         ProviderLog.record(.processFinished, provider: id, millis: Self.millis(since: started))
+        if let exact = descriptor.exactModel(stdout: output.stdout) { onExactModel?(exact) }
         return try interpret(output, descriptor: descriptor)
     }
 
     // MARK: probes (no user content)
 
     public func status(of provider: ProviderID) async -> ProviderStatus {
-        guard let descriptor = descriptors.first(where: { $0.id == provider }) else { return .notInstalled }
+        await report(of: provider).status
+    }
+
+    /// The status and the CLI's version number (`2.1.329`), for the Settings row. The two probes carry no content.
+    public func report(of provider: ProviderID) async -> ProviderStatusReport {
+        guard let descriptor = descriptors.first(where: { $0.id == provider }) else {
+            return ProviderStatusReport(status: .notInstalled, version: nil)
+        }
         do {
             let version = try await probe(descriptor, arguments: descriptor.versionArguments, stdin: Data())
-            guard version.ending == .exited, version.exitCode == 0 else { return .incompatibleVersion }
+            guard version.ending == .exited, version.exitCode == 0 else {
+                return ProviderStatusReport(status: .incompatibleVersion, version: nil)
+            }
+            let number = ProviderVersion(parsing: String(decoding: version.stdout, as: UTF8.self))
+                .map { $0.parts.map(String.init).joined(separator: ".") }
             let auth = try await probe(descriptor, arguments: descriptor.authStatusArguments, stdin: Data())
             let authData = auth.exitCode == 0 ? auth.stdout : nil
-            return descriptor.status(versionOutput: version.stdout, authOutput: authData)
+            return ProviderStatusReport(
+                status: descriptor.status(versionOutput: version.stdout, authOutput: authData), version: number)
         } catch ProviderError.notInstalled {
-            return .notInstalled
+            return ProviderStatusReport(status: .notInstalled, version: nil)
         } catch {
-            return .incompatibleVersion
+            return ProviderStatusReport(status: .incompatibleVersion, version: nil)
         }
     }
 

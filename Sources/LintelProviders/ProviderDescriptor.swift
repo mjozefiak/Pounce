@@ -43,11 +43,18 @@ public struct ProviderModel: Sendable, Equatable {
     /// The estimated tokens of transcript one request takes (spec `2026-11-10-external-ai-providers`, Q12). A working
     /// number until the measurement of step 0.2; a model id the user typed gets `ProviderDescriptor.defaultInputBudgetTokens`.
     public let inputBudgetTokens: Int
+    /// A model that uses more of the user's subscription limit and takes longer than the default one: Settings shows
+    /// a note under the model menu while it is chosen (owner decision D8/D15, 2026-11-20).
+    public let heavier: Bool
 
-    public init(id: String, displayName: String, inputBudgetTokens: Int = ProviderDescriptor.defaultInputBudgetTokens) {
+    public init(
+        id: String, displayName: String, inputBudgetTokens: Int = ProviderDescriptor.defaultInputBudgetTokens,
+        heavier: Bool = false
+    ) {
         self.id = id
         self.displayName = displayName
         self.inputBudgetTokens = inputBudgetTokens
+        self.heavier = heavier
     }
 }
 
@@ -121,15 +128,16 @@ public struct ProviderDescriptor: Sendable {
         authStatusArguments: ["auth", "status"],
         // Measured with 2.1.328; the canary is repeated for every new range.
         supportedVersions: ProviderVersion([2, 1, 0])...ProviderVersion([2, 1, Int.max]),
-        // All CLI aliases (owner decision D15, 2026-11-20); `sonnet` is the default (`defaultModelID`). Quality gate G
-        // was measured on `sonnet` ONLY: `haiku`, `opus` and `fable` are UNMEASURED. The input budgets of `opus` and
-        // `fable` are an ASSUMPTION (not above sonnet's) until someone measures them. There is no per-model minimum CLI
+        // The models Settings offers (owner decision D15, 2026-11-20); `sonnet` is the default (`defaultModelID`). Quality
+        // gate G was measured on `sonnet` ONLY: `opus` and `fable` passed only the short canary (alias, JSON shape,
+        // time, budget) and their input budgets are an ASSUMPTION (not above sonnet's). HAIKU IS HIDDEN until its own
+        // gate G has a result: to offer it, add `ProviderModel(id: "haiku", displayName: "Haiku")` to this list and
+        // nothing else (the menu, the argv check and the marker all read `models`). There is no per-model minimum CLI
         // version: a CLI that does not know an alias fails the run (never a silent switch to another model).
         models: [
             ProviderModel(id: "sonnet", displayName: "Sonnet"),
-            ProviderModel(id: "haiku", displayName: "Haiku"),
-            ProviderModel(id: "opus", displayName: "Opus"),
-            ProviderModel(id: "fable", displayName: "Fable"),
+            ProviderModel(id: "opus", displayName: "Opus", heavier: true),
+            ProviderModel(id: "fable", displayName: "Fable", heavier: true),
         ],
         isolationVerified: false,
         environmentAllowlist: Self.claudeEnvironmentAllowlist)
@@ -268,6 +276,15 @@ public struct ProviderDescriptor: Sendable {
         return Self.classifyText(err)
     }
 
+    /// The exact model that answered: the one key of `modelUsage` in the CLI's JSON result (`claude-sonnet-5-5` for
+    /// the alias `sonnet`). `nil` when the result names none or several, or the name is not a valid model id.
+    func exactModel(stdout: Data) -> String? {
+        guard let object = Self.resultObject(stdout), let usage = object["modelUsage"] as? [String: Any],
+            usage.count == 1, let id = usage.keys.first, Self.isValidModelID(id)
+        else { return nil }
+        return id
+    }
+
     private static func resultObject(_ stdout: Data) -> [String: Any]? {
         guard let value = try? JSONSerialization.jsonObject(with: stdout) else { return nil }
         if let object = value as? [String: Any] { return object }
@@ -292,6 +309,7 @@ public struct ProviderDescriptor: Sendable {
         if ["unknown option", "unknown argument", "invalid value", "error: option"].contains(where: s.contains) {
             return .incompatibleVersion
         }
+        if s.contains("not available"), s.contains("plan") || s.contains("model") { return .modelNotAvailable }
         if ["rate limit", "usage limit", "overloaded", "429"].contains(where: s.contains) { return .rateLimited }
         if ["enotfound", "econnrefused", "network", "timed out", "unable to connect", "fetch failed"]
             .contains(where: s.contains)
@@ -303,9 +321,11 @@ public struct ProviderDescriptor: Sendable {
 
     /// `ready` / `incompatibleVersion` / `notSignedIn` from the two probe outputs (never kept, never logged).
     func status(versionOutput: Data, authOutput: Data?) -> ProviderStatus {
-        guard let version = ProviderVersion(parsing: String(decoding: versionOutput, as: UTF8.self)),
-            supportedVersions.contains(version)
-        else { return .incompatibleVersion }
+        guard let version = ProviderVersion(parsing: String(decoding: versionOutput, as: UTF8.self)) else {
+            return .incompatibleVersion
+        }
+        if version > supportedVersions.upperBound { return .newerVersion }
+        guard supportedVersions.contains(version) else { return .incompatibleVersion }
         guard let authOutput, let object = try? JSONSerialization.jsonObject(with: authOutput) as? [String: Any],
             (object["loggedIn"] as? Bool) == true
         else { return .notSignedIn }

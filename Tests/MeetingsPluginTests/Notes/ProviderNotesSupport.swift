@@ -46,8 +46,11 @@ enum ProviderFixtures {
         SUMMARY: Omówiono budżet na marketing i ofertę dla klienta.
         """
 
-    static func output(answer: String, isError: Bool = false) -> ProviderProcessOutput {
-        let payload: [String: Any] = ["type": "result", "is_error": isError, "result": answer]
+    static func output(answer: String, isError: Bool = false, modelUsage: [String: Any]? = nil)
+        -> ProviderProcessOutput
+    {
+        var payload: [String: Any] = ["type": "result", "is_error": isError, "result": answer]
+        if let modelUsage { payload["modelUsage"] = modelUsage }
         let data = (try? JSONSerialization.data(withJSONObject: payload)) ?? Data()
         return ProviderProcessOutput(stdout: data, stderr: Data(), exitCode: 0, ending: .exited)
     }

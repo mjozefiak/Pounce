@@ -20,6 +20,9 @@ struct MeetingsSettings: Sendable {
         static let builtInLLMModel = "builtInLLMModel"
         static let notesProvider = "notesProvider"
         static let notesProviderModel = "notesProviderModel"
+        static let notesProviderInfoVersion = "notesProviderInfoVersion"
+        static let notesProviderBinary = "notesProviderBinary"
+        static let qaProviderStatus = "qaProviderStatus"
         static let notesChunkTokens = "notesChunkTokens"
         static let notesReduceInputTokens = "notesReduceInputTokens"
         static let suggestMeetings = "suggestMeetings"
@@ -254,16 +257,52 @@ struct MeetingsSettings: Sendable {
     func setConsentReminder(_ value: Bool) { settings.set(value, for: Key.consentReminder) }
     func setNotesEnabled(_ value: Bool) { settings.set(value, for: Key.notesEnabled) }
     func setBuiltInLLMModel(_ model: LLMModel) { settings.set(model.id, for: Key.builtInLLMModel) }
-    /// Both keys go together, so a half-written choice never reads as one. Settings has no control for them yet
-    /// (a test or the DEBUG `--qa-setting` flag sets them).
-    func setNotesProvider(_ selection: NotesProviderSelection) {
+    /// The choice in Settings → Meetings → "Notes are written by". The keys go together, so a half-written choice
+    /// never reads as one. `infoVersion` is the version of the notice the user saw when choosing (the
+    /// "Transcripts … leave this Mac" text and its Details). Nothing reads it yet; it is the slot a later change of
+    /// the data scope can compare against to hold the sending until the user looks again (owner decision, 2026-11-20:
+    /// not part of the first release of the picker).
+    func setNotesProvider(
+        _ selection: NotesProviderSelection, infoVersion: Int = NotesProviderInfo.currentVersion
+    ) {
         settings.set(selection.provider.rawValue, for: Key.notesProvider)
         settings.set(selection.model, for: Key.notesProviderModel)
+        settings.set(infoVersion, for: Key.notesProviderInfoVersion)
     }
-    /// Back to the built-in model: removes both keys.
+    /// Back to the built-in model: removes the keys. A changed model of the same provider goes through
+    /// `setNotesProvider` again and keeps the version the user saw (`notesProviderInfoVersion`).
     func clearNotesProvider() {
         settings.removeValue(for: Key.notesProvider)
         settings.removeValue(for: Key.notesProviderModel)
+        settings.removeValue(for: Key.notesProviderInfoVersion)
+    }
+    /// The notice version stored with the choice; `nil` for a choice made without one (set by hand or by an older build).
+    var notesProviderInfoVersion: Int? {
+        let value = settings.integer(Key.notesProviderInfoVersion, default: -1)
+        return value >= 0 ? value : nil
+    }
+
+    /// The CLI the user chose with "Choose File…"; `nil` searches the fixed directories.
+    var notesProviderBinary: String? {
+        guard let path = settings.string(Key.notesProviderBinary), !path.isEmpty else { return nil }
+        return path
+    }
+    func setNotesProviderBinary(_ path: String?) {
+        if let path, !path.isEmpty {
+            settings.set(path, for: Key.notesProviderBinary)
+        } else {
+            settings.removeValue(for: Key.notesProviderBinary)
+        }
+    }
+
+    /// DEBUG only (`--qa-setting plugins.meetings.qaProviderStatus=ready|notInstalled|notSignedIn|incompatibleVersion`):
+    /// the state the provider's row and banner show, with no process started. Release builds never read it.
+    var qaProviderStatus: ProviderStatus? {
+        #if DEBUG
+        settings.string(Key.qaProviderStatus).flatMap(ProviderStatus.init(rawValue:))
+        #else
+        nil
+        #endif
     }
     func setSuggestMeetings(_ value: Bool) { settings.set(value, for: Key.suggestMeetings) }
     func setSuggestMutedBundleIDs(_ ids: [String]) { settings.set(ids, for: Key.suggestMutedBundleIDs) }
@@ -271,6 +310,11 @@ struct MeetingsSettings: Sendable {
     func setRetentionDays(_ days: Int) { settings.set(max(0, days), for: Key.retentionDays) }
     func setKeepAudio(_ value: Bool) { settings.set(value, for: Key.keepAudio) }
     func setOrphanAudioDays(_ days: Int) { settings.set(days, for: Key.orphanAudioDays) }
+}
+
+/// The version of the notice shown next to the provider choice. Raise it when the data that leaves the Mac changes.
+enum NotesProviderInfo {
+    static let currentVersion = 1
 }
 
 /// The external provider and model that write the notes: the user's choice in settings, which is the consent.

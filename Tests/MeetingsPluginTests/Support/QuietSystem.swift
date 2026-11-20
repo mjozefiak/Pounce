@@ -17,7 +17,9 @@ extension MeetingsSystem {
             makeSelfTest: { SystemAudioSelfTest(backend: FakeBackend(), player: FakeTonePlayer()) },
             microphoneAuthorizer: { FakeAuthorizer(.notDetermined) },
             makeSession: { _, _ in ScriptedSession() },
-            makeProviderRunner: { ProviderRunner(system: .quiet, cachesDirectory: $0) })
+            makeProviderRunner: { directory, manual in
+                ProviderRunner(system: .quiet, cachesDirectory: directory, manualBinaryPath: manual)
+            })
     }
 
     /// Makes `quiet` what `MeetingsPlugin.init(context:)` uses, and fails the calling test when any test in

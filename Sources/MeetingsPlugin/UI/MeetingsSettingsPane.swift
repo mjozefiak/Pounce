@@ -60,6 +60,20 @@ struct MeetingsPaneContent: View {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
                     .settingsSectionHeader()
             }
+            if model.notes.enabled {
+                Section {
+                    NotesWrittenByRows(provider: model.provider, notes: model.notes)
+                } header: {
+                    Text("Notes are written by", comment: "Settings → Meetings: provider menu label")
+                        .settingsSectionHeader()
+                }
+                Section {
+                    NotesWrittenByNotices(provider: model.provider)
+                }
+            }
+            Section {
+                recordingRows
+            }
         } advanced: {
             advanced
         } data: {
@@ -133,9 +147,10 @@ struct MeetingsPaneContent: View {
                     comment: "Settings → Meetings: help under Write notes after each meeting"))
         }
         .toggleStyle(.switch)
-        if model.notes.enabled {
-            notesModelRow
-        }
+    }
+
+    /// Speech model, language, "Your name" and retention: their own card under the notes section (mockup v2).
+    @ViewBuilder private var recordingRows: some View {
         LabeledContent {
             Picker(selection: Binding(get: { model.speechPackageID }, set: { model.selectSpeechModel($0) })) {
                 ForEach(model.speechPackages) { package in

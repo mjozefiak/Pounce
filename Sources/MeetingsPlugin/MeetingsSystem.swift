@@ -23,7 +23,9 @@ struct MeetingsSystem: Sendable {
     var makeSession: @MainActor @Sendable (MeetingsRuntime, MeetingSessionRequest) -> any RecordingSession
     /// The runner of the notes provider (the one way a process with a transcript starts). `live` can start the
     /// provider's CLI, and only for a provider the user chose in settings; tests get one over a fake process.
-    var makeProviderRunner: @Sendable (_ cachesDirectory: URL) -> ProviderRunner
+    /// `manualBinaryPath` is the CLI the user chose with "Choose File…" (a setting read at every use), or `nil`.
+    var makeProviderRunner:
+        @Sendable (_ cachesDirectory: URL, _ manualBinaryPath: @escaping @Sendable () -> String?) -> ProviderRunner
 
     /// The real HUD panels, Core Audio, the tone player, the system's microphone permission and sessions.
     static let live = MeetingsSystem(
@@ -51,11 +53,11 @@ struct MeetingsSystem: Sendable {
             countLiveUse("MeetingSession")
             return runtime.makeSession(request)
         },
-        makeProviderRunner: { cachesDirectory in
+        makeProviderRunner: { cachesDirectory, manualBinaryPath in
             countLiveUse("ProviderSystem")
             return ProviderRunner(
                 system: ProviderSystem.live(homeDirectory: FileManager.default.homeDirectoryForCurrentUser),
-                cachesDirectory: cachesDirectory)
+                cachesDirectory: cachesDirectory, manualBinaryPath: manualBinaryPath)
         })
 
     private static let standardValue = Mutex(MeetingsSystem.live)

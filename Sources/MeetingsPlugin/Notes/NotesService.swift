@@ -14,6 +14,21 @@ enum NotesJobPhase: Equatable, Sendable {
     case reducing
 }
 
+/// Why a job of the notes provider wrote nothing: a closed set (never text), sorted from `ProviderFailure`,
+/// `ProviderError` and `NotesFailure`.
+struct ProviderJobFailure: Equatable, Sendable {
+    enum Reason: String, Sendable, Equatable {
+        case notInstalled, notSignedIn, incompatibleVersion, modelNotAvailable, rateLimited, network, timedOut
+        case tooLong, other
+    }
+
+    var reason: Reason
+    var meetingID: Int64
+    /// What "Last meeting" shows in Settings; in memory only, never logged.
+    var title: String?
+    var startedAt: Date
+}
+
 /// What the library list, its actions and the meeting windows may read from any thread: whether notes are on,
 /// whether their model is missing, and what each running job does. Written by `NotesService` on the main actor.
 final class NotesBoard: Sendable {
@@ -27,6 +42,13 @@ final class NotesBoard: Sendable {
         /// and nothing is written for them when the model arrives ("Regenerate" does it on request). In memory:
         /// a restart forgets the badge.
         var awaitingModel: Set<Int64> = []
+        /// How the last job of the chosen provider ended when it did not write notes (Settings → Meetings shows it
+        /// with "Try Again" and "Write on This Mac"). In memory: a restart forgets it. Cleared by the next job of that
+        /// meeting, by a switch of the provider and by "Write on This Mac".
+        var providerFailure: ProviderJobFailure?
+
+        /// A job is past the queue (the provider may have the transcript). Decides D12's confirmation.
+        var jobRunning: Bool { phases.values.contains { $0 != .queued } }
 
         /// Notes are wanted and their model is missing.
         var needsModel: Bool { enabled && modelMissing }
@@ -99,6 +121,9 @@ final class NotesService {
         /// Started by the user ("Regenerate"): runs even when automatic notes are off, and opens Settings when
         /// the model is missing.
         var requested: Bool
+        /// "Write on This Mac" (owner decision D7=C): this one job uses the built-in model and sends nothing, whatever
+        /// the setting says. The setting itself is not changed.
+        var local = false
     }
 
     let board = NotesBoard()
@@ -208,6 +233,13 @@ final class NotesService {
         enqueue(Job(meetingID: id, requested: true))
     }
 
+    /// "Write on This Mac" after a failed provider job: the built-in model writes the notes of this meeting once.
+    func writeOnThisMac(_ id: Int64) {
+        board.update { $0.providerFailure = nil }
+        deps.changed()
+        enqueue(Job(meetingID: id, requested: true, local: true))
+    }
+
     private func enqueue(_ job: Job) {
         guard accepting else { return }
         if current?.meetingID == job.meetingID {
@@ -260,8 +292,10 @@ final class NotesService {
 
         // The writer is chosen here, for this job, from the settings as they are now. The provider's authorization
         // reads them again before every process.
-        if let selection = deps.settings.notesProviderSelection {
-            await processWithProvider(job, selection: selection, utterances: utterances, store: store)
+        if !job.local, let selection = deps.settings.notesProviderSelection {
+            await processWithProvider(
+                job, selection: selection, utterances: utterances, store: store,
+                title: document.title.map(MeetingLibraryPresentation.visible), startedAt: document.startedAt)
             return
         }
 
@@ -312,13 +346,15 @@ final class NotesService {
     /// The notes written by the chosen provider: the whole-transcript track over `ProviderNotesGenerator`. No
     /// model file is needed and nothing falls back to the built-in model; an error ends the job as `failed`.
     private func processWithProvider(
-        _ job: Job, selection: NotesProviderSelection, utterances: [NotesUtterance], store: MeetingsStore
+        _ job: Job, selection: NotesProviderSelection, utterances: [NotesUtterance], store: MeetingsStore,
+        title: String?, startedAt: Date
     ) async {
         let id = job.meetingID
         guard let previous = try? store.beginNotes(id) else { return }
         board.update {
             $0.modelMissing = false
             $0.awaitingModel = []
+            if $0.providerFailure?.meetingID == id { $0.providerFailure = nil }
         }
         setPhase(.mapping(done: 0, total: 1), for: id)
 
@@ -331,10 +367,12 @@ final class NotesService {
             return
         }
         let settings = deps.settings
+        let reasons = ProviderFailureSink()
         let generator = ProviderNotesGenerator(
             runner: runner, selection: selection,
             inputBudgetTokens: descriptor.inputBudgetTokens(forModel: selection.model),
-            currentSelection: { settings.notesProviderSelection })
+            currentSelection: { settings.notesProviderSelection }, onFailure: { reasons.record($0) },
+            onExactModel: { reasons.recordModel($0) })
         var configuration = WholeNotesPipeline.Configuration()
         deps.configureWhole(&configuration)
         let pipeline = WholeNotesPipeline(generator: generator, configuration: configuration, sleep: deps.sleep)
@@ -349,9 +387,44 @@ final class NotesService {
             outcome = .failure(error)
         }
         let epoch = epoch
-        let origin = Origin.provider(selection, promptFormat: generator.profile.promptFormat)
+        // The mark keeps the exact model the CLI reported; the alias when it reported none.
+        var marked = selection
+        if let exact = reasons.exactModel { marked.model = exact }
+        let origin = Origin.provider(marked, promptFormat: generator.profile.promptFormat)
         if conclude(outcome, job: job, previous: previous, origin: origin, store: store), epoch == self.epoch {
             rerun.insert(id)
+        }
+        recordProviderFailure(outcome, reason: reasons.last, id: id, title: title, startedAt: startedAt, epoch: epoch)
+    }
+
+    /// Remembers why a provider job wrote nothing, for the banner. A success, a cancellation and a refusal (the
+    /// provider is no longer chosen) leave nothing; a job that ended `failed` or threw keeps its closed reason.
+    private func recordProviderFailure(
+        _ outcome: Result<NotesResult, any Error>, reason: ProviderJobFailure.Reason?, id: Int64, title: String?,
+        startedAt: Date, epoch: Int
+    ) {
+        guard epoch == self.epoch else { return }
+        let failed: ProviderJobFailure.Reason?
+        switch outcome {
+        case .failure(let error):
+            if error is CancellationError || error is NotesGenerationRefusal {
+                failed = nil
+            } else if let error = error as? NotesFailure, error == .transcriptTooLong {
+                failed = .tooLong
+            } else {
+                failed = reason ?? .other
+            }
+        case .success(let result):
+            failed = result.status == .failed ? (reason ?? .other) : nil
+        }
+        let record = failed.map {
+            ProviderJobFailure(reason: $0, meetingID: id, title: title, startedAt: startedAt)
+        }
+        if board.update({
+            $0.providerFailure = record ?? ($0.providerFailure?.meetingID == id ? nil : $0.providerFailure)
+        }
+        ) {
+            deps.changed()
         }
     }
 
@@ -442,4 +515,17 @@ final class NotesService {
         deps.library.refreshCount()
         return again
     }
+}
+
+/// Where `ProviderNotesGenerator` leaves the closed reason of the last provider error of a job: the pipeline retries
+/// and swallows a failed attempt, so the reason cannot come back through its result.
+final class ProviderFailureSink: Sendable {
+    private let value = Mutex<ProviderJobFailure.Reason?>(nil)
+
+    private let model = Mutex<String?>(nil)
+
+    func record(_ reason: ProviderJobFailure.Reason) { value.withLock { $0 = reason } }
+    func recordModel(_ id: String) { model.withLock { $0 = id } }
+    var exactModel: String? { model.withLock { $0 } }
+    var last: ProviderJobFailure.Reason? { value.withLock { $0 } }
 }

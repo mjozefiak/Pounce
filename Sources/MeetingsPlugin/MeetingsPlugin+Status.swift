@@ -17,14 +17,28 @@ extension MeetingsPlugin {
         let denied = ThingsToDo.deniedPermissions(
             requiredPermissions, countedByPlugin: model.microphone == .notDetermined ? [.microphone] : [],
             reader: context.permissions)
-        return Self.settingsStatus(
+        let notesOn = settings.notesEnabled
+        let base = Self.settingsStatus(
             location: model.speech.location, microphone: model.microphone, library: library.status,
             modelTitle: model.speech.package.title, packageID: model.speech.package.id, deniedPermissions: denied,
+            localNotesLine: notesOn && model.provider.isLocal,
             allowMicrophone: { await model.requestMicrophoneAccess() },
             retryLibrary: {
                 await library.openInBackground()
                 changed()
             })
+        // Notes written by a provider: its states (not found, not signed in, a failed job, ...) come before the
+        // recording's own "things to do" only when they need attention; Ready and "writing" give way to those.
+        guard notesOn, let base, library.status == .ready || library.status == .closed,
+            let chosen = model.provider.chosen, let provider = model.provider.model
+        else { return base }
+        let banner = ProviderStatusBanner.status(
+            ProviderBannerInput(
+                providerName: chosen.displayName, recipient: chosen.recipient, modelName: provider.displayName,
+                check: model.provider.check, failure: model.provider.failure, jobRunning: model.provider.jobRunning),
+            actions: model.provider.bannerActions)
+        if banner.level == .attention || banner.level == .error { return banner }
+        return base.level == .ok ? banner : base
     }
 
     /// The banner ids of the plugin's own actions.
@@ -43,6 +57,7 @@ extension MeetingsPlugin {
         modelTitle: String,
         packageID: String,
         deniedPermissions: Int = 0,
+        localNotesLine: Bool = false,
         allowMicrophone: @escaping @MainActor @Sendable () async -> Void,
         retryLibrary: @escaping @MainActor @Sendable () async -> Void
     ) -> SettingsStatus? {
@@ -93,6 +108,13 @@ extension MeetingsPlugin {
                             "Allow Microphone", comment: "Button that asks for microphone access"),
                         destination: .plugin(id: allowMicrophoneActionID, perform: allowMicrophone))
                 ])
+        case (false, false) where localNotesLine:
+            return SettingsStatus(
+                level: .ok,
+                title: LocalizedStringResource("Ready", comment: "Settings banner level, spoken"),
+                detail: LocalizedStringResource(
+                    "Notes are written on this Mac. Nothing is sent anywhere.",
+                    comment: "Settings → Meetings banner detail when notes are written by the built-in model"))
         case (false, false):
             return SettingsStatus(
                 level: .ok,

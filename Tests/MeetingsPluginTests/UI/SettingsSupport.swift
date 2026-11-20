@@ -166,6 +166,7 @@ final class SettingsRig {
             }),
             notes: NotesSettingsModel(
                 settings: meetingsSettings, service: notesService, manager: llmModels.manager, lease: LLMLease()),
+            provider: ProviderChoiceRig(settings: meetingsSettings, service: notesService).model,
             speechPackages: [models.package], authorizer: authorizer,
             listDevices: { [.init(uid: "usb-1", name: "USB mic")] }, openURL: openURL,
             accountName: { accountName })

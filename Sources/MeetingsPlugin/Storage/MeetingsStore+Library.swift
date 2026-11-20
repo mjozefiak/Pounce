@@ -16,6 +16,9 @@ struct MeetingLibraryEntry: Sendable, Equatable {
     var uuid: String = ""
     /// Whether the audio spool is still there (an `incomplete` meeting can then be finished).
     var audioSpooled: Bool = false
+    /// Who wrote the notes (`notes_provider*`): `nil` for the built-in model.
+    var notesProvider: String? = nil
+    var notesProviderModel: String? = nil
 }
 
 /// The list mode's filters (⌘1 to ⌘3).
@@ -91,7 +94,7 @@ extension MeetingsStore {
                 db,
                 sql: """
                     SELECT id, uuid, started_at, duration_ms, title, source_bundle_id, status, notes_status,
-                           (audio_state = 'spool') AS audio_spooled,
+                           (audio_state = 'spool') AS audio_spooled, notes_provider, notes_provider_model,
                            (notes_markdown IS NOT NULL AND notes_markdown <> '') AS has_notes
                     FROM meeting \(whereClause)
                     ORDER BY started_at DESC, id DESC LIMIT :limit
@@ -104,7 +107,8 @@ extension MeetingsStore {
                     status: MeetingStatus(rawValue: row["status"]) ?? .failed,
                     notesStatus: NotesStatus(rawValue: row["notes_status"]) ?? .none,
                     hasNotes: (row["has_notes"] as Int) != 0, uuid: row["uuid"],
-                    audioSpooled: (row["audio_spooled"] as Int) != 0)
+                    audioSpooled: (row["audio_spooled"] as Int) != 0,
+                    notesProvider: row["notes_provider"], notesProviderModel: row["notes_provider_model"])
             }
         }
     }

@@ -59,6 +59,13 @@ enum MeetingNoteMapping {
                         "Speech model", comment: "Notes details: the model that wrote the transcript"),
                     value: model))
         }
+        if let sent = ProviderMark.detail(provider: document.notesProvider, model: document.notesProviderModel) {
+            result.append(
+                NoteDetail(
+                    label: LocalizedStringResource(
+                        "Sent to", comment: "Notes details: the provider the transcript was sent to for the notes"),
+                    value: sent))
+        }
         let audio: String
         switch document.audioState {
         case .spool:

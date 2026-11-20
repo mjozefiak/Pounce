@@ -1,5 +1,6 @@
 import AppKit
 import LintelKit
+import LintelProviders
 import LintelSpeech
 import SwiftUI
 
@@ -29,7 +30,7 @@ final class MeetingsUI {
         },
         makeSelfTest: @escaping @MainActor () -> SystemAudioSelfTest,
         pickFolder: @escaping @MainActor () -> URL? = { MeetingsUI.chooseModelFolder() },
-        usage: MeetingsModelUsage? = nil, notes service: NotesService
+        usage: MeetingsModelUsage? = nil, notes service: NotesService, providerRunner: ProviderRunner? = nil
     ) {
         let usage =
             usage
@@ -51,6 +52,22 @@ final class MeetingsUI {
             context.modelsDirectory.appending(path: Self.llmDirectoryName, directoryHint: .isDirectory))
         self.llmManager = llmManager
         let workspace = context.workspace
+        let pasteboard = context.pasteboard
+        let providerSettings = settings
+        let provider = ProviderChoiceModel(
+            settings: settings, service: service,
+            probe: { descriptor in
+                guard let providerRunner else { return ProviderStatusReport(status: .notInstalled, version: nil) }
+                return await providerRunner.report(of: descriptor.id)
+            },
+            tryOut: { id, model in
+                guard let providerRunner else { return .unavailable }
+                return await providerRunner.tryOut(provider: id, model: model)
+            },
+            openURL: { url in Task { try? await workspace.open(url) } },
+            copyText: { pasteboard.setString($0) },
+            chooseFile: { MeetingsUI.chooseProviderBinary() }, changed: context.resultsChanged)
+        _ = providerSettings
         model = MeetingsSettingsModel(
             settings: settings, library: library,
             privacy: MeetingsPrivacyActions(
@@ -58,16 +75,25 @@ final class MeetingsUI {
                 activity: activity, changed: context.resultsChanged),
             speech: speech, diarization: diarization,
             systemAudioTest: SystemAudioTestModel(makeTest: makeSelfTest, blocked: { activity.isActive }),
-            notes: NotesSettingsModel(settings: settings, service: service, manager: llmManager),
+            notes: NotesSettingsModel(settings: settings, service: service, manager: llmManager), provider: provider,
             authorizer: authorizer, openURL: { url in Task { try? await workspace.open(url) } })
         let countersStore = CaptureCountersStore(directory: context.storageDirectory)
         model.captureCounters = { countersStore.load() }
-        let pasteboard = context.pasteboard
         model.copyText = { pasteboard.setString($0) }
         let keptNoteCopies = context.keptNoteCopies
         let deleteKeptNoteCopies = context.deleteKeptNoteCopies
         model.keptCopies = { await keptNoteCopies(MeetingsPlugin.manifest.id) }
         model.deleteKeptCopies = { await deleteKeptNoteCopies(MeetingsPlugin.manifest.id, false) }
+    }
+
+    /// "Choose File…": the provider's CLI; `ProviderLocator` validates it before any use.
+    static func chooseProviderBinary() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.prompt = String(localized: "Choose", comment: "Button of the model folder picker")
+        return panel.runModal() == .OK ? panel.url : nil
     }
 
     private static func chooseModelFolder() -> URL? {

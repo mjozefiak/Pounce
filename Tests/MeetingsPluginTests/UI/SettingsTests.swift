@@ -161,7 +161,8 @@ import Testing
             settings: rig.harness.meetingsSettings, library: rig.library,
             privacy: MeetingsPrivacyActions(library: rig.library, spool: rig.spool, changed: {}),
             speech: rig.model.speech, diarization: rig.model.diarization, systemAudioTest: rig.model.systemAudioTest,
-            notes: rig.model.notes, speechPackages: [rig.models.package, other.package], authorizer: rig.authorizer,
+            notes: rig.model.notes, provider: rig.model.provider, speechPackages: [rig.models.package, other.package],
+            authorizer: rig.authorizer,
             listDevices: { [] },
             openURL: { _ in })
         var signals = 0
