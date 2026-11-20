@@ -200,7 +200,7 @@ let package = Package(
         .testTarget(
             name: "DictationPluginTests",
             dependencies: [
-                "DictationPlugin", "LintelSpeech", "LintelKit", "LintelCore", "LintelPersistence",
+                "DictationPlugin", "LintelSpeech", "LintelKit", "LintelCore", "LintelPersistence", "LintelTestSupport",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
