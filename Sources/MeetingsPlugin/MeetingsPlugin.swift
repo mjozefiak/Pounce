@@ -129,7 +129,7 @@ public final class MeetingsPlugin: LintelPlugin {
     // MARK: Lifecycle
 
     public func activate() async throws {
-        library.open()
+        await library.openInBackground()
         await notes.start()
         let detector = makeDetector()
         let workspace = context.workspace
