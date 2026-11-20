@@ -211,10 +211,12 @@ final class MeetingsLibrary {
     /// the result (the store is closed again) and the library stays closed.
     func openInBackground() async {
         // An open of an earlier generation (after `close()`) is waited for, never overlapped: two opens on the
-        // same files could both create the key. An open of the current generation is simply joined.
+        // same files could both create the key. An open of the current generation is simply joined. A `close()`
+        // while this call waits ends it too: the caller asked for the library before the close, not after it.
+        let callGeneration = generation
         while let running = openTask {
             await running.task.value
-            if running.generation == generation { return }
+            if generation != callGeneration || running.generation == generation { return }
         }
         guard store == nil else { return }
         let opener = opener
