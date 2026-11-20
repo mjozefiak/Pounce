@@ -10,8 +10,14 @@ public actor ParakeetEngine: SpeechEngine {
     }
 
     private var manager: AsrManager?
+    private let language: @Sendable () -> String?
 
-    public init() {}
+    /// - Parameter language: `pl` or `en`, read for every segment; `nil` (the default, and dictation's choice)
+    ///   sends no hint. The hint limits the decoder's script, not the language (it keeps Cyrillic out of Polish
+    ///   speech; it does not stop Latin-script English), see `ParakeetLanguage`.
+    public init(language: @escaping @Sendable () -> String? = { nil }) {
+        self.language = language
+    }
 
     public var isLoaded: Bool { manager != nil }
 
@@ -27,13 +33,25 @@ public actor ParakeetEngine: SpeechEngine {
         let padded =
             samples.count >= minimum ? samples : samples + [Float](repeating: 0, count: minimum - samples.count)
         var state = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
-        let result = try await manager.transcribe(padded, decoderState: &state)
+        let result = try await manager.transcribe(
+            padded, decoderState: &state, language: ParakeetLanguage.hint(for: language()))
         return TranscriptSegment(text: result.text)
     }
 
     public func unload() async {
         await manager?.cleanup()
         manager = nil
+    }
+}
+
+/// Maps the language code of Settings to FluidAudio's script hint for Parakeet TDT v3 (issue #132).
+public enum ParakeetLanguage {
+    public static func hint(for code: String?) -> Language? {
+        switch code {
+        case "pl": .polish
+        case "en": .english
+        default: nil
+        }
     }
 }
 
