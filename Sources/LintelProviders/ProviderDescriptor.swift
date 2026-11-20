@@ -157,16 +157,18 @@ public struct ProviderDescriptor: Sendable {
         return try argumentBuilder(model, systemPrompt)
     }
 
+    /// The order is the golden list of ADR 0011 ("Flags (golden list for the descriptor)").
     static func claudeArguments(model: String, systemPrompt: String) throws -> [String] {
         var argv = [
-            "-p", "--output-format", "json",
+            "-p",
+            "--model", model,
+            "--output-format", "json",
             "--tools", "",
             "--no-session-persistence",
             "--disable-slash-commands",
             "--strict-mcp-config",
             "--setting-sources", "",
             "--safe-mode",
-            "--model", model,
         ]
         if !systemPrompt.isEmpty { argv += ["--system-prompt", systemPrompt] }
         return argv

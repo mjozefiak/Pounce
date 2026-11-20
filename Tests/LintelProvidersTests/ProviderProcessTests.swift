@@ -184,6 +184,7 @@ import Testing
 
     @Test(arguments: [
         ("login", ProviderFailure.notSignedIn), ("rate", .rateLimited), ("badflag", .incompatibleVersion),
+        ("nosafemode", .incompatibleVersion),
         ("exit3", .other), ("empty", .other),
     ])
     func errorsAreSortedIntoTheClosedSet(mode: String, expected: ProviderFailure) async throws {
