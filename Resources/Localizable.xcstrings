@@ -27036,6 +27036,42 @@
           }
         }
       }
+    },
+    "Restore Default" : {
+      "comment" : "Settings → Meetings: forget the hand-picked CLI, search again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć domyślną"
+          }
+        }
+      }
+    },
+    "File" : {
+      "comment" : "Settings → Meetings: the hand-picked CLI file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

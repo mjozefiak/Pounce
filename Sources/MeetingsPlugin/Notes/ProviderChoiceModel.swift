@@ -66,6 +66,8 @@ final class ProviderChoiceModel {
     /// `PluginContext.openModels`: "Write on This Mac" without the built-in model leads to its download.
     @ObservationIgnored private let changed: @Sendable () -> Void
     var earlierMark: EarlierMark?
+    /// The CLI picked by hand with "Choose File…"; `nil` while Lintel searches the fixed folders itself.
+    var manualPath: String?
     @ObservationIgnored private let lastMarked: @MainActor () -> EarlierMark?
     @ObservationIgnored private var lastProbe: Date?
     @ObservationIgnored private let now: @MainActor () -> Date
@@ -136,6 +138,7 @@ final class ProviderChoiceModel {
 
     func reload() {
         selection = settings.notesProviderSelection
+        manualPath = selection == nil ? nil : settings.notesProviderBinary
         earlierMark = selection == nil ? lastMarked() : nil
         if selection == nil, settings.qaProviderScenario == "earlier" {
             earlierMark = EarlierMark(
@@ -356,7 +359,16 @@ final class ProviderChoiceModel {
     func chooseBinary() {
         guard let url = chooseFile() else { return }
         settings.setNotesProviderBinary(url.path)
+        manualPath = url.path
         refreshStatus()
+    }
+
+    /// "Restore Default": the hand-picked file is forgotten and the fixed folders are searched again.
+    func restoreDefaultBinary() {
+        settings.setNotesProviderBinary(nil)
+        manualPath = nil
+        refreshStatus()
+        didChange()
     }
 
     /// "Check Again" and "Try Again" of the status rows.

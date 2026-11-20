@@ -193,4 +193,21 @@ import Testing
         choice.model.useLocal()
         #expect(choice.model.earlierMark == mark)
     }
+
+    // MARK: Hand-picked CLI: visible path and the way back
+
+    @Test func theHandPickedPathIsShownAndRestoreDefaultForgetsItAndChecksAgain() async throws {
+        let notes = try NotesServiceRig(settings: ProviderFixtures.chosen)
+        let choice = ProviderChoiceRig(settings: notes.settings, service: notes.service)
+        choice.pickedFile.withLock { $0 = URL(filePath: "/opt/tools/claude") }
+        choice.model.chooseBinary()
+        #expect(choice.model.manualPath == "/opt/tools/claude")
+        choice.model.reload()
+        #expect(choice.model.manualPath == "/opt/tools/claude", "also after a reload, e.g. a path written by defaults")
+        let probes = choice.probes.withLock { $0 }
+        choice.model.restoreDefaultBinary()
+        #expect(choice.model.manualPath == nil)
+        #expect(notes.settings.notesProviderBinary == nil)
+        #expect(await waitFor("the check") { choice.probes.withLock { $0 } > probes })
+    }
 }

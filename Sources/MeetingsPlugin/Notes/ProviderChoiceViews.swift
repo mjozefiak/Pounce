@@ -128,6 +128,7 @@ struct NotesWrittenByRows: View {
         if provider.showsHeavierNote { heavierNote }
         if provider.chosen != nil {
             statusRow
+            if let path = provider.manualPath { pathRow(path) }
             tryRow
         }
     }
@@ -282,6 +283,24 @@ struct NotesWrittenByRows: View {
             statusText
         } label: {
             Text("Status", comment: "Settings → Meetings: provider status row").font(textSize.font(.body))
+        }
+    }
+
+    /// The CLI the user picked by hand stays visible, with the way back to the automatic search.
+    private func pathRow(_ path: String) -> some View {
+        LabeledContent {
+            Button {
+                provider.restoreDefaultBinary()
+            } label: {
+                Text("Restore Default", comment: "Settings → Meetings: forget the hand-picked CLI, search again")
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("File", comment: "Settings → Meetings: the hand-picked CLI file").font(textSize.font(.body))
+                Text(verbatim: path)
+                    .font(textSize.font(.callout)).foregroundStyle(LintelBrand.secondaryText)
+                    .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+            }
         }
     }
 
