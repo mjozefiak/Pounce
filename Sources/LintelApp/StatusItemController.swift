@@ -69,8 +69,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             : String(localized: "Lintel", comment: "Menu bar item accessibility label")
         button.setAccessibilityLabel(label)
         if visible, updateBadge == nil {
-            let badge = UpdateBadgeView(frame: UpdateBadgeView.frame(in: button.bounds))
-            badge.autoresizingMask = [.minXMargin, .minYMargin]
+            // The status bar button is a flipped view: its top edge is minY.
+            let badge = UpdateBadgeView(frame: UpdateBadgeView.frame(in: button.bounds, flipped: button.isFlipped))
+            badge.autoresizingMask = UpdateBadgeView.autoresizingMask(flipped: button.isFlipped)
             button.addSubview(badge)
             updateBadge = badge
         } else if !visible {
@@ -249,8 +250,16 @@ final class CommandTarget: NSObject {
 final class UpdateBadgeView: NSView {
     static let diameter: CGFloat = 6
 
-    static func frame(in bounds: NSRect) -> NSRect {
-        NSRect(x: bounds.maxX - diameter - 3, y: bounds.maxY - diameter - 4, width: diameter, height: diameter)
+    /// The dot's frame in the top right corner of `bounds`, in the coordinates of a flipped (top edge at minY) or an
+    /// unflipped superview.
+    static func frame(in bounds: NSRect, flipped: Bool) -> NSRect {
+        let y = flipped ? bounds.minY + 4 : bounds.maxY - diameter - 4
+        return NSRect(x: bounds.maxX - diameter - 3, y: y, width: diameter, height: diameter)
+    }
+
+    /// Keeps the dot at the top right corner when the button resizes: the left margin and the bottom margin stretch.
+    static func autoresizingMask(flipped: Bool) -> NSView.AutoresizingMask {
+        [.minXMargin, flipped ? .maxYMargin : .minYMargin]
     }
 
     override func draw(_ dirtyRect: NSRect) {

@@ -312,12 +312,38 @@ struct UpdateReminderMenuTests {
         #expect(menu.items.first?.title == "Open Lintel")
     }
 
-    @Test func theDotSitsInsideTheTopRightCornerOfTheButton() {
-        let bounds = NSRect(x: 0, y: 0, width: 22, height: 22)
-        let frame = UpdateBadgeView.frame(in: bounds)
-        #expect(bounds.contains(frame))
-        #expect(frame.midX > bounds.midX && frame.midY > bounds.midY)
-        #expect(UpdateBadgeView(frame: frame).hitTest(NSPoint(x: frame.midX, y: frame.midY)) == nil)
+    /// A view with a chosen `isFlipped`; the menu bar's `NSStatusBarButton` is flipped.
+    final class Canvas: NSView {
+        let flippedCoordinates: Bool
+        init(flipped: Bool) {
+            flippedCoordinates = flipped
+            super.init(frame: NSRect(x: 0, y: 0, width: 22, height: 22))
+            autoresizesSubviews = true
+        }
+        required init?(coder: NSCoder) { nil }
+        override var isFlipped: Bool { flippedCoordinates }
+    }
+
+    /// Distance of the dot from the top and right edges of its superview, whatever its coordinate system.
+    private func insets(of badge: NSView, in canvas: Canvas) -> (top: CGFloat, right: CGFloat) {
+        let top = canvas.isFlipped ? badge.frame.minY : canvas.bounds.maxY - badge.frame.maxY
+        return (top, canvas.bounds.maxX - badge.frame.maxX)
+    }
+
+    @Test(arguments: [true, false])
+    func theDotSitsInTheTopRightCornerAndStaysThereWhenTheButtonResizes(flipped: Bool) {
+        let canvas = Canvas(flipped: flipped)
+        let badge = UpdateBadgeView(frame: UpdateBadgeView.frame(in: canvas.bounds, flipped: flipped))
+        badge.autoresizingMask = UpdateBadgeView.autoresizingMask(flipped: flipped)
+        canvas.addSubview(badge)
+        #expect(canvas.bounds.contains(badge.frame))
+        let before = insets(of: badge, in: canvas)
+        #expect(before.top < canvas.bounds.height / 2 && before.right < canvas.bounds.width / 2)
+        canvas.setFrameSize(NSSize(width: 30, height: 24))
+        let after = insets(of: badge, in: canvas)
+        #expect(after.top == before.top && after.right == before.right)
+        #expect(badge.frame.size == NSSize(width: UpdateBadgeView.diameter, height: UpdateBadgeView.diameter))
+        #expect(badge.hitTest(NSPoint(x: badge.frame.midX, y: badge.frame.midY)) == nil)
     }
 
     @Test func theQAArgumentCarriesTheVersion() throws {
