@@ -184,6 +184,13 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         items[url.path] = nil
     }
 
+    /// Paths that reach the same item as another path, both directions.
+    var sameItems: [String: String] = [:]
+
+    func isSameItem(_ first: URL, as second: URL) -> Bool {
+        first.path == second.path || sameItems[first.path] == second.path || sameItems[second.path] == first.path
+    }
+
     func isRunning(bundleAt url: URL) -> Bool { running.contains(url.path) }
 
     func isAnotherInstanceRunning(bundleIdentifier: String) -> Bool { runningIdentifiers.contains(bundleIdentifier) }
@@ -382,6 +389,67 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         #expect(disk.items[Self.destination]?.identity == "new")
         #expect(disk.opened == [Self.destination])
         #expect(disk.quitCalls == 1)
+    }
+
+    @Test func theOriginalIsNotTrashedWhenItsPathReachesTheNewCopy() async throws {
+        // A path that path resolution does not map to /Applications (a bind or network mount of the same folder):
+        // it classifies as elsewhere, but after the rename that path is the new copy itself.
+        let aliased = URL(filePath: "/Users/tester/Mounted/Applications/Lintel.app", directoryHint: .isDirectory)
+        let disk = Self.makeDisk(runningFrom: aliased)
+        disk.sameItems = [aliased.path: Self.destination]
+        try await Self.mover(disk).run(from: aliased)
+        #expect(!disk.log.contains("trash \(aliased.path)"))
+        #expect(disk.items[Self.destination]?.identity == "new")
+        #expect(disk.items[FakeInstallDisk.trash] == nil)
+        #expect(disk.quitCalls == 1)
+    }
+
+    @Test func theLiveFileManagerComparesItemsByIdentity() throws {
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-install-\(UUID().uuidString)", directoryHint: .isDirectory)
+        let first = root.appending(path: "A.app", directoryHint: .isDirectory)
+        let second = root.appending(path: "B.app", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: first, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: second, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let link = root.appending(path: "Link.app")
+        try FileManager.default.createSymbolicLink(atPath: link.path, withDestinationPath: first.path)
+        let files = SystemInstallFileManager()
+        #expect(files.isSameItem(first, as: link))
+        let caseSensitive = try root.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey])
+            .volumeSupportsCaseSensitiveNames
+        if caseSensitive == false {
+            #expect(files.isSameItem(first, as: root.appending(path: "a.APP")), "the volume ignores case")
+        }
+        #expect(!files.isSameItem(first, as: second))
+        #expect(!files.isSameItem(first, as: root.appending(path: "missing.app")))
+    }
+
+    @Test func theLiveVersionReaderSeesABundleThatWasReplaced() throws {
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: "lintel-install-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        func makeBundle(_ url: URL, build: String, identifier: String) throws {
+            let contents = url.appending(path: "Contents", directoryHint: .isDirectory)
+            try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+            let info: [String: Any] = [
+                "CFBundleVersion": build, "CFBundleIdentifier": identifier, "CFBundlePackageType": "APPL",
+            ]
+            let data = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+            try data.write(to: contents.appending(path: "Info.plist"))
+        }
+        let installed = root.appending(path: "Lintel.app", directoryHint: .isDirectory)
+        let staging = root.appending(path: "Staging.app", directoryHint: .isDirectory)
+        try makeBundle(installed, build: "100", identifier: "com.example.old")
+        let reader = SystemBundleVersionReader()
+        #expect(reader.buildNumber(ofBundleAt: installed) == "100")
+        #expect(reader.bundleIdentifier(ofBundleAt: installed) == "com.example.old")
+        try makeBundle(staging, build: "200", identifier: "com.example.new")
+        try FileManager.default.removeItem(at: installed)
+        try FileManager.default.moveItem(at: staging, to: installed)
+        #expect(reader.buildNumber(ofBundleAt: installed) == "200", "the new copy, not a cached old one")
+        #expect(reader.bundleIdentifier(ofBundleAt: installed) == "com.example.new")
+        #expect(reader.buildNumber(ofBundleAt: root.appending(path: "missing.app")) == nil)
     }
 
     @Test func anEqualBuildNumberStillReplacesTheInstalledCopy() async throws {
@@ -694,6 +762,39 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         #expect(declined == .declined)
         #expect(declined.continuesLaunch)
         #expect(disk.items == before)
+    }
+
+    @Test func aNewerCopyInTheOtherApplicationsFolderIsOpenedInsteadOfInstallingAnOlderOne() async {
+        let user = "/Users/tester/Applications"
+        // ~/Applications holds an app (chosen folder), and when /Applications cannot be written (fallback): either
+        // way a newer copy in /Applications wins and nothing is copied.
+        let preferred = MoveToApplicationsFlowTests.makeDisk(existing: true, newBuild: "100", oldBuild: "200")
+        preferred.folders.insert(user)
+        preferred.items[user + "/Notes.app"] = .init(identity: "notes", quarantined: false)
+        let fallback = MoveToApplicationsFlowTests.makeDisk(existing: true, newBuild: "100", oldBuild: "200")
+        fallback.unwritable = ["/Applications", MoveToApplicationsFlowTests.destination]
+        for disk in [preferred, fallback] {
+            let before = disk.items
+            var variants: [MoveToApplicationsPrompt.Variant] = []
+            let outcome = await Self.prompt(
+                InMemorySettingsStore(), disk: disk, answer: .init(move: true, dontAskAgain: false),
+                asked: { variants.append($0) }
+            ).offerIfNeeded(bundleURL: MoveToApplicationsFlowTests.source, home: Self.home)
+            #expect(variants == [.newerInstalled])
+            #expect(outcome == .openedInstalledCopy)
+            #expect(disk.items == before, "no older copy next to the newer one")
+            #expect(!disk.log.contains { $0.hasPrefix("copy ") })
+            #expect(disk.opened == [MoveToApplicationsFlowTests.destination])
+        }
+        // A newer copy in ~/Applications wins over a move into /Applications too.
+        let home = MoveToApplicationsFlowTests.makeDisk(existing: false, newBuild: "100")
+        home.items[user + "/Lintel.app"] = .init(identity: "home", quarantined: false, build: "300")
+        let outcome = await Self.prompt(
+            InMemorySettingsStore(), disk: home, answer: .init(move: true, dontAskAgain: false)
+        ).offerIfNeeded(bundleURL: MoveToApplicationsFlowTests.source, home: Self.home)
+        #expect(outcome == .openedInstalledCopy)
+        #expect(home.opened == [user + "/Lintel.app"])
+        #expect(home.items[MoveToApplicationsFlowTests.destination] == nil)
     }
 
     @Test func theOutcomesThatQuitDoNotContinueTheLaunch() {

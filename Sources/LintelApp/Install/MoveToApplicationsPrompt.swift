@@ -83,7 +83,24 @@ struct MoveToApplicationsPrompt {
             mover.destination = user.appending(path: ApplicationLocation.bundleName, directoryHint: .isDirectory)
             variant = .fallbackToUserApplications
         }
-        if mover.installedCopyIsNewer(than: bundleURL) { variant = .newerInstalled }
+        // A newer copy in either Applications folder is never replaced or shadowed by an older one in the other
+        // (the chosen folder first); the alert offers to open that copy.
+        let installedCopies = [
+            mover.destination,
+            InstallDestination.systemApplications.appending(
+                path: ApplicationLocation.bundleName, directoryHint: .isDirectory),
+            InstallDestination.userApplications(home: home).appending(
+                path: ApplicationLocation.bundleName, directoryHint: .isDirectory),
+        ]
+        var probe = mover
+        for copy in installedCopies {
+            probe.destination = copy
+            if probe.installedCopyIsNewer(than: bundleURL) {
+                mover.destination = copy
+                variant = .newerInstalled
+                break
+            }
+        }
         let answer = ask(variant)
         if answer.dontAskAgain {
             settings.setValue(.bool(true), forKey: SettingsKeys.moveDeclined)
@@ -309,6 +326,7 @@ struct QAInstallFakes: InstallFileManaging, RunningAppListing, QuarantineRemovin
         logger.info("QA: would rename \(source.path, privacy: .public) to \(destination.path, privacy: .public)")
     }
     func removeStagingItem(at url: URL) throws {}
+    func isSameItem(_ first: URL, as second: URL) -> Bool { first.path == second.path }
     func isRunning(bundleAt url: URL) -> Bool { false }
     func removeQuarantine(at url: URL) throws {}
     func buildNumber(ofBundleAt url: URL) -> String? {

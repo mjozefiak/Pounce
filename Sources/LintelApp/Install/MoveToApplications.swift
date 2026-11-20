@@ -24,6 +24,9 @@ protocol InstallFileManaging {
     func moveItem(at source: URL, to destination: URL) throws
     /// Removes a partial copy Lintel made itself (the staging copy); never used on a copy the user had.
     func removeStagingItem(at url: URL) throws
+    /// Whether both paths reach the same item on disk (device and inode, links followed), whatever the spelling of
+    /// the path. `false` when either is missing.
+    func isSameItem(_ first: URL, as second: URL) -> Bool
 }
 
 /// Which apps are running, by bundle location.
@@ -224,8 +227,11 @@ struct MoveToApplications {
         }
         let location = ApplicationLocation.classify(
             bundleURL: source, allowedFolders: ApplicationLocation.allowedFolders(home: home))
+        // Defence in depth: `classify` resolves links, case and firmlinks for paths that exist, but a source path that
+        // still reaches the destination another way would, after the rename, be the new copy itself.
         guard location == .elsewhere, !files.isOnReadOnlyVolume(source),
-            source.standardizedFileURL.path != destination.standardizedFileURL.path
+            source.standardizedFileURL.path != destination.standardizedFileURL.path,
+            !files.isSameItem(source, as: destination)
         else { return }
         do {
             _ = try files.trashItem(at: source)
@@ -351,6 +357,13 @@ struct SystemInstallFileManager: InstallFileManaging {
     func removeStagingItem(at url: URL) throws {
         try FileManager.default.removeItem(at: url)
     }
+
+    func isSameItem(_ first: URL, as second: URL) -> Bool {
+        var a = stat()
+        var b = stat()
+        guard stat(first.path, &a) == 0, stat(second.path, &b) == 0 else { return false }
+        return a.st_dev == b.st_dev && a.st_ino == b.st_ino
+    }
 }
 
 /// `NSWorkspace.runningApplications`, compared by resolved bundle path or by bundle identifier.
@@ -371,14 +384,22 @@ struct SystemRunningAppListing: RunningAppListing {
     }
 }
 
-/// `CFBundleVersion` from the bundle's `Info.plist`.
+/// `CFBundleVersion` and `CFBundleIdentifier`, read from `Contents/Info.plist` on disk on every call. Not through
+/// `Bundle(url:)`: it caches per path for the life of the process, so after the installed copy was read and then
+/// replaced it would still report the old copy, and the check of the new copy would read the old one.
 struct SystemBundleVersionReader: BundleVersionReading {
     func buildNumber(ofBundleAt url: URL) -> String? {
-        Bundle(url: url)?.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        infoDictionary(url)?["CFBundleVersion"] as? String
     }
 
     func bundleIdentifier(ofBundleAt url: URL) -> String? {
-        Bundle(url: url)?.bundleIdentifier
+        infoDictionary(url)?["CFBundleIdentifier"] as? String
+    }
+
+    private func infoDictionary(_ url: URL) -> [String: Any]? {
+        let plist = url.appending(path: "Contents/Info.plist", directoryHint: .notDirectory)
+        guard let data = try? Data(contentsOf: plist) else { return nil }
+        return (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any]
     }
 }
 
