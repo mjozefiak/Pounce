@@ -46,8 +46,31 @@ import Testing
         return out
     }
 
+    /// True when any non-comment `isolationVerified` token in the text is not a plain declaration, a read or the
+    /// literal `false`: `true`, `(true)`, `!false`, a constant, a variable or a call all count as verified, so the
+    /// value cannot be hidden behind another spelling. Allowed: `isolationVerified: Bool`, `: false`,
+    /// `: isolationVerified` and `= isolationVerified` (parameter pass-through), and a read after a dot.
     static func descriptorIsVerified(_ source: String) -> Bool {
-        withoutComments(source).range(of: #"isolationVerified:\s*true\b"#, options: .regularExpression) != nil
+        let text = withoutComments(source)
+        let token = "isolationVerified"
+        let allowed = try! Regex(#"^\s*(:\s*(Bool|false|isolationVerified)\b|=\s*isolationVerified\b)"#)
+        var search = text.startIndex..<text.endIndex
+        while let hit = text.range(of: token, range: search) {
+            search = hit.upperBound..<text.endIndex
+            if hit.lowerBound > text.startIndex, text[text.index(before: hit.lowerBound)] == "." {
+                if let match = text[hit.upperBound...].prefixMatch(of: allowed) {
+                    search = match.range.upperBound..<text.endIndex
+                }
+                continue
+            }
+            if hit.lowerBound > text.startIndex {
+                let before = text[text.index(before: hit.lowerBound)]
+                if before.isLetter || before.isNumber || before == "_" { continue }
+            }
+            guard let match = text[hit.upperBound...].prefixMatch(of: allowed) else { return true }
+            search = match.range.upperBound..<text.endIndex
+        }
+        return false
     }
 
     /// Empty when fine; else the reason.
@@ -83,18 +106,48 @@ import Testing
             .map { try String(contentsOf: $0, encoding: .utf8) }
     }
 
-    @Test func theRepositoryKeepsTheRule() throws {
-        let descriptor = try String(
-            contentsOf: Self.root.appending(path: "Sources/LintelProviders/ProviderDescriptor.swift"), encoding: .utf8)
-        let catalog = try String(
-            contentsOf: Self.root.appending(path: "Resources/Localizable.xcstrings"), encoding: .utf8)
-        #expect(Self.problems(descriptor: descriptor, appSources: try Self.appSourceTexts(), catalog: catalog) == [])
+    /// Every Swift file of the provider target: the value may be set in any of them, not only the descriptor.
+    private static func providerSourceText() throws -> String {
+        let dir = root.appending(path: "Sources/LintelProviders", directoryHint: .isDirectory)
+        let files = try #require(FileManager.default.enumerator(at: dir, includingPropertiesForKeys: nil))
+        return try files.compactMap { $0 as? URL }
+            .filter { $0.pathExtension == "swift" }
+            .sorted { $0.path < $1.path }
+            .map { try String(contentsOf: $0, encoding: .utf8) }
+            .joined(separator: "\n")
     }
 
-    @Test func theDescriptorTextIsReadAsUnverifiedToday() throws {
-        let descriptor = try String(
-            contentsOf: Self.root.appending(path: "Sources/LintelProviders/ProviderDescriptor.swift"), encoding: .utf8)
-        #expect(!Self.descriptorIsVerified(descriptor))
+    @Test func theRepositoryKeepsTheRule() throws {
+        let catalog = try String(
+            contentsOf: Self.root.appending(path: "Resources/Localizable.xcstrings"), encoding: .utf8)
+        #expect(
+            Self.problems(
+                descriptor: try Self.providerSourceText(), appSources: try Self.appSourceTexts(), catalog: catalog)
+                == [])
+    }
+
+    @Test func theProviderSourcesAreReadAsUnverifiedToday() throws {
+        #expect(!Self.descriptorIsVerified(try Self.providerSourceText()))
+    }
+
+    @Test func everySpellingOfAVerifiedValueIsDetected() {
+        let spellings = [
+            "D(isolationVerified: true, a: 1)", "D(isolationVerified:true)", "D(isolationVerified : true)",
+            "D(isolationVerified: (true))", "D(isolationVerified: !false)", "D(isolationVerified: flag)",
+            "let flag = true\nD(isolationVerified: flag)", "x.with(isolationVerified: true)",
+            "var isolationVerified = true", "D(\n    isolationVerified:\n        true)",
+        ]
+        for source in spellings { #expect(Self.descriptorIsVerified(source), "\(source)") }
+    }
+
+    @Test func declarationsReadsAndFalseAreNotVerified() {
+        let plain = [
+            "public let isolationVerified: Bool", "D(isolationVerified: false)", "D(isolationVerified:false)",
+            "func with(isolationVerified: Bool) {}", "self.isolationVerified = isolationVerified",
+            "D(isolationVerified: isolationVerified)", "guard descriptor.isolationVerified else {}",
+            "// isolationVerified: true", "/* isolationVerified: true */",
+        ]
+        for source in plain { #expect(!Self.descriptorIsVerified(source), "\(source)") }
     }
 
     private static let verified = "static let x = D(isolationVerified: true, environmentAllowlist: [])"

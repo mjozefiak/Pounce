@@ -94,6 +94,7 @@ For any UI change:
 
 - [ ] **`isolationVerified: true` is introduced only in a PR that also contains the provider-choice UI** with the fixed information that data leaves the computer, after a measurement on the real CLI with synthetic data (ADR 0011, spec `2026-11-10-external-ai-providers`, decision 4). A PR that changes only this value is **rejected** (blocker).
 - [ ] **Marker.** The provider-choice UI uses the localisation key `providerChoice.dataLeavesComputer` (String Catalog, `en` and `pl`) for that information, in a non-comment line of an app source outside `Sources/LintelProviders/`. `IsolationConsentUIScanTests` fails when the descriptor says `isolationVerified: true` and no such use or no `en`/`pl` value exists.
+- [ ] **Spelling of the value.** The test reads every file of `Sources/LintelProviders/` and treats any `isolationVerified` that is not a declaration (`: Bool`), the literal `false`, a pass-through of the parameter or a read after a dot as verified (so `true`, `(true)`, `!false`, a constant or a variable all need the marker). Not covered: a value computed outside `Sources/LintelProviders/`, or by reflection or a build setting; the reviewer rejects those.
 - [ ] **What the test cannot prove, so the reviewer checks it:** the string is shown beside the provider choice (not a dead string or a hidden view), the view is reachable, and the PR body links the real-CLI measurement on synthetic data.
 
 ## Validation gate
