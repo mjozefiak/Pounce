@@ -470,7 +470,8 @@ struct NotesWrittenByNotices: View {
         let recipient = provider.chosen?.recipient ?? ""
         return LocalizedStringKey(
             String(
-                localized:
+                localized: "providerChoice.dataLeavesComputer",
+                defaultValue:
                     "Meeting transcripts, speaker names and your approved dictionary terms leave this Mac and go to **\(recipient)**. Choosing this provider is your consent.",
                 comment: "Settings → Meetings: the short notice next to an external provider"))
     }

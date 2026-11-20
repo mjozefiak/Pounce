@@ -26659,24 +26659,6 @@
         }
       }
     },
-    "Meeting transcripts, speaker names and your approved dictionary terms leave this Mac and go to **%@**. Choosing this provider is your consent." : {
-      "comment" : "Settings → Meetings: the short notice next to an external provider",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Meeting transcripts, speaker names and your approved dictionary terms leave this Mac and go to **%@**. Choosing this provider is your consent."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transkrypty spotkań, imiona mówców i zatwierdzone terminy ze słownika opuszczają tego Maca i trafiają do **%@**. Wybór tego dostawcy oznacza Twoją zgodę."
-          }
-        }
-      }
-    },
     "What leaves this Mac, for every meeting" : {
       "comment" : "Settings → Meetings, Details of the provider notice: section heading",
       "extractionState" : "manual",
@@ -27033,6 +27015,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notatki napisane wcześniej przez %@ zostają."
+          }
+        }
+      }
+    },
+    "providerChoice.dataLeavesComputer" : {
+      "comment" : "Settings → Meetings: the short notice next to an external provider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting transcripts, speaker names and your approved dictionary terms leave this Mac and go to **%@**. Choosing this provider is your consent."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypty spotkań, imiona mówców i zatwierdzone terminy ze słownika opuszczają tego Maca i trafiają do **%@**. Wybór tego dostawcy oznacza Twoją zgodę."
           }
         }
       }
