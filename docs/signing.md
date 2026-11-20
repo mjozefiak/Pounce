@@ -30,9 +30,10 @@ permissions to grant again, and a plan for the Keychain items. It is never done 
 requirement (the first signed build, or an approved change):
 
 ```bash
-gh run download <run id> -n Lintel-requirement -D "$(mktemp -d)"   # prints nothing; note the directory
-cp <that directory>/designated-requirement.txt Resources/designated-requirement.txt
-zsh scripts/tests/run.zsh                                           # the shape check must pass
+dir="$(mktemp -d)"
+gh run download <run id> -n Lintel-requirement -D "$dir"
+cp "$dir/designated-requirement.txt" Resources/designated-requirement.txt
+zsh scripts/tests/run.zsh                                   # the shape check must pass
 ```
 
 In one pull request with the ADR and the `BACKWARD_COMPATIBILITY.md` update. If the file still holds the placeholder

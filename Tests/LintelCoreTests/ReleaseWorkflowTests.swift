@@ -181,12 +181,20 @@ import Testing
         #expect(pullRequestPaths.contains("Resources/*.entitlements"))
         let build = code(try #require(try jobs()["build"])).joined(separator: "\n")
         #expect(build.contains("if: github.actor != 'dependabot[bot]'"))
+        // One step: the condition, a step timeout above the watchdog limit (800 s + samples + kill < 16 min) and the
+        // watchdog around swift test.
         #expect(
             build.contains(
-                "if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')"))
-        #expect(build.contains("scripts/test-with-watchdog.sh --limit 800 --name test -- swift test"))
-        #expect(build.contains("if: failure() || cancelled()"))
-        #expect(build.contains("path: ${{ runner.temp }}/test-watchdog"))
+                "if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')\n"
+                    + "        timeout-minutes: 16\n"
+                    + "        run: scripts/test-with-watchdog.sh --limit 800 --name test -- swift test\n"))
+        #expect(
+            build.contains(
+                "        if: failure() || cancelled()\n"
+                    + "        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2\n"
+                    + "        with:\n"
+                    + "          name: test-watchdog\n"
+                    + "          path: ${{ runner.temp }}/test-watchdog\n"))
     }
 
     @Test func notarizationIsBoundedAndItsLogsAreKept() throws {
