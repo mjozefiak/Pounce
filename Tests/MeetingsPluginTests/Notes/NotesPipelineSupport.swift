@@ -1,5 +1,6 @@
 import Foundation
 import LintelSpeech
+import LintelTestSupport
 import Synchronization
 import Testing
 
@@ -89,9 +90,21 @@ final class NotesEventLog: @unchecked Sendable {
 /// A flag a test sets from inside a model closure.
 final class Flag: @unchecked Sendable {
     private let value = Mutex(false)
-    func set() { value.withLock { $0 = true } }
-    func clear() { value.withLock { $0 = false } }
+    private let bell = ChangeBell()
+    func set() {
+        value.withLock { $0 = true }
+        bell.ring()
+    }
+    func clear() {
+        value.withLock { $0 = false }
+        bell.ring()
+    }
     var isSet: Bool { value.withLock { $0 } }
+
+    /// Until the flag is set, woken by `set()` (60 s guard, the `Issue` lands on the caller's line).
+    func wait(_ what: String = "the flag to be set", sourceLocation: SourceLocation = #_sourceLocation) async -> Bool {
+        await bell.wait(guard: .seconds(60), what, sourceLocation: sourceLocation) { self.isSet }
+    }
 }
 
 struct NotesRig {

@@ -209,7 +209,7 @@ let package = Package(
         .testTarget(
             name: "MeetingsPluginTests",
             dependencies: [
-                "MeetingsPlugin", "LintelSpeech", "LintelKit", "LintelPersistence",
+                "MeetingsPlugin", "LintelSpeech", "LintelKit", "LintelPersistence", "LintelTestSupport",
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
             resources: [.copy("Fixtures")]
