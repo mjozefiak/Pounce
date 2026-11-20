@@ -23,8 +23,9 @@ import Testing
         #expect(!argv.joined(separator: " ").contains("/"))
     }
 
-    @Test func descriptorIsNotVerifiedUntilTheCanaryDecision() {
-        #expect(!ProviderDescriptor.claudeCode.isolationVerified)
+    @Test func theShippedDescriptorIsVerified() {
+        // The last commit of PR 215 turns sending on; the owner's qa-approved is the consent for it.
+        #expect(ProviderDescriptor.claudeCode.isolationVerified)
     }
 
     @Test(arguments: [

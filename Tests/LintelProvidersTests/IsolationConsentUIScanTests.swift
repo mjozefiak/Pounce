@@ -126,8 +126,8 @@ import Testing
                 == [])
     }
 
-    @Test func theProviderSourcesAreReadAsUnverifiedToday() throws {
-        #expect(!Self.descriptorIsVerified(try Self.providerSourceText()))
+    @Test func theProviderSourcesAreReadAsVerifiedAfterTheEnablingCommit() throws {
+        #expect(Self.descriptorIsVerified(try Self.providerSourceText()))
     }
 
     @Test func everySpellingOfAVerifiedValueIsDetected() {

@@ -139,7 +139,7 @@ public struct ProviderDescriptor: Sendable {
             ProviderModel(id: "opus", displayName: "Opus", heavier: true),
             ProviderModel(id: "fable", displayName: "Fable", heavier: true),
         ],
-        isolationVerified: false,
+        isolationVerified: true,
         environmentAllowlist: Self.claudeEnvironmentAllowlist)
 
     /// `USER` is needed: without it the CLI does not find the login in the Keychain. Authentication variables pass
