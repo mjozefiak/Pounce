@@ -10,10 +10,19 @@ public actor ParakeetEngine: SpeechEngine {
     }
 
     private var manager: AsrManager?
+    private let language: @Sendable () -> String?
 
-    public init() {}
+    /// - Parameter language: `pl` or `en`, read for every segment; `nil` (the default, and dictation's choice)
+    ///   sends no hint. The hint limits the decoder's script, not the language (it keeps Cyrillic out of Polish
+    ///   speech; it does not stop Latin-script English), see `ParakeetLanguage`.
+    public init(language: @escaping @Sendable () -> String? = { nil }) {
+        self.language = language
+    }
 
     public var isLoaded: Bool { manager != nil }
+
+    /// The script hint the next segment is decoded with.
+    var languageHint: Language? { ParakeetLanguage.hint(for: language()) }
 
     public func load(modelFolder: URL) async throws {
         let models = try AsrModels.loadLocal(from: modelFolder, version: .ultra)
@@ -27,13 +36,37 @@ public actor ParakeetEngine: SpeechEngine {
         let padded =
             samples.count >= minimum ? samples : samples + [Float](repeating: 0, count: minimum - samples.count)
         var state = TdtDecoderState.make(decoderLayers: await manager.decoderLayerCount)
-        let result = try await manager.transcribe(padded, decoderState: &state)
+        let result = try await manager.transcribe(
+            padded, decoderState: &state, language: languageHint)
         return TranscriptSegment(text: result.text)
     }
 
     public func unload() async {
         await manager?.cleanup()
         manager = nil
+    }
+}
+
+/// Maps the language codes of Settings to FluidAudio's script hint for Parakeet TDT v3 (issues #132, #210).
+///
+/// The hint only replaces a non-Latin top token with the best Latin one, so it is sent ONLY when every configured
+/// language is known to this table and written in the Latin script. An unknown code, a language in another
+/// script, an empty list ("auto") or a mix with any of those sends no hint, so speech in Cyrillic or Greek keeps
+/// its own script. A new language the app supports must be added to `scripts` (and its test) to get a hint.
+public enum ParakeetLanguage {
+    enum Script: Equatable { case latin, other }
+
+    /// The languages the app offers for meetings, with the script each is written in.
+    static let scripts: [String: Script] = ["pl": .latin, "en": .latin]
+
+    public static func hint(for code: String?) -> Language? {
+        guard let code else { return nil }
+        return hint(for: [code])
+    }
+
+    public static func hint(for codes: [String]) -> Language? {
+        guard !codes.isEmpty, codes.allSatisfy({ scripts[$0] == .latin }) else { return nil }
+        return codes.contains("pl") ? .polish : .english
     }
 }
 
