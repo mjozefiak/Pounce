@@ -538,7 +538,7 @@ W makiecie niesprawdzone: przejście klawiaturą, VoiceOver, wąskie okno.
 
 ## 📝 Model zagrożeń
 
-Stan po decyzjach właściciela z 2026-11-20, łącznie z odpowiedziami na Z1–Z10. Ta sekcja opisuje funkcję taką, jaka ma być wydana: włączoną domyślnie, bez arkusza zgody, bez wskaźnika obserwacji, czytającą całą wartość pola; oraz kontekst dyktowania włączony domyślnie, z listą źródeł z decyzji Z1. Niczego nie łagodzi i niczego nie wyolbrzymia.
+Stan po decyzjach właściciela z 2026-11-20, łącznie z odpowiedziami na Z1–Z10, decyzjami O1–O9 i odpowiedziami na DP1–DP9. Ta sekcja opisuje funkcję taką, jaka ma być wydana: włączoną domyślnie, bez arkusza zgody, bez wskaźnika obserwacji, czytającą całą wartość pola; oraz kontekst dyktowania włączony domyślnie, z listą źródeł z decyzji Z1. Niczego nie łagodzi i niczego nie wyolbrzymia.
 
 Dwa odczyty cudzych aplikacji są niezależne (Z3: osobne wyłączniki; Z2: osobne listy wykluczeń): **auto-nauka** czyta pole po wklejeniu, **kontekst** czyta przy naciśnięciu skrótu. Wyłączenie jednego nie zatrzymuje drugiego. Opis poniżej dotyczy najpierw auto-nauki; kontekst ma własną podsekcję „Co kontekst dyktowania czyta domyślnie".
 
@@ -692,7 +692,7 @@ Decyzje właściciela z O1–O9 (2026-11-20), ryzyko przyjęte:
 
 To jest rekomendacja orkiestratora, nie decyzja właściciela, i nie jest wpisana do planu jako wymaganie.
 
-- **Informacje o wydaniu:** wpis w `CHANGELOG.md` (treść wydania na GitHubie) dla wersji, która włącza funkcję, napisany wprost: po aktualizacji Lintel sprawdza pole, do którego wkleił dyktowanie, przez najwyżej 60 s; czyta całą jego wartość; działa we wszystkich aplikacjach poza listą wykluczeń; gdzie to wyłączyć. Po odpowiedzi na Z1 ta sama rekomendacja obejmuje kontekst: nota powinna wymienić, że przy każdym dyktowaniu czytane są zaznaczenie, tytuł okna i adres dokumentu, że fraza schowka jest włączona, i gdzie każde z nich wyłączyć. `BACKWARD_COMPATIBILITY.md` §4–§5 i tak wymaga noty wydania przy zmianie celu uprawnienia; rekomendacja dotyczy tego, żeby nota nazywała odczyt pól, a nie tylko „nową funkcję słownika".
+- **Informacje o wydaniu:** wpis w `CHANGELOG.md` (treść wydania na GitHubie) dla wersji, która włącza funkcję, napisany wprost: po aktualizacji Lintel sprawdza pole, do którego wkleił dyktowanie, przez najwyżej 60 s; czyta całą jego wartość; działa we wszystkich aplikacjach poza listą wykluczeń; gdzie to wyłączyć. Po odpowiedzi na Z1 ta sama rekomendacja obejmuje kontekst: nota powinna wymienić, że przy każdym dyktowaniu czytane są zaznaczenie, tytuł okna i adres dokumentu (poza terminalami), że fraza schowka jest włączona (tylko w wydaniu z czystym pomiarem DICT-3.1, O5), i gdzie każde z nich wyłączyć. `BACKWARD_COMPATIBILITY.md` §4–§5 i tak wymaga noty wydania przy zmianie celu uprawnienia; rekomendacja dotyczy tego, żeby nota nazywała odczyt pól, a nie tylko „nową funkcję słownika".
 - **Opis Uprawnień:** czwarty cel w wierszu Dostępność powinien mówić to samo jednym zdaniem i wskazywać wyłącznik (decyzja P5.1 już umieszcza informację w opisie Uprawnień; rekomendacja dotyczy jej treści: „czyta pole po wklejeniu", nie „pomaga uczyć słownik").
 
 ## 📝 Wymazanie danych
@@ -821,7 +821,7 @@ Progi decyzji (decyzja techniczna przyjęta według rekomendacji autora specu, O
 | Aplikacje bez Accessibility (część Electron, terminale) | nauka nie działa tam, gdzie użytkownik dyktuje najwięcej; funkcja wygląda na zepsutą | linia stanu pustego (U4), nota w dokumentacji | zasięg nieznany do macierzy z prób |
 | Brak dowodu popytu | funkcja mało używana | każdy krok wdrażany osobno; faza A nie dotyka kontraktu; krok B5 jest bramką | bramka DICT-0.1 przeszła bez linii bazowej |
 | Zależności | DICT-2.1–2.2 niezmergowane, próby niewykonane | faza A na atrapie; akceptacja zmian ADR przed DICT-2.1 | termin fazy B zależy od DICT-0.2 |
-| Kolejka `LintelKit` | spóźniona akceptacja zmian ADR opóźnia PR DICT-2.1, a z nim DICT-3.3 i MEET | zmiany ADR wynikające z P1/P2 do akceptacji jako pierwsze (krok 0.2) | — |
+| Kolejka `LintelKit` | spóźnione wpisanie zmian do tekstu ADR 0010 opóźnia PR DICT-2.1, a z nim DICT-3.3 i MEET | zmiany ADR zaakceptowane 2026-11-20 (krok 0.2); wpisanie do ADR 0010 osobnym PR dokumentów przed DICT-2.1 (R5) | — |
 | Dane właściciela w repozytorium | trwały wyciek | tylko dane syntetyczne; punkt recenzji | — |
 
 ## 📋 Phasing
@@ -844,7 +844,7 @@ Każdy krok to jedna gałąź `feat/` i jeden PR oparty na `main`, pełna bramka
 | Krok | Treść | Zależy od | Wynik sprawdzalny |
 |---|---|---|---|
 | 0.1 | Właściciel wypełnia P1, P2 i K1 | — | **zrobione 2026-11-20** (P1 = A+B, P2 = D z (i), 60 s; K1 zamknięte) |
-| 0.2 | **Przed PR DICT-2.1:** właściciel akceptuje treść zmian ADR 0010 (**zrobione 2026-11-20**: poprawka Accepted), które P1/P2 przesądzają (plik poprawki, sekcja „Przesądzone przez P1/P2"); kształt z sekcji „Architecture" przeniesiony do zakresu DICT-2.1 (backlog: story DICT-2.1 już go wymienia) | 0.1 | PR DICT-2.1 zawiera nowe człony i testy `LintelKitTests` wartości domyślnych; ADR 0010 ma dopisany nowy kształt w decyzji 3 |
+| 0.2 | **Przed PR DICT-2.1:** właściciel akceptuje treść zmian ADR 0010 (**zrobione 2026-11-20**: poprawka Accepted), które P1/P2 przesądzają (plik poprawki, sekcja „Change 7 in detail"); kształt z sekcji „Architecture" przeniesiony do zakresu DICT-2.1 (backlog: story DICT-2.1 już go wymienia) | 0.1 | PR DICT-2.1 zawiera nowe człony i testy `LintelKitTests` wartości domyślnych; ADR 0010 ma dopisany nowy kształt w decyzji 3 |
 | 0.3 | Właściciel wypełnia pozostałe P, U i K | 0.1 | **zrobione 2026-11-20** (tabele decyzji w tym specu) |
 | 0.3a | Właściciel odpowiada na Z1 (co kontekst czyta domyślnie) i na Z2–Z10 | 0.3 | **zrobione 2026-11-20** (sekcje „Odpowiedzi właściciela na Z1–Z10" i „Z1: co kontekst dyktowania czyta domyślnie") |
 | 0.3b | Właściciel odpowiada na punkty otwarte O1–O9 (**zrobione 2026-11-20**, sekcja „Decyzje właściciela O1–O9"); odpowiada na punkty DP1–DP9 (**zrobione 2026-11-20**); akceptuje treść poprawki ADR 0010 i ADR 0013 (**zrobione 2026-11-20**, oba Accepted). Zostaje: wpisanie zaakceptowanych zmian do tekstu ADR 0010 (punkt R5) i przepisanie stories | 0.3a | ADR 0010 z dopisanymi zmianami; ADR 0013 Accepted; stories DICT-2.3, DICT-2.4, DICT-3.1 i DICT-3.2 przepisane |

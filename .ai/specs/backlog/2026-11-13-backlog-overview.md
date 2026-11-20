@@ -202,7 +202,7 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 | D-Q3 | Próg bramki: 5 z 20 dyktowań | tak | DICT-0.1 |
 | D-Q4 ⚠ | Jednorazowy odczyt własnej historii dyktowania narzędziem poza repozytorium (monit Pęku kluczy) i przechowanie odszyfrowanych transkryptów jako zbioru regresyjnego na zaszyfrowanym obrazie dysku do końca DICT-3.6? | tak; zapas: ręczny eksport 30 wpisów | DICT-0.1, 3.6, 4.1 |
 | D-Q5 | Profile aplikacji domyślnie włączone? | nie | DICT-1.3 |
-| D-Q6 ⚠ | Schowek głosem w zwykłym dyktowaniu, domyślnie wyłączony, cały segment, potwierdzenie w HUD? | ~~tak~~ **domyślnie włączony**, cały segment, potwierdzenie w HUD przy pierwszych 5 użyciach (decyzja właściciela 2026-11-20, Z1 CTX-3 = A, ryzyko przyjęte wbrew rekomendacji autora; pomiar DICT-3.1 przed wydaniem) | DICT-3.1 (do przepisania) |
+| D-Q6 ⚠ | Schowek głosem w zwykłym dyktowaniu, domyślnie wyłączony, cały segment, potwierdzenie w HUD? | ~~tak~~ **domyślnie włączony**, cały segment, potwierdzenie w HUD przy pierwszych 5 użyciach (decyzja właściciela 2026-11-20, Z1 CTX-3 = A, ryzyko przyjęte wbrew rekomendacji autora; pomiar DICT-3.1 przed wydaniem); **zawężone decyzją O5 (D20): domyślnie włączony tylko po czystym pomiarze, jakiekolwiek fałszywe wklejenie = domyślnie wyłączony** | DICT-3.1 (do przepisania) |
 | D-Q7 | Pliki: listowanie w hoście czy indeks `FilesPlugin`? | listowanie w hoście | DICT-3.3 |
 | D-Q8 | Wyzwalacze pliku: „małpa”, „at”, „tag”, nazwa z rozszerzeniem; samo „plik X” nie? | tak | DICT-3.4 |
 | D-Q9 | `AXManualAccessibility` w Electronie? | nie | DICT-2.2 |
@@ -210,7 +210,7 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 | D-Q11 ⚠ | Uchylić nie-cele „reguły per aplikacja” i „własny słownik” ze specu dyktowania? | tak | DICT-0.3 |
 | D-Q12 | Zapisywać w historii listę użytych źródeł (bez treści)? | tak | DICT-1.4 |
 | D-Q13 | Kandydaci na terminy z ekranu? | warunkowo, po bramce 2% | DICT-4.1 |
-| D-Q14 ⚠ | Czytać proces pierwszoplanowy i katalog roboczy terminala jako osobne źródło, domyślnie wyłączone? | ~~tak~~ **nazwa procesu czytana domyślnie; katalog roboczy i pliki po próbach** (decyzja właściciela 2026-11-20, Z1 CTX-5/6) | DICT-3.2 – 3.5 (3.2 do przepisania) |
+| D-Q14 ⚠ | Czytać proces pierwszoplanowy i katalog roboczy terminala jako osobne źródło, domyślnie wyłączone? | ~~tak~~ **nazwa procesu czytana domyślnie; katalog roboczy i pliki po próbach** (decyzja właściciela 2026-11-20, Z1 CTX-5/6); **zawężone odpowiedzią na DP5 (D21; obowiązuje): nazwa procesu też czeka na próby, do udanych prób źródło `terminal` nie czyta niczego; po udanych próbach nazwa, katalog i pliki włączają się same (O1)** | DICT-3.2 – 3.5 (3.2 do przepisania) |
 
 ### Spotkania
 

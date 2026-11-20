@@ -87,7 +87,9 @@ The other decisions of 2026-11-20, recorded as given:
 | The value of a field read by auto-learn | never | never | yes, in memory for one watch |
 
 The built-in model runs inside the Mac, so giving it terms would not be a send; the owner still decided that it
-does not get them (DP4).
+does not get them (DP4). Whether this answer also covers the local term list of the conditional dictation
+cleanup story DICT-4.2 (built-in model, on the Mac, not a send) is open point R6 of the spec; it is not
+answered here, and DICT-4.2 does not start until the owner answers.
 
 ## Conditions
 
@@ -167,5 +169,7 @@ Every extension of this scope is a separate decision of the owner.
 
 ## After acceptance
 
-Accepted on 2026-11-20. ADR 0010 rule 4 gets one sentence pointing here; the providers spec, the trust table,
-the website text and `BACKWARD_COMPATIBILITY.md` follow in the pull requests that implement it.
+Accepted on 2026-11-20. ADR 0010 rule 4 gets one sentence pointing here when the accepted amendment is written
+into ADR 0010 (spec point R5). The providers spec already describes this kind of data (section "Nowy rodzaj
+danych: zatwierdzone terminy słownika"); its consent text and test, the trust table, the website text and
+`BACKWARD_COMPATIBILITY.md` follow in the pull requests that implement it.
