@@ -25,9 +25,12 @@ Claude Code CLI can be run in the way the decisions require.
 
 1. **Phase 1 is the Claude Code CLI on the user's own subscription, as a child process.** Lintel never reads or
    stores the CLI's credentials. Phase 2 (right after) adds a bring-your-own API key as a second channel to the
-   same recipient, with the same consent gate. No other provider in v1 (Codex, Gemini and Grok are Phase 3, each
-   with its own canary and consent).
-2. **One consent, at the moment the provider and model are chosen in Settings.** After it, every meeting goes to
+   same recipient, with the same gate (the chosen provider; see the amendment of 2026-11-20). No other provider in v1
+   (Codex, Gemini and Grok are Phase 3, each with its own canary; whether choosing a new company asks anything is
+   open, see the amendment).
+2. **One consent, at the moment the provider and model are chosen in Settings.** *(Superseded 2026-11-20: the
+   choice of the provider is the consent, with a fixed short notice and a "Details" link instead of a window; see
+   the amendment. The original text follows.)* After it, every meeting goes to
    the provider until the user returns to the built-in model. There is no per-meeting flag, no "every new
    meeting" switch and no "participants know" confirmation. The text for participants is unchanged. The consent
    names the provider and the model, lists speaker names and segment times among what leaves the Mac, and says
@@ -35,15 +38,18 @@ Claude Code CLI can be run in the way the decisions require.
 3. **Enforced in code before every content-carrying process.** `ProviderRunner.run` is the only entry for a
    process that carries user data (and, in Phase 2, for a network request). It asks the consumer's authorization
    closure directly before each `Process.run()`, after the queue. A denial ends the job with no process. A change
-   of provider or model needs a new consent; a version bump of the consent text invalidates the stored one. The
-   test matrix "0 processes without consent" is a merge condition of the PR that connects the provider.
+   of provider or model needs a new consent; a version bump of the consent text invalidates the stored one. *(Superseded
+   2026-11-20: a change of model at the same provider asks nothing; there is no consent text version; the request's
+   provider and model are compared with the setting read at that moment. The original sentence is kept for the
+   record.)* The test matrix "0 processes without a chosen provider" (formerly "without consent") is a merge
+   condition of the PR that connects the provider.
 4. **Processes without content** (`--version`, `claude auth status`, "Try it" with a fixed text) need no consent
    but start only from an action in the panel of an active plugin, never from `settingsPane()` or a status getter.
 5. **One-generation track for the provider (owner, 2026-11-19, overturns the quote-chunk track for providers).**
    The provider gets the whole transcript in one call, writes the notes itself with a new versioned prompt, and
    code checks the facts against the whole transcript. The built-in model stays on the quote track. The track is
    built and measured on synthetic data before the provider is connected.
-6. **Quality gate G** blocks the consent UI, the migration and the connection of the provider until one
+6. **Quality gate G** blocks the provider-choice UI (formerly "consent UI"), the migration and the connection of the provider until one
    measurement of the whole-transcript generator with Claude (development harness, synthetic corpus only, not the
    4B model) passes. One measurement, not weeks of conditions. Thresholds (80 percent, 0 false sentences) stay
    working values.
@@ -52,7 +58,10 @@ Claude Code CLI can be run in the way the decisions require.
    notes now stored; there is no send log in v1 (no table or file of past sends), so partial sends leave no
    trace (accepted limitation, Q11).
 8. **Descriptor flag `isolationVerified`.** `ProviderRunner` refuses to start a process for a descriptor whose
-   flag is `false`. It is set in code only from the canary result in this ADR.
+   flag is `false`. It is set in code only from the canary result in this ADR. **Owner condition, 2026-11-20: the
+   flag is never switched on its own; only in the pull request with the Settings UI for choosing the provider and
+   after a measurement on the real CLI with synthetic data. A pull request that changes only that line, or its
+   pinned test, is refused** (amendment, decision 4).
 9. **The provider process never runs the user's hooks and never loads the user's settings, MCP servers or
    plugins: user level, not only project level (owner requirement, 2026-11-19).** The mechanism is the argv, because
    an isolated configuration directory loses the subscription login (measured below). Required in every
@@ -312,8 +321,13 @@ probe without the configuration flags and with the product flags. Both calls kep
 - Terms of service: whether a free open-source app calling `claude -p` counts as "running Claude Code in your
   products" is unsettled. Conditions: unmodified binary, no handling of credentials or sessions, no filtering of
   authentication methods, provider name as plain text only, the UI says it is the user's subscription and CLI.
-- Lintel does not tell participants that a cloud provider processes the meeting; the consent tells the user.
-- One consent covers all meetings, including confidential ones, until the user switches back.
+- Lintel does not tell participants that a cloud provider processes the meeting; the consent tells the user (from
+  2026-11-20: the notice and "Details" tell the user; no window).
+- One consent (from 2026-11-20: one choice) covers all meetings, including confidential ones, until the user
+  switches back.
+- From 2026-11-20 also: no record of the act, no new question when the data scope grows or the company changes, a
+  setting written outside the UI counts as a choice, an accidental menu choice starts sending (full list in the
+  amendment).
 - The marker does not record partial or failed sends.
 - The CLI changes weekly: argv lives in one pure function with golden tests, the version range is checked, the
   canary is repeated per range.
@@ -329,3 +343,108 @@ probe without the configuration flags and with the product flags. Both calls kep
 - The spec is corrected where the canary disagreed (allowlist, error reporting, truncation, confirmed session files).
 - `docs/perf.md` has the measured rows and the rows still "not yet measured".
 - The built-in model path and every existing setting are unchanged.
+
+## Amendment of 2026-11-20: choosing the provider is the consent (owner decision; mock-up v2 fully accepted 2026-11-20)
+
+Source: the owner's notes on the provider/model selection mock-up v2 (2026-11-20, with the addendum), the owner's
+condition on the core pull request (#205) and the owner's decision D15. Status of this amendment: **the owner fully accepted mock-up v2 on 2026-11-20 and
+settled D5–D10 and D12–D15 (recorded below as "owner decision 2026-11-20")**; the owner **considered the mitigations and rejected all of them (a deliberate "no", 2026-11-20)**; A6 starts without them and is not designed for adding them later. It **supersedes decisions 2 and 3 in the parts marked "superseded"** and adds the conditions below to decision 8. Nothing here
+softens a limit on the owner's behalf: the mitigations are kept below as a record of what was considered and rejected.
+
+### Decisions (owner, 2026-11-20)
+
+1. **The consent is the provider chosen in Settings.** There is no versioned window and no confirmation sheet. At
+   the moment of choosing an external provider the UI shows a fixed, short notice (one or two sentences: the
+   transcript, the speaker names and the approved dictation vocabulary terms go to the provider, with the company
+   name taken from the descriptor's `recipient`) and a non-modal "Details" link that expands the full list in
+   place. Changing the model at the same provider asks nothing. `ProviderRunner` still refuses to start a
+   content-carrying process when no provider is chosen, and the setting is read fresh before every process (not
+   cached in the job).
+2. **Provider, then model; it must scale** to several providers and ways of connecting: local models; CLI tools
+   on a subscription (Claude Code today; Codex/ChatGPT, Pi, OpenCode are a direction, **not a commitment**); an API
+   key (Phase 2). The notice is one shared sentence pattern with the chosen company's name.
+3. **D15 = B (owner decision 2026-11-20): Claude Code models are the four aliases `sonnet`, `haiku`, `opus`, `fable`, each only after its canary/measurement; the default is `sonnet`.** A model that has not passed is neither shown nor selectable in the menu until it does (wording ambiguity: the mock-up said "canary and gate G" for B, the owner chose "canary/measurement"; settled by the owner the same evening: `opus` and `fable` need only a short canary (alias, JSON shape, time, budget), full gate G is not required; `haiku` gets the full G once, after A6 starts, and is HIDDEN in the menu until its result; A6 starts with `sonnet`, `opus`, `fable` active). Quality
+   gate G is measured only for `sonnet`; the other three are "not measured" in the docs, and the input budgets for
+   `opus` and `fable` are an assumption. The UI notes the higher use of the subscription limit and the longer time
+   for `opus` and `fable`. An alias points to the newest model known to the CLI version and changes over time.
+4. **Condition: `isolationVerified` is never switched on its own.** It may become `true` only (i) in the same pull
+   request as the Settings UI for choosing the provider (PR 6 of the plan), so that sending cannot be enabled
+   without the visible notice (today the two settings keys could be set with `defaults write`), and (ii) after a
+   measurement on the real Claude Code CLI with synthetic data only. A pull request that changes only that line, or
+   its pinned test, is refused. **Also (owner, 2026-11-20): the switch is a separate, last commit in the A6 pull request, made after the measurement on the real CLI and after the confirmation by the no-session-persistence marker.** (Decision 8 above is read together with this.)
+5. **The prompt version `whole1+cli1` is stored in the existing `notes_prompt_version` column** (technical; no
+   migration).
+6. **No fallback to the local model after a refusal or an error. D7 = C (owner decision 2026-11-20):** after a failure the UI asks "Write it on this Mac?" explicitly; there is no silent fallback. In the code without UI (#205) it stays "no fallback"; the explicit question arrives with the UI (A6). Whether the job is queued again, and the fate of PR 7 and `notesProviderFallback`, stay open.
+7. **Other owner decisions on the accepted mock-up (2026-11-20):** D5 = A ("Try it" sends a fixed, signed Lintel example, only after a provider is chosen); D6 = A plus one sentence that what was sent cannot be taken back; D8 = B (one line in "Details": uses your subscription limit); D9 = A plus a sentence that a missing marker does not mean "not sent"; D10 = B (no quality caption for "Local" before gate G is measured); D12 = B (confirmation only while a job runs); D13 = neutral tone, the sentence "Choosing this provider means your consent" stays, company name in bold; D14 = C (only working providers plus "Add a provider…"). The `isolationVerified` condition of decision 4 is an owner decision; **Origin marker (owner, 2026-11-20): the database stores the exact model from the CLI result; the chip shows the short name; "Details" shows the exact identifier** (whether the CLI result carries it is unchecked). The enforcement mechanism (a `CODE_REVIEW.md` rule and a source test tying the change to the provider-choice UI files) is a PROPOSAL to be confirmed.
+
+### What replaces what
+
+| Decision | Before | After |
+|---|---|---|
+| 2 (consent) | One consent window at choice time, naming provider and model, speaker names, times, automatic re-runs | Superseded: the choice is the consent; fixed notice and "Details" list the same things |
+| 3 (gate) | A change of provider or model needs a new consent; a version bump of the consent text invalidates the stored one | Superseded: a change of model needs nothing; a change of provider has no separate question (open); there is no consent text version |
+| 3 (enforcement) | Authorization closure before each process, after the queue | Unchanged; the closure now compares the request's provider and model with the setting read at that moment |
+| 4 (no-content processes) | No consent | Unchanged (no consent in the sense of a window; "Try it" is available after a provider is chosen) |
+
+### What this weakens (risk accepted by the owner's decision of 2026-11-20)
+
+Checked against the spec `.ai/specs/2026-11-10-external-ai-providers.md` and ADR 0013 as on `main` on 2026-11-20.
+
+- **No proof of the act, its date or the text version.** Before: `providerConsent = {provider, model, feature, at,
+  textVersion}` saved after "Turn On". After: the settings alone. Later nobody can show what the user saw and when.
+- **No new question when the kind of data sent grows.** Before: a version bump invalidated the consent and the
+  window came back. After: a new kind of data leaves after an app update without a question. **Concretely
+  (ADR 0013): a user who chose Claude Code before the update starts sending the approved dictation vocabulary terms
+  after it, with no new question,** and this includes terms typed by hand before the change.
+- **An accidental menu choice starts sending.** One click, or arrow plus Return with the keyboard or VoiceOver; the
+  next meeting, an automatic retry, a background resume or "Regenerate Notes" sends the whole transcript with
+  speaker names.
+- **Changing the model at the same provider asks nothing, and changing it during a job sends again.** A different
+  model has different usage terms, limits and possibly a different path at the provider; changing it during a job
+  stops the process and restarts the whole job on the new model (the spec: notes are never stitched from two models),
+  so the transcript leaves a second time. A model typed as a custom identifier (if that item stays) sends the same way.
+- **A setting that did not come from the UI is a choice** (`defaults write`, a restored backup, settings copied from
+  another Mac): sending starts with no act by the user on this Mac. Before, such a value without a consent record
+  behaved like the built-in model plus a banner. The condition in decision 4 holds this back only until
+  `isolationVerified` is switched on, in the pull request with the UI.
+- **A change of company, or of channel at the same company, asks nothing.** Before: "each is a new descriptor and a
+  new consent". A subscription-to-API-key switch changes both the terms (API terms, pay per use) and the scope of
+  data (no vocabulary terms, ADR 0013).
+- **The consent is no longer tied to the feature** (`ProviderFeatureID`: "future consumers need their own, new
+  consent"). Whether a future feature inherits the choice is decided by the spec of that feature (the mitigation options were rejected).
+- **Participants are still not told by Lintel, and the reminder is less visible.** Unchanged in substance (accepted
+  2026-11-19); before it was said in a window the user had to click, now only in "Details", which may stay closed.
+- **One choice covers every meeting, confidential ones and automatic runs included.** Unchanged in substance; an
+  unnoticed choice is easier without a window. The banner "Transcripts leave this Mac" stays.
+- **"Try it" can no longer be used before the consent**, because choosing and consenting are one act.
+
+### Mitigations: considered and rejected by the owner (2026-11-20; none chosen)
+
+The list stays as the record of what was rejected. The behaviour is the one without a mitigation, and the section "What this weakens" stays whole as accepted risk.
+
+- Record `at` and an `infoVersion` at choice time; on a change of the data scope, suspend sending and show an inline
+  banner "Review" (today's semantics without the window), or a banner without suspension, or nothing (release notes).
+- "Undo" in the banner for a few seconds after a choice, during which nothing starts; or a second click "Confirm" for
+  the first choice after installation; or the notice above the list the first time an external provider is picked.
+- A model change during a job waits for the job to end instead of restarting it.
+- Mark settings with an installation-bound `chosenAt`; a value written outside the UI sends nothing and shows
+  "Confirm your choice".
+- The first choice of each company (not model), and a switch of channel, shows the notice inline and asks to confirm.
+- Put the sentence about participants into the short notice.
+- Keep the consent per feature, global, or leave it open until the spec of the next feature.
+
+### Contradictions and points for the owner (listed, not settled)
+
+1. The spec's Problem Statement says sending must be impossible "without a conscious consent: not through ... an old
+   setting". After this decision an old setting with a chosen provider is the consent.
+2. **[Settled 2026-11-20: D15 = B]** D15 against "the canary is repeated for every new scope" and "G is repeated for a new prompt version": `opus` and
+   `fable` are accepted as not measured for quality; each alias appears in the menu only after its canary/measurement.
+3. The spec offers a "custom identifier" model entry; decision 3 lists four aliases. Open (D15): does the entry stay.
+4. "No fallback" against PR 7 and the key `notesProviderFallback` (default off, provider to built-in only). Open; D7 = C
+   adds the explicit question from the UI. PR 7 is on hold; nothing of it is built.
+5. Decision 8 said setting the flag stays the owner's decision; the spec said it is set after the canary of PR 1;
+   decision 4 above adds that it happens only in the UI pull request and after a real-CLI measurement. Until then
+   nothing can be sent from the app, not even "Try it".
+6. "A model is not a gate" against the authorization closure comparing the request's model with the current choice:
+   it makes a model change in the menu apply from the next process, at the price of a restart (see above).
+7. **[Closed 2026-11-20: D13]** The second sentence "Choosing this provider means your consent" stays in the notice.

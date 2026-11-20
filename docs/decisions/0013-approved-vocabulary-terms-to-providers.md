@@ -5,6 +5,12 @@
   applied below. The scope is the **minimum** the owner chose; every extension of it is a separate decision of
   the owner (and a change of this ADR).
 - Date: 2026-11-20
+- **Amendment of 2026-11-20 (the owner fully accepted the provider-choice mock-up v2 the same day):** the owner
+  replaced the provider's consent window with the choice of the provider in Settings (ADR 0011, amendment). Every
+  place below that spoke of the consent window or the consent text version is rewritten to the actual state, and
+  **one consequence is stated plainly and marked as a point for the owner's decision: a user who has already
+  chosen Claude Code starts sending the vocabulary terms after the update with no new question** (see "Consequences
+  and residual risks"). The scope of the data, the routes and the tests are unchanged.
 - Why this ADR exists: ADR 0010 (`0010-dictation-context.md`, Accepted), rule 4, says that the user dictionary
   is never added to a request that leaves the process, and ends with "Changing this rule needs a new ADR". The
   owner decided on 2026-11-20 to change it (decision P12 and the answer to point Z6 of the auto-learn spec) and
@@ -13,7 +19,7 @@
   adds an ADR with this number (checked 2026-11-20).
 - Specs: `.ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md` (decisions P12, Z6, Z7; the threat model),
   `.ai/specs/2026-11-10-external-ai-providers.md` (section "Nowy rodzaj danych: zatwierdzone terminy słownika").
-  Related: `0010-dictation-context-amendment-auto-learn.md` (Accepted, change 9), ADR 0011 (providers, consent).
+  Related: `0010-dictation-context-amendment-auto-learn.md` (Accepted, change 9), ADR 0011 (providers; the choice of the provider is the consent from 2026-11-20).
 - Every example is invented. No text comes from a real dictation or meeting.
 
 ## Context
@@ -36,7 +42,7 @@ and DP8 on 2026-11-20), recorded as given:
 
 1. **Only the correct spelling of approved vocabulary terms goes to Claude, and only with meeting notes
    written through Claude Code.** When the user has turned the Claude Code provider on for meeting notes and
-   has accepted its consent window, the request that carries the transcript may also carry the target spelling
+   has chosen it in Settings (the choice is the consent), the request that carries the transcript may also carry the target spelling
    ("Save as") of the entries of the dictation vocabulary. Nothing else from the vocabulary goes: no heard
    forms (DP1 = A).
 2. **Not by any other route.** Terms do **not** go: through an API key (also to the same recipient), to any
@@ -77,7 +83,7 @@ The other decisions of 2026-11-20, recorded as given:
 
 | Data | Claude, meeting notes written through Claude Code | Every other route (API key, other providers, dictation, the built-in model, "My server") | Stays in the process |
 |---|---|---|---|
-| Approved terms of the dictation vocabulary: the target spelling of every entry (the whole vocabulary) | yes, after the provider's consent window, while Dictation is on | never | — |
+| Approved terms of the dictation vocabulary: the target spelling of every entry (the whole vocabulary) | yes, once the provider (Claude Code) is chosen in Settings, while Dictation is on | never | — |
 | Heard forms (variants) of vocabulary terms | never (DP1 = A) | never | yes |
 | The meetings vocabulary (MEET-5.2) | never | never | yes |
 | Unapproved suggestions (heard forms, corrected word, counter, dates) | never | never | yes |
@@ -94,9 +100,12 @@ answered here, and DICT-4.2 does not start until the owner answers.
 ## Conditions
 
 - **Provider.** Terms are attached only inside `ProviderRunner.run`, behind the same authorization as the
-  transcript (ADR 0011, decision 3). Adding this kind of data changes the consent text, so its version changes
-  and a consent given earlier is no longer valid: the window is shown again and names vocabulary terms among
-  what leaves the Mac. Returning to the built-in model ends the sending.
+  transcript (ADR 0011, decision 3). The notice shown when Claude Code is chosen, and its "Details", name the
+  vocabulary terms among what leaves the Mac; the notice for the API-key route says that no vocabulary term goes
+  there. **There is no consent window and no consent text version any more (owner, 2026-11-20), so adding this
+  kind of data does not invalidate a choice made earlier.** *(Before the amendment: adding this kind of data
+  changed the consent text version, a consent given earlier was no longer valid and the window was shown again.)*
+  Returning to the local model ends the sending.
 - **Gate G.** The notes prompt with terms is a new prompt version; the measurement of quality gate G is
   repeated on it before release (decision O6).
 - **Dictation on.** Terms are attached only while the Dictation plugin is on (DP8).
@@ -105,7 +114,7 @@ answered here, and DICT-4.2 does not start until the owner answers.
 - **Tests that must exist in the pull request that attaches terms:** a fixture with canary strings in a
   suggestion, a sentence fragment, a candidate and a rejected pair, none of which appears in the request; a canary in a
   heard form, which appears in no request; a test
-  that no term is in the request without a consent of the current version; a test that no term is in a request
+  that no term is in the request when Claude Code is not the chosen provider; a test that no term is in a request
   through an API key, to "My server", in a dictation request or in the built-in model's prompt, and none while
   Dictation is off; a source scan that the auto-learn
   types are not imported by provider code or by a formatter that talks to a server.
@@ -122,11 +131,14 @@ Stated plainly, as the owner accepted them:
 - A term approved with one click on a suggestion becomes data that is sent with the next meeting notes, also on
   automatic retries and on "Regenerate Notes" for older meetings.
 - The decision covers terms typed by hand before this change, not only terms that came from auto-learn. A user
-  who built a vocabulary under the old promise learns of the change from the provider's consent window.
+  who built a vocabulary under the old promise ("the dictionary never leaves") and had already chosen Claude Code for
+  meeting notes **starts sending the terms after the update, with no new question and no window** (before the
+  amendment the consent window was to tell them). Dictation must be on. **Owner decision (2026-11-20):** the mitigations of ADR 0011 were considered and all rejected (record an info version at choice time and
+  suspend sending with an inline "Review" banner when the scope of data grows; a banner without suspension; release notes only). The behaviour is the one described, accepted as risk.
 - The website and the trust table say today that the vocabulary never leaves the process. Both must change with
   this ADR.
 
-What bounds the risk: the provider is off by default and needs a consent that names the terms; nothing
+What bounds the risk: the provider is off by default and needs the choice of the provider, whose notice names the terms; nothing
 unapproved and no heard form is ever sent; one recipient and one route only (Claude, notes through Claude
 Code); nothing while Dictation is off; the user can remove a term, turn the provider off or erase the vocabulary; the
 snapshot, the clipboard and file names stay local.
@@ -160,7 +172,7 @@ Every extension of this scope is a separate decision of the owner.
 ## What this ADR does not change
 
 - ADR 0010 rules 1 to 3, 5 and 6, and rule 4 for everything except the user dictionary.
-- ADR 0011: the consent gate, `ProviderRunner`, the isolation flag, the one-generation track.
+- ADR 0011: the gate (the chosen provider; formerly the consent), `ProviderRunner`, the isolation flag, the one-generation track.
 - The vocabulary itself: `vocabulary.json`, `TermReplacer`, the panel rules of DICT-1.2.
 - The local review of suggestions by the built-in model (auto-learn decision P12.2 and answer Z7): it runs on
   the Mac, sees the pair alone and is not a send. "My server" does not review suggestions.
@@ -171,5 +183,5 @@ Every extension of this scope is a separate decision of the owner.
 
 Accepted on 2026-11-20. ADR 0010 rule 4 gets one sentence pointing here when the accepted amendment is written
 into ADR 0010 (spec point R5). The providers spec already describes this kind of data (section "Nowy rodzaj
-danych: zatwierdzone terminy słownika"); its consent text and test, the trust table, the website text and
+danych: zatwierdzone terminy słownika"); its notice and "Details" text and test, the trust table, the website text and
 `BACKWARD_COMPATIBILITY.md` follow in the pull requests that implement it.
