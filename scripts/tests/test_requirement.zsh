@@ -50,4 +50,19 @@ assert_fails "different fails even with warn" zsh "$req" compare "$tmp/good.txt"
 case "$(requirement_status "$ROOT/Resources/designated-requirement.txt" "$tmp/good.txt")" in
   placeholder|equal|different) _pass ;;
 esac
+
+# shape: what the recorded Resources/designated-requirement.txt must look like once it is not the placeholder
+assert_ok "the placeholder passes the shape check" zsh "$req" shape "$tmp/placeholder.txt"
+assert_ok "a Developer ID requirement has the shape" zsh "$req" shape "$tmp/good.txt"
+assert_ok "a quoted Team ID has the shape" zsh "$req" shape "$tmp/quoted.txt"
+print -r -- "$good" | sed 's/com.lintelapp.Lintel/com.lintelapp.Other/' > "$tmp/s-ident.txt"
+print -r -- "$good" | sed 's/1.2.840.113635.100.6.2.6/1.2.3/' > "$tmp/s-ca.txt"
+print -r -- "$good" | sed 's/1.2.840.113635.100.6.1.13/1.2.3/' > "$tmp/s-app.txt"
+{ print -r -- "# recorded 2026"; print -r -- "$good"; } > "$tmp/s-comment.txt"
+for bad in adhoc selfsigned otherteam withcdhash noanchor prefixteam s-ident s-ca s-app s-comment; do
+  assert_fails "the shape check refuses $bad" zsh "$req" shape "$tmp/$bad.txt"
+done
+assert_contains "$(zsh "$req" shape "$tmp/s-ident.txt" 2>&1)" "com.lintelapp.Lintel" "a wrong identifier is explained"
+# The committed file passes today (placeholder) and keeps passing when it holds the real requirement.
+assert_ok "Resources/designated-requirement.txt has the required shape (or is the placeholder)" zsh "$req" shape "$ROOT/Resources/designated-requirement.txt"
 finish

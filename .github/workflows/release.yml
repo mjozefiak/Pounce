@@ -131,10 +131,20 @@ jobs:
           sw_vers
 
       # A push to main is tested by ci.yml on the same commit; here it only checks that the app still packages.
-      # TODO: wrap this in scripts/test-with-watchdog.sh once that script is on main (separate pull request).
       - name: Test
         if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')
-        run: swift test
+        timeout-minutes: 16
+        run: scripts/test-with-watchdog.sh --limit 800 --name test -- swift test
+
+      # A hung test run leaves stack samples and the names of the unfinished tests here (never test output).
+      - name: Upload watchdog diagnostics
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-watchdog
+          path: ${{ runner.temp }}/test-watchdog
+          if-no-files-found: ignore
+          retention-days: 7
 
       # A tag builds the app only (the sign job makes the DMG from the signed app); every other run also builds an
       # ad-hoc DMG, so pull requests keep checking the DMG script.

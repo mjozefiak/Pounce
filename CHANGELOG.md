@@ -8,6 +8,7 @@ section (pre-releases use `x.y.z-beta.N`). No version has been released yet.
 
 ### Added
 
+- Lintel is signed with an Apple Developer ID and notarized, so macOS opens it without the Gatekeeper block. If you ran an earlier test build, grant Microphone, Accessibility, Screen & System Audio Recording and Full Disk Access to Lintel once more.
 - Launcher panel on a global shortcut (Command-Space, or Control-Option-Space when Spotlight holds it) with fast app search, fuzzy matching and frecency ranking.
 - App suggestions on an empty query, based on how long each app has been in front.
 - File search by name with its own index kept fresh through FSEvents, and path search for queries that start with `/` or `~`. Indexing starts after the Full Disk Access step.

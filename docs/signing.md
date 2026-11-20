@@ -1,47 +1,58 @@
 # Code signing
 
-> **Status (2026-11-19).** The release workflow and the scripts now sign with **Developer ID** (Apple Team ID
-> `39G44CM6GF`) and notarize; this file was corrected only where the old text had become false. The full rewrite, the
-> recorded designated requirement and the removal of `scripts/make-signing-cert.sh` come with the next pull request
-> (spec `.ai/specs/2026-11-19-updates-and-open-source-hygiene.md`, Step 3.4). Design: `docs/decisions/0012-distribution-and-updates.md`.
+Lintel releases are signed with an Apple **Developer ID Application** certificate (Team ID `39G44CM6GF`, public, kept in
+`scripts/release-team-id.txt`), notarized by Apple and stapled. Design and reasons: `docs/decisions/0012-distribution-and-updates.md`.
+Protected surface: `BACKWARD_COMPATIBILITY.md` section 4.
 
-macOS ties Accessibility, Full Disk Access and Keychain access to an app's *designated requirement*. With ad-hoc
-signing that requirement is the binary's hash, so every update would look like a new app and users would lose their
-grants. Release builds are therefore signed with a **Developer ID Application** certificate. Its requirement names the
-bundle identifier and the Team ID, not a certificate hash, so it stays the same across releases and certificate renewals:
+## What the designated requirement is, and why it is recorded
+
+macOS ties Accessibility, Full Disk Access, Microphone, System Audio Recording and Keychain access to an app's *designated
+requirement*. With ad-hoc signing that requirement is the binary's hash, so every build looks like a new app and the grants
+are lost. A Developer ID signature gives a requirement that names the bundle identifier and the Team ID, not a certificate
+hash, so it stays the same across releases and across certificate renewals:
 
 ```
-designated => identifier "com.lintelapp.Lintel" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = 39G44CM6GF
+identifier "com.lintelapp.Lintel" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = 39G44CM6GF
 ```
 
-(shape from the spec; `Resources/designated-requirement.txt` will hold the exact text `codesign -dr -` prints for the
-first signed build, recorded by Step 3.4. `BACKWARD_COMPATIBILITY.md` section 4.) The build is notarized by Apple, so
-Gatekeeper does not block the first launch.
+`Resources/designated-requirement.txt` holds the exact text `codesign -dr -` printed for the first signed build (it starts
+with `designated => `). It is public information and is not bundled into the app. Every signed run must produce exactly
+that requirement or the `sign` job fails (`scripts/requirement.sh compare`). The file is one requirement and nothing else:
+no comment lines, because the whole file is compared. `scripts/requirement.sh shape` (run by the script tests) pins what a
+recorded requirement must contain: the identifier, `anchor apple generic`, the two Developer ID fields, the Team ID of
+`scripts/release-team-id.txt` and no `cdhash`.
 
-There is no self-signed release identity any more. No release was ever published with one, and the owner decided not to
-ship a self-signed bridge (spec D3).
+### Changing the recorded requirement
 
-## Until the requirement is recorded
+Changing the file means changing every user's grants, so it is a breaking change (`BACKWARD_COMPATIBILITY.md` section 4).
+It happens only when the Team ID or the bundle identifier changes, and needs an ADR, release notes that tell users which
+permissions to grant again, and a plan for the Keychain items. It is never done to make a failing run pass. To record a
+requirement (the first signed build, or an approved change):
 
-`Resources/designated-requirement.txt` holds a placeholder (`REPLACE-WITH-...`) until Step 3.4. While it does:
+```bash
+gh run download <run id> -n Lintel-requirement -D "$(mktemp -d)"   # prints nothing; note the directory
+cp <that directory>/designated-requirement.txt Resources/designated-requirement.txt
+zsh scripts/tests/run.zsh                                           # the shape check must pass
+```
 
-- a **tag** run fails in the `sign` job, after verification, with a message saying so, so nothing is published;
-- a **manual** signed run (Run workflow on `main` with "sign" on) only warns and uploads the requirement it printed as the
-  `Lintel-requirement` artifact, which is what Step 3.4 commits.
-
-Once the file holds a real requirement, every signed run must produce exactly that requirement or it fails.
+In one pull request with the ADR and the `BACKWARD_COMPATIBILITY.md` update. If the file still holds the placeholder
+(`REPLACE-WITH...`), a tag run fails in `sign` after verification and a manual signed run only warns and uploads the
+requirement it printed as `Lintel-requirement`.
 
 ## Where the identity lives
 
-- The Developer ID certificate and private key, and the App Store Connect API key used for notarization, exist only as
-  secrets of the GitHub Environment `release`: `DEVELOPER_ID_P12` (base64 of a `.p12`), `DEVELOPER_ID_P12_PASSWORD`,
-  `NOTARY_KEY_P8`, `NOTARY_KEY_ID`, `NOTARY_ISSUER_ID`, plus the owner's password manager. The Environment deploys only
-  from the branch `main` and **tags** `v*` (a tag rule, not a branch rule) and has the owner as required reviewer. A tag
-  run executes the tagged commit's own workflow and scripts, so before approving the owner checks that the tag's commit
-  is on `main` (ADR 0012, "Remaining risk"). No signing secret is stored at repository level. The old
-  repository secrets `SIGNING_P12` and `SIGNING_P12_PASSWORD` hold a dead certificate and nothing uses them.
-- Nothing secret is committed. The Team ID (public) is in `scripts/release-team-id.txt`. `Resources/designated-requirement.txt`
-  holds the expected requirement (public information); it is not bundled into the app.
+- The Developer ID certificate and private key, and the App Store Connect API key used for notarization, exist only as the
+  secrets of the GitHub Environment `release` and in the owner's password manager. The five secret names are
+  `DEVELOPER_ID_P12` (base64 of a `.p12`), `DEVELOPER_ID_P12_PASSWORD`, `NOTARY_KEY_P8`, `NOTARY_KEY_ID` and
+  `NOTARY_ISSUER_ID`. No signing secret exists at repository level and nothing signing-related is committed.
+- The Environment deploys only from the branch `main` and from tags `v*` (a tag rule, not a branch rule) and has the owner as
+  required reviewer. **Approving a `release` deployment is the owner's alone.** A tag run executes the tagged commit's own
+  workflow and scripts, so before approving, the owner checks that the tag's commit is on `main` and reads the diff of
+  `.github/`, `scripts/` and `Resources/` since the previous release (ADR 0012, "Remaining risk").
+- **An agent never** reads, prints, creates, changes or deletes a secret, certificate, keychain item, Environment or
+  repository setting; never signs with the Developer ID identity; never creates or pushes a release tag; never triggers or
+  approves a run that uses the Environment `release`; never installs a build into `/Applications`; and never edits the
+  recorded requirement to make a run pass.
 
 ## How CI signs
 
@@ -53,29 +64,30 @@ Once the file holds a real requirement, every signed run must produce exactly th
    `vX.Y.Z-beta.N`, when the tagged commit is not on `main` (the build number is the commit count, which only grows along
    `main`), or when `CHANGELOG.md` has no section for the version. `APP_VERSION` and `APP_BUILD` are stamped into the
    copied `Info.plist` by `scripts/stamp-version.sh`; `Resources/Info.plist` stays `0.0.0` / `0`.
-2. Runs the tests and builds the app with an **ad-hoc** signature (pull requests and manual runs also build an ad-hoc DMG
-   and upload it as `Lintel-adhoc-dmg`).
-3. Uploads the app as `Lintel-app` (`Lintel.app.zip`, made with `ditto -c -k --keepParent`, which keeps symlinks,
-   permissions and extended attributes) and, for a tag, the release notes (`release-notes`).
+2. Runs the tests (under `scripts/test-with-watchdog.sh`; not on a push to `main`, which `ci.yml` tests) and builds the app
+   with an **ad-hoc** signature. Outside tags it also builds an ad-hoc DMG (`Lintel-adhoc-dmg`).
+3. Uploads the app as `Lintel-app` (`Lintel.app.zip`, made with `ditto -c -k --keepParent`, which keeps symlinks, permissions
+   and extended attributes) and, for a tag, the release notes (`release-notes`).
 
 **`sign`** (`environment: release`; only for a `v*` tag push and for a manual run with `sign: true` on `main`; never for a
-pull request). It compiles nothing, runs no tests and uses no third-party action:
+pull request or a push to `main`). It compiles nothing, runs no tests and uses no third-party action:
 
-1. Selects Xcode with `xcode-select`, downloads `Lintel-app` and takes only the `.app` from it.
-2. Creates a temporary keychain with a random password and imports the `.p12` with access for `/usr/bin/codesign`, then
-   sets the key partition list so `codesign` never prompts. Only this step receives `DEVELOPER_ID_P12` and
+1. Checks the release order (below), before any secret is used.
+2. Selects Xcode with `xcode-select`, downloads `Lintel-app` and takes only the `.app` from it.
+3. Creates a temporary keychain with a random password and imports the `.p12` with access for `/usr/bin/codesign`, then sets
+   the key partition list so `codesign` never prompts. Only this step receives `DEVELOPER_ID_P12` and
    `DEVELOPER_ID_P12_PASSWORD`; the decoded `.p12` is deleted even when the import fails.
-3. Finds the Developer ID Application identity in the imported certificate (exactly one, and it must belong to the Team ID
-   in `scripts/release-team-id.txt`); the name is not written in the repository.
-4. `scripts/make-app.sh --sign-only` re-signs the bundle inside-out (`SQLCipher.framework`, `llama.framework`, then the app)
+4. Finds the Developer ID Application identity in the imported certificate (exactly one, belonging to the Team ID in
+   `scripts/release-team-id.txt`); the name on the certificate is not written in the repository or the log.
+5. `scripts/make-app.sh --sign-only` re-signs the bundle inside-out (`SQLCipher.framework`, `llama.framework`, then the app)
    with the hardened runtime, `--timestamp` and `Resources/Lintel.entitlements`.
-5. `scripts/notarize.sh` submits the app (`xcrun notarytool submit --wait`; the API key is written to a temporary file that
-   is deleted on exit), the app is stapled, `scripts/make-dmg.sh --skip-build` builds and signs the DMG from the stapled
-   app, the DMG is notarized and stapled, and only then `Lintel.dmg.sha256` is computed. A rejection uploads the notary log.
-6. `scripts/verify-release-bundle.sh` checks `codesign --verify --strict --deep`, a requirement that names the Team ID with
+6. `scripts/notarize.sh` submits the app (`xcrun notarytool submit --wait`; the API key goes to a temporary file that is
+   deleted on exit), the app is stapled, `scripts/make-dmg.sh --skip-build` builds and signs the DMG from the stapled app,
+   the DMG is notarized and stapled, and only then `Lintel.dmg.sha256` is computed. A rejection uploads the notary log.
+7. `scripts/verify-release-bundle.sh` checks `codesign --verify --strict --deep`, a requirement that names the Team ID with
    `anchor apple generic` and no `cdhash`, `spctl` ("Notarized Developer ID") and `stapler validate`, for the app and the DMG.
-   The requirement is compared with `Resources/designated-requirement.txt` (see above).
-7. Uploads `Lintel-dmg` (DMG and checksum) and `Lintel-requirement`, and always deletes the temporary keychain.
+   The requirement is then compared with `Resources/designated-requirement.txt`.
+8. Uploads `Lintel-dmg` (DMG and checksum) and `Lintel-requirement`, and always deletes the temporary keychain.
 
 **`publish`** (tags only, after `sign`): creates the GitHub Release (body: install text and the changelog section; `-beta`
 tags are pre-releases; assets: the DMG, its checksum, `CHANGELOG.md`) and asks the website to rebuild.
@@ -83,27 +95,27 @@ tags are pre-releases; assets: the DMG, its checksum, `CHANGELOG.md`) and asks t
 Pull requests get no Environment and no secrets, and always build ad-hoc. `sign` and `publish` of all tags share the
 job-level concurrency group `release-tags` (`queue: max`), so releases go one at a time and none is cancelled. The first
 step of `sign`, and `publish` again right before it creates the release, check that the tagged commit is a strict
-descendant of the newest published release's commit (`scripts/check-release-order.sh --github`); the second check closes
-the window in which another tag's `sign` runs between this tag's `sign` and `publish`.
+descendant of the newest published release's commit (`scripts/check-release-order.sh --github`); the second check closes the
+window in which another tag's `sign` runs between this tag's `sign` and `publish`.
 
 ### Library validation
 
-The hardened runtime normally only loads frameworks signed with the app's Apple Team ID. A Developer ID signature has a
-Team ID and the embedded frameworks carry the same one, so `Resources/Lintel.entitlements` does **not** set
+The hardened runtime normally only loads frameworks signed with the app's Apple Team ID. A Developer ID signature has a Team ID
+and the embedded frameworks carry the same one, so `Resources/Lintel.entitlements` does **not** set
 `com.apple.security.cs.disable-library-validation`. An ad-hoc signature has no Team ID, so `Resources/Lintel-adhoc.entitlements`
-(local, QA and pull-request builds) keeps it. `scripts/select-entitlements.sh` chooses the file from the `TeamIdentifier`
-of the signature, never from the identity's name. Entitlements are not part of the designated requirement, so this does
-not affect TCC grants.
+(local, QA and pull-request builds) keeps it. `scripts/select-entitlements.sh` chooses the file from the `TeamIdentifier` of the
+signature, never from the identity's name. Entitlements are not part of the designated requirement, so this does not affect
+grants.
 
 ## Local builds
 
 `scripts/make-app.sh` and `scripts/make-dmg.sh` sign ad-hoc unless `SIGN_IDENTITY` is set. **Never sign with the Developer ID
-identity on a developer Mac**: the release identity lives only in the Environment `release`. Local and QA builds are always
-ad-hoc, which also means a locally built app does not share TCC grants with an installed release, and agents never install
-into `/Applications`.
+identity on a developer Mac**: it lives only in the Environment `release`. Local and QA builds are always ad-hoc, which also
+means a locally built app does not share grants with an installed release (QA builds have their own bundle identifier,
+`com.lintelapp.Lintel.QA`). Agents and scripts never install into `/Applications`.
 
-## Regenerating the certificate (obsolete)
+## Not built yet
 
-`scripts/make-signing-cert.sh` created the old self-signed "Lintel Release" certificate. It is no longer part of the plan and
-nothing calls it; Step 3.4 removes it. **Do not run it.** Replacing the Developer ID certificate keeps the requirement as long as
-the Team ID stays the same; changing the Team ID is a breaking change for every user (`BACKWARD_COMPATIBILITY.md` section 4).
+In-app updates (Sparkle), the signed `appcast.xml` feed and the Homebrew tap are specified
+(`.ai/specs/2026-11-19-updates-and-open-source-hygiene.md`, Phases 4 and 5) but do not exist. Today an update is a new DMG
+from a GitHub Release; the grants survive it because the requirement stays the same.

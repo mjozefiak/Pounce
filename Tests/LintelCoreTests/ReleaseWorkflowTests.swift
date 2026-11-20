@@ -182,7 +182,10 @@ import Testing
         #expect(build.contains("if: github.actor != 'dependabot[bot]'"))
         #expect(
             build.contains(
-                "if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')\n        run: swift test"))
+                "if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')"))
+        #expect(build.contains("scripts/test-with-watchdog.sh --limit 800 --name test -- swift test"))
+        #expect(build.contains("if: failure() || cancelled()"))
+        #expect(build.contains("path: ${{ runner.temp }}/test-watchdog"))
     }
 
     @Test func signChecksTheReleaseOrderBeforeAnySecret() throws {
