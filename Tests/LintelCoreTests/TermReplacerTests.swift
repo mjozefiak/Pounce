@@ -191,17 +191,26 @@ struct TermReplacerTests {
         }
     }
 
-    @Test("thousands of aliases sharing a first word stay fast")
+    @Test("work does not grow with the number of aliases sharing a first word")
     func manyAliasesSameFirstWord() {
-        let entries = (0..<2_000).map {
-            TermReplacer.Entry(term: "Term\($0)", aliases: ["the word\($0) here", "the thing\($0)"])
+        func run(_ count: Int) -> (result: String, steps: Int, tokens: Int) {
+            let entries = (0..<count).map {
+                TermReplacer.Entry(term: "Term\($0)", aliases: ["the word\($0) here", "the thing\($0)"])
+            }
+            let r = TermReplacer(entries: entries)
+            // The text only uses the first 20 terms, so it is the same for every count.
+            let text = (0..<20).map { $0 % 2 == 0 ? "the thing\($0)" : "the other\($0)" }.joined(separator: " ")
+            var steps = 0
+            let result = r.apply(to: text, steps: &steps)
+            return (result, steps, text.split(separator: " ").count)
         }
-        let r = TermReplacer(entries: entries)
-        let text = (0..<2_000).map { $0 % 2 == 0 ? "the thing\($0)" : "the other\($0)" }.joined(separator: " ")
-        var result = ""
-        let elapsed = ContinuousClock().measure { result = r.apply(to: text) }
-        #expect(result.hasPrefix("Term0 the other1 Term2"))
-        #expect(elapsed < .milliseconds(200))
+        let small = run(1_000)
+        let large = run(10_000)
+        #expect(small.result.hasPrefix("Term0 the other1 Term2"))
+        #expect(large.result == small.result)
+        // At most `maximumAliasWords` trie steps per token, and ten times the aliases cost nothing extra.
+        #expect(large.steps <= large.tokens * TermReplacer.maximumAliasWords)
+        #expect(large.steps == small.steps)
     }
 
     @Test(
