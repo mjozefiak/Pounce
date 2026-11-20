@@ -1,0 +1,118 @@
+# Releasing Lintel
+
+The runbook for the owner. Only the owner tags and approves a release; agents never do either (`AGENTS.md`, "Installing
+and releasing: what agents never do"). Design: `docs/decisions/0012-distribution-and-updates.md`; signing details:
+`docs/signing.md`. This file describes what the repository does today.
+
+## Not built yet
+
+These are named in the spec (`.ai/specs/2026-11-19-updates-and-open-source-hygiene.md`) but do not exist, so a release
+does not do them:
+
+- The appcast (`appcast.xml`) and Sparkle. Lintel has no in-app updates; users install each DMG by hand.
+- The Homebrew tap (`mjozefiak/homebrew-lintel`).
+- The site rebuild token `LINTEL_WEB_DISPATCH_TOKEN` and the Environment `publish`. `publish` still tries the dispatch, but
+  without the token it prints "the website is not rebuilt" and goes on. Rebuild `lintel-web` by hand if needed.
+- A recorded designated requirement. Until `Resources/designated-requirement.txt` holds a real one (spec Step 3.4), a tag
+  run fails in `sign` after verification and nothing is published; a manual signed run only warns.
+
+## Before you tag
+
+1. `main` is green (CI and the Release workflow's `build` job on the push to `main`).
+2. `CHANGELOG.md` has exactly one section `## [x.y.z] - YYYY-MM-DD` for the version, with content (for a beta,
+   `## [x.y.z-beta.N] - YYYY-MM-DD`). The `build` job fails without it. Check locally with `scripts/changelog-section.sh <version>`.
+3. The commit you tag is on `main` and is a strict descendant of the commit of the newest published release (drafts
+   ignored, pre-releases included). The same commit cannot carry two releases.
+
+## The tag
+
+Only the owner creates a `v*` tag. The grammar (`scripts/version-from-tag.sh`):
+
+- `vX.Y.Z` is a release (`v0.1.0`).
+- `vX.Y.Z-beta.N` is a pre-release, N from 1 (`v0.1.0-beta.1`).
+- No leading zeros. Anything else (`v0.1`, `v0.1.0-rc.1`, `0.1.0`) fails the run in its first step.
+
+The tag is the only source of the version. `CFBundleShortVersionString` is the tag without `v`; `CFBundleVersion` is the
+number of commits (`git rev-list --count HEAD`).
+
+```
+git fetch origin
+git tag v0.1.0-beta.1 <commit on origin/main>
+git push origin v0.1.0-beta.1
+```
+
+## What the workflow does
+
+`.github/workflows/release.yml`, three jobs:
+
+- `build` (every trigger, no secrets): for a tag, checks the grammar, that the commit is on `main` and that the changelog
+  section exists; runs `swift test`; builds the app ad-hoc; uploads it as `Lintel-app` and the release notes as `release-notes`.
+- `sign` (Environment `release`; only for a `v*` tag and for a manual run with `sign` on `main`): checks the release order
+  (tags only), takes only the `.app` from `Lintel-app`, imports the Developer ID certificate into a temporary keychain,
+  re-signs, notarizes and staples the app, builds the DMG from the stapled app, notarizes and staples the DMG, writes the
+  checksum, verifies (`scripts/verify-release-bundle.sh`), compares the requirement with `Resources/designated-requirement.txt`,
+  and deletes the keychain. It uploads `Lintel-dmg` and `Lintel-requirement`.
+- `publish` (tags only): checks the release order again, creates the GitHub Release (a `-beta` tag is marked pre-release; assets:
+  `Lintel.dmg`, `Lintel.dmg.sha256`, `CHANGELOG.md`; body: install text, the checksum, the changelog section), then tries the
+  website dispatch.
+
+Tag runs queue one after another (`release-tags` group) and are never cancelled.
+
+## Approving the `release` deployment
+
+The `sign` job waits for you. Before approving, check:
+
+1. The tag's commit is on `main`: `git merge-base --is-ancestor <tag> origin/main`.
+2. The version is the one you meant (the tag name and the changelog section).
+3. The diff since the previous release holds nothing unexpected:
+   `git diff <previous-tag>..<tag> -- .github/ scripts/ Resources/`. A tag run uses the workflow and scripts of the tagged
+   commit, and the job holds the signing secrets, so read this diff yourself.
+
+Then approve. If any check fails, reject the deployment and fix it on `main`; a tag that was pushed is not reused.
+
+## A manual signed run (no release)
+
+Use it to test signing or to get a DMG without publishing: Actions, "Release", Run workflow on `main`, `sign` on. Approve
+the deployment after the checks above. It publishes nothing; the DMG is the `Lintel-dmg` artifact (`gh run download <run id> -n Lintel-dmg`).
+
+Input `notary_wait_minutes` (1 to 240, default 40) is the longest wait for Apple's verdict on the app. Tag runs always use
+40; the DMG wait is always 40.
+
+### Notarization is still "In Progress"
+
+`scripts/notarize.sh` exits 3 when the submission is still In Progress at the bound. That is Apple's queue, not the build
+(a first submission of an account can take hours). The log prints the submission id; it is also in the `notary-logs`
+artifact (`<file name>.submission-id`). To look at it yourself:
+
+```
+xcrun notarytool info <submission id>
+```
+
+with your own App Store Connect credentials for `notarytool` (the CI key is not on your Mac). Then start a new run, with a larger
+`notary_wait_minutes` if you expect a long wait. A new run signs a new binary, so the old submission is not reused.
+Exit 1 is a rejection (the notary log is in `notary-logs`); exit 2 is a failed upload.
+
+## After the release: install and verify
+
+On the owner's Mac, from the GitHub Release (or the run artifact):
+
+1. Compare the checksum: `shasum -a 256 Lintel.dmg` equals `Lintel.dmg.sha256`.
+2. Quit Lintel, drag the new Lintel onto Applications (replace).
+3. In a terminal: `spctl -a -vvv -t exec /Applications/Lintel.app` says "Notarized Developer ID", and
+   `xcrun stapler validate /Applications/Lintel.app` passes. A file fetched with `gh` is not quarantined, so Gatekeeper alone proves nothing.
+4. `codesign -dr - /Applications/Lintel.app` shows the Team ID requirement without a `cdhash`.
+5. Start Lintel. Microphone, Accessibility, Screen & System Audio Recording, Full Disk Access and the Keychain "Always Allow"
+   grants must all have survived. If one did not, stop and report it; do not release again until the cause is known.
+
+The first signed build after the ad-hoc ones is the one time the grants are lost (spec, owner checklist A).
+
+## A bad release
+
+Publish the next version from `main` (a new commit, a new changelog section, a new tag). Never move, delete and re-push
+or reuse a tag: build numbers and the order check depend on it. If a release must be deleted on GitHub, redeploy
+`lintel-web` by hand afterwards so the site does not point at the deleted DMG. There is no feed to correct yet.
+
+## Beta to stable
+
+The same commit cannot carry two releases. Add a new commit on `main` (normally the `## [x.y.z]` changelog section for the
+stable version), wait for green, then tag `vX.Y.Z` on it.
