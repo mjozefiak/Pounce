@@ -6,6 +6,10 @@ struct NotesRecord: Equatable, Sendable {
     var status: NotesStatus
     var promptVersion: String?
     var model: String?
+    /// The provider descriptor id that wrote the current notes; `nil` = the built-in model or no notes.
+    var provider: String?
+    /// The model name given to that provider; `nil` whenever `provider` is.
+    var providerModel: String?
     var droppedCount: Int
     var generatedAt: Date?
     var hasMarkdown: Bool
@@ -44,21 +48,29 @@ extension MeetingsStore {
 
     /// The finished notes, `running` → `ok` / `partial`, or → `stale` when a rename marked them `stale` while they
     /// were written (the text is kept all the same). A `nil` text keeps the earlier one.
+    ///
+    /// `provider` and `providerModel` are the origin mark (`notes_provider*`), written by this same guarded
+    /// `UPDATE` as the result, so the mark always describes the text in `notes_markdown`: a run that is
+    /// cancelled or fails never reaches here and leaves it alone, and notes written again by the built-in model
+    /// (both `nil`) clear it. `model` is `nil` when a provider wrote the notes (`notes_model` stays an
+    /// `LLMModelCatalog` id).
     @discardableResult
     func finishNotes(
-        _ id: Int64, markdown: String?, status: NotesStatus, promptVersion: String, model: String,
-        droppedCount: Int, generatedAt: Date
+        _ id: Int64, markdown: String?, status: NotesStatus, promptVersion: String, model: String?,
+        provider: String? = nil, providerModel: String? = nil, droppedCount: Int, generatedAt: Date
     ) throws -> NotesFinish {
         try write { db in
             try db.execute(
                 sql: """
                     UPDATE meeting SET notes_markdown = COALESCE(?, notes_markdown),
                         notes_status = CASE WHEN notes_status = 'stale' THEN 'stale' ELSE ? END,
-                        notes_prompt_version = ?, notes_model = ?, notes_dropped_count = ?, notes_generated_at = ?
+                        notes_prompt_version = ?, notes_model = ?, notes_provider = ?, notes_provider_model = ?,
+                        notes_dropped_count = ?, notes_generated_at = ?
                     WHERE id = ? AND notes_status IN ('running', 'stale')
                     """,
                 arguments: [
-                    markdown, status.rawValue, promptVersion, model, max(0, droppedCount),
+                    markdown, status.rawValue, promptVersion, model, provider, provider == nil ? nil : providerModel,
+                    max(0, droppedCount),
                     generatedAt.timeIntervalSince1970, id,
                 ])
             guard db.changesCount == 1 else { return .discarded }
@@ -102,14 +114,16 @@ extension MeetingsStore {
                 let row = try Row.fetchOne(
                     db,
                     sql: """
-                        SELECT notes_status, notes_prompt_version, notes_model, notes_dropped_count,
+                        SELECT notes_status, notes_prompt_version, notes_model, notes_provider, notes_provider_model,
+                            notes_dropped_count,
                             notes_generated_at, (notes_markdown IS NOT NULL) AS has_markdown
                         FROM meeting WHERE id = ?
                         """, arguments: [id])
             else { return nil }
             return NotesRecord(
                 status: NotesStatus(rawValue: row["notes_status"]) ?? .none, promptVersion: row["notes_prompt_version"],
-                model: row["notes_model"], droppedCount: row["notes_dropped_count"],
+                model: row["notes_model"], provider: row["notes_provider"],
+                providerModel: row["notes_provider_model"], droppedCount: row["notes_dropped_count"],
                 generatedAt: (row["notes_generated_at"] as Double?).map(Date.init(timeIntervalSince1970:)),
                 hasMarkdown: (row["has_markdown"] as Int) != 0)
         }
