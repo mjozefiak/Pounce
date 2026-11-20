@@ -1,0 +1,13 @@
+Executable=/tmp/probe/probe
+Identifier=probe
+Format=Mach-O thin (arm64)
+CodeDirectory v=20500 size=300 flags=0x10000(runtime) hashes=2+2 location=embedded
+Signature size=9012
+Authority=Developer ID Application: Example Name (ABCDE12345)
+Authority=Developer ID Certification Authority
+Authority=Apple Root CA
+Timestamp=Nov 7, 2026 at 10:00:00
+Info.plist=not bound
+TeamIdentifier=ABCDE12345
+Sealed Resources=none
+Internal requirements count=1 size=180

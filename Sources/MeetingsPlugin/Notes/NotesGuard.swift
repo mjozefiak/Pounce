@@ -67,6 +67,12 @@ struct NotesGuard: Sendable {
         case questionNotAFinding
         /// The semantic verifier answered that the text does not follow from its quote.
         case verifierRejected
+        /// A task that is small talk, a courtesy or call logistics, not work (`NotesRelevance.isNonWorkTask`).
+        case nonWorkTask
+        /// A question that says too little about its subject to be understood alone (`isContextFreeQuestion`).
+        case questionWithoutContext
+        /// A finding that names a problem and gives no cause, condition, fix or next step.
+        case reportWithoutVerdict
     }
 
     /// What `applyingVerifications` changed (counts only).
@@ -304,6 +310,17 @@ struct NotesGuard: Sendable {
             guard outcome.point.text.hasSuffix("?") else { return .failure(.questionNotAFinding) }
             outcome.point.kind = .question
             outcome.downgraded = true
+        }
+        switch outcome.point.kind {
+        case .task:
+            if NotesRelevance.isNonWorkTask(text: outcome.point.text) {
+                return .failure(.nonWorkTask)
+            }
+        case .question:
+            if NotesRelevance.isContextFreeQuestion(outcome.point.text) { return .failure(.questionWithoutContext) }
+        case .summary:
+            if NotesRelevance.isReportWithoutVerdict(outcome.point.text) { return .failure(.reportWithoutVerdict) }
+        case .decision: break
         }
         let vocabulary = Vocabulary(
             words: covered.flatMap { Array(words[utteranceRanges[$0]]) }
@@ -779,19 +796,32 @@ struct NotesGuard: Sendable {
         var backfilled = 0
         // Decisions and tasks are rare and each one matters, so one REDUCE forgot is added back. Questions and
         // findings are not: what REDUCE did not choose stays out.
+        var backfilledTasks = Set<String>()
         func fill(_ list: inout [NotesPoint], kind: NotesPointKind) {
             for point in points where point.kind == kind && !listed.contains(point.id) {
-                if let twin = list.first(where: { Self.nearDuplicate($0, point) }) {
+                // Tasks are merged with their twins below, which also keeps the person and date of either.
+                if kind != .task, let twin = list.first(where: { Self.nearDuplicate($0, point) }) {
                     trail?.nearDuplicateOf[point.id] = twin.id
                     continue
                 }
                 list.append(point)
                 backfilled += 1
                 trail?.backfilled.insert(point.id)
+                if kind == .task { backfilledTasks.insert(point.id) }
             }
         }
         fill(&decisions, kind: .decision)
         fill(&tasks, kind: .task)
+        // The model may list one piece of work twice (restated later, or in two chunks); it stands once.
+        let unique = NotesRelevance.deduplicatedTasks(tasks)
+        tasks = unique.tasks
+        for (id, twin) in unique.removed {
+            trail?.nearDuplicateOf[id] = twin
+            if backfilledTasks.contains(id) {
+                backfilled -= 1
+                trail?.backfilled.remove(id)
+            }
+        }
         if questions.count > Self.maxQuestions {
             for point in questions[Self.maxQuestions...] { trail?.questionsOverLimit.insert(point.id) }
             questions = Array(questions.prefix(Self.maxQuestions))

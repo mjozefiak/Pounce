@@ -77,15 +77,19 @@ import Testing
         #expect(reduces[1].maxTokens > 7000)
     }
 
-    @Test func whenThereIsNoRoomToGrowACutOffAnswerIsNotRetried() async throws {
+    @Test func whenThereIsNoRoomToGrowACutOffAnswerIsRetriedOnceWithAChangedPrompt() async throws {
         let rig = NotesRig { _, messages, _ in
             if NotesFake.isReduce(messages) { return .cutOff(NotesFake.answer(messages)) }
             return .done(NotesFake.answer(messages))
         }
         let result = try await rig.pipeline({ $0.reduceMaxTokens = 20_000 }).run(utterances: NotesFixtures.meeting())
         let reduces = rig.llm.calls.filter { NotesFake.isReduce($0.messages) }
-        #expect(reduces.count == 1)
-        #expect(NotesPipeline.promptTokens(reduces[0].messages) + reduces[0].maxTokens <= NotesModel.contextLength)
+        // One more try with the format reminder at the same limit, then it gives up (never a third).
+        #expect(reduces.count == 2)
+        #expect(reduces[0].messages != reduces[1].messages)
+        for call in reduces {
+            #expect(NotesPipeline.promptTokens(call.messages) + call.maxTokens <= NotesModel.contextLength)
+        }
         #expect(result.reduceFailed)
         #expect(result.markdown != nil)
     }
