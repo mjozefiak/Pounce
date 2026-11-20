@@ -3,7 +3,8 @@ import LintelSpeech
 
 /// The one way to run a process with content. It asks the consumer's authorization directly before every start,
 /// after the request has left the queue; a refusal, an unverified descriptor or an argv that breaks an isolation
-/// requirement ends in an error and no process. Nothing in the app calls it yet.
+/// requirement ends in an error and no process. The one consumer is `MeetingsPlugin`'s `ProviderNotesGenerator`, whose
+/// authorization is "the provider is chosen in settings right now".
 public struct ProviderRunner: Sendable {
     private let system: ProviderSystem
     private let gate: ProviderGate

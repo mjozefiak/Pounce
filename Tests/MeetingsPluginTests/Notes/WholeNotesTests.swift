@@ -628,13 +628,15 @@ enum ExampleSeparation {
         #expect(result.markdown?.contains(corpus.fake.number) == false)
     }
 
-    @Test func noGeneratorInTheAppUsesThisTrack() throws {
+    /// Since A5b the provider's generator is the one that has the whole-transcript profile (spec step 1.7d said "until
+    /// PR 5b"); no other generator in the app may take it, and it is not used by `NotesPipeline`'s built-in model.
+    @Test func onlyTheProviderGeneratorUsesThisTrack() throws {
+        var owners: [String] = []
         for file in TestPaths.meetingsSourceFiles() {
             let text = try String(contentsOf: file, encoding: .utf8)
-            #expect(
-                !text.contains("strategy: .wholeTranscript"),
-                "\(file.lastPathComponent) gives a generator the whole-transcript profile")
+            if text.contains("strategy: .wholeTranscript") { owners.append(file.lastPathComponent) }
         }
+        #expect(owners == ["ProviderNotesGenerator.swift"], "\(owners)")
         #expect(NotesLease.self is any NotesGenerating.Type)
     }
 

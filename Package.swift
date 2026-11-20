@@ -93,8 +93,8 @@ let package = Package(
             name: "LintelProviders",
             // External AI providers (spec 2026-11-10-external-ai-providers, ADR 0011): runs the provider's CLI as a
             // child process behind a consent check. Depends only on LintelSpeech (the value types ChatMessage and
-            // GenerationResult), on no plugin and not on LintelApp (`LintelProvidersTests` checks that). Nothing
-            // calls it yet.
+            // GenerationResult), on no plugin and not on LintelApp (`LintelProvidersTests` checks that). Only
+            // `MeetingsPlugin` calls it (the notes provider, behind a setting that is off by default).
             dependencies: ["LintelSpeech"]
         ),
         .target(
@@ -117,6 +117,9 @@ let package = Package(
                 "LintelPersistence",
                 "LintelSpeech",
                 "LintelUI",
+                // The notes provider (spec 2026-11-10-external-ai-providers): `ProviderNotesGenerator` runs the
+                // provider CLI only through `ProviderRunner`, which asks the plugin's authorization before every start.
+                "LintelProviders",
                 // `FluidDiarizer` uses the offline diarizer directly (spec: Dependencies); models load only from
                 // the folder `ModelManager` owns.
                 .product(name: "FluidAudio", package: "FluidAudio"),
@@ -218,6 +221,7 @@ let package = Package(
             name: "MeetingsPluginTests",
             dependencies: [
                 "MeetingsPlugin", "LintelSpeech", "LintelKit", "LintelPersistence", "LintelTestSupport",
+                "LintelProviders",
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
             resources: [.copy("Fixtures")]
@@ -256,7 +260,7 @@ let package = Package(
         ),
         .testTarget(
             name: "LintelAppTests",
-            dependencies: ["LintelApp", "LintelKit", "LintelUI", "LintelSpeech"],
+            dependencies: ["LintelApp", "LintelKit", "LintelUI", "LintelSpeech", "LintelProviders"],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
     ],

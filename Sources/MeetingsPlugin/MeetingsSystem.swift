@@ -1,4 +1,5 @@
 import Foundation
+import LintelProviders
 import LintelSpeech
 import Synchronization
 
@@ -20,6 +21,9 @@ struct MeetingsSystem: Sendable {
     var makeSelfTest: @MainActor @Sendable () -> SystemAudioSelfTest
     var microphoneAuthorizer: @MainActor @Sendable () -> any MicrophoneAuthorizer
     var makeSession: @MainActor @Sendable (MeetingsRuntime, MeetingSessionRequest) -> any RecordingSession
+    /// The runner of the notes provider (the one way a process with a transcript starts). `live` can start the
+    /// provider's CLI, and only for a provider the user chose in settings; tests get one over a fake process.
+    var makeProviderRunner: @Sendable (_ cachesDirectory: URL) -> ProviderRunner
 
     /// The real HUD panels, Core Audio, the tone player, the system's microphone permission and sessions.
     static let live = MeetingsSystem(
@@ -46,6 +50,12 @@ struct MeetingsSystem: Sendable {
         makeSession: { runtime, request in
             countLiveUse("MeetingSession")
             return runtime.makeSession(request)
+        },
+        makeProviderRunner: { cachesDirectory in
+            countLiveUse("ProviderSystem")
+            return ProviderRunner(
+                system: ProviderSystem.live(homeDirectory: FileManager.default.homeDirectoryForCurrentUser),
+                cachesDirectory: cachesDirectory)
         })
 
     private static let standardValue = Mutex(MeetingsSystem.live)

@@ -28,6 +28,10 @@ import Testing
     /// Keys with no pane control, each with the reason. The prototype figure `set-meetings` shows no control for
     /// any of them either (step 5.2).
     static let exempt: [String: String] = [
+        "notesProvider":
+            "no pane control until the provider mockup is accepted (A5b); set by tests and --qa-setting only",
+        "notesProviderModel":
+            "no pane control until the provider mockup is accepted (A5b); set by tests and --qa-setting only",
         "systemAudio": "no pane control by design: capture setting kept for defaults, default on",
         "diarization": "no pane control by design: capture setting kept for defaults, default on",
         "notesChunkTokens": "tuning key set with defaults only; no pane control by design",

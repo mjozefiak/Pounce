@@ -45,11 +45,20 @@ import Testing
         }
     }
 
-    @Test func noOtherTargetDependsOnItYet() throws {
+    @Test func onlyMeetingsPluginAndItsTestsDependOnIt() throws {
         let manifest = try String(contentsOf: Self.root.appending(path: "Package.swift"), encoding: .utf8)
-        // Only its own declaration and its test target name it: nothing in the app calls it (PR 2 is unwired).
+        // Its own declaration, its test target, `MeetingsPlugin` (the notes provider, A5b), and the two test targets
+        // that build a plugin with a fake runner (`MeetingsPluginTests`, `LintelAppTests`).
         let mentions = manifest.components(separatedBy: "\"LintelProviders\"").count - 1
-        #expect(mentions == 2)  // its own `name` and the test target's dependency
+        #expect(mentions == 5)
+        let plugin = try targetText("MeetingsPlugin")
+        #expect(plugin.contains("\"LintelProviders\""))
+        for name in [
+            "LintelApp", "AppsPlugin", "FilesPlugin", "ClipboardPlugin", "DictationPlugin", "NotesPlugin",
+            "WindowsPlugin",
+        ] {
+            #expect(!(try targetText(name)).contains("\"LintelProviders\""), "\(name) must not depend on it")
+        }
     }
 
     @Test func aProcessIsStartedOnlyInProviderProcess() throws {

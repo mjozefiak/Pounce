@@ -72,9 +72,9 @@ jobs:
         timeout-minutes: 5
         run: scripts/test-with-watchdog.sh --limit 170 --name tsan-windows -- swift test --sanitize=thread --filter "WindowEngineTests|WindowEngineConcurrencyTests|EventFlowTests|EngineStopTests|StopBudgetTests|EchoAndJournalOrderTests|RecoveryTests|StartStopRaceTests|WaiterLeakTests|LayoutStrategyTests|ToyStrategyTests|TilingEngineTests|ZoneEngineTests|ZoneDragControllerTests|ZoneDragSignalTests"
 
-      - name: Test the provider process runner under Thread Sanitizer
-        timeout-minutes: 6
-        run: scripts/test-with-watchdog.sh --limit 240 --name tsan-providers -- swift test --sanitize=thread --filter LintelProvidersTests
+      - name: Test the provider process runner and the notes provider under Thread Sanitizer
+        timeout-minutes: 8
+        run: scripts/test-with-watchdog.sh --limit 360 --name tsan-providers -- swift test --sanitize=thread --filter "LintelProvidersTests|ProviderNotesMatrixTests|ProviderNotesGeneratorTests"
 
       # The shared latches and clocks every test target waits on (atomic registration, one resume, cancellation).
       - name: Test the shared test support under Thread Sanitizer
