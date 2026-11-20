@@ -139,7 +139,7 @@ class IsolationArgvTests(unittest.TestCase):
     def test_positive_control_with_the_real_config_is_off_by_default(self):
         ap_default = self._parse([])
         self.assertFalse(ap_default)
-        self.assertTrue(self._parse(["--positive-control-real-config"]))
+        self.assertTrue(self._parse(["--positive-control-real-config", "--only", "realConfig"]))
 
     def _parse(self, extra):
         seen = {}
@@ -403,6 +403,12 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(rc["configDirChanges"]["counts"]["newFiles"], 0)  # the fake CLI writes nothing there
         self.assertNotIn("newFiles", json.dumps(rc["configDirChanges"]).replace('"newFiles": 0', ""))
         self.assertEqual([n for n in os.listdir(tmp) if n.startswith("provider-canary-")], [])
+
+    def test_opt_in_is_refused_next_to_any_other_step(self):
+        path = fake_claude(self.dir, FAKE_CLI)
+        for only in ([], ["--only", "realConfig,disk"], ["--only", "disk"]):
+            with mock.patch("sys.stderr"):
+                self.assertEqual(canary.main(["--claude", path, "--positive-control-real-config"] + only), 2)
 
     def test_work_directory_is_removed_when_a_step_raises(self):
         path = fake_claude(self.dir, FAKE_CLI)

@@ -5,7 +5,7 @@
   code and tests of PR 2 exist. **The flag does not depend on the TCC test (owner, 2026-11-20).** It rests on the
   measured isolation (no tools, hooks, MCP servers, plugins or session files from the user's configuration, for a
   CLI version range) and on the tests of decision 9. TCC/FDA has its own row in "Spec table" and in "What is not
-  verified" and is checked after the first signed install.
+  verified" and is checked after the first signed install. Setting the flag to `true` stays the owner's decision.
 - Date: 2026-11-19. Follow-up measurements of 2026-11-20 (Claude Code 2.1.329): see "Follow-up of 2026-11-20".
 - Spec: `.ai/specs/2026-11-10-external-ai-providers.md` (story MEET-X.1), PR 1 of its plan (canary, measurements,
   this ADR). This PR changes no behaviour and no screen of the app.
@@ -62,7 +62,8 @@ Claude Code CLI can be run in the way the decisions require.
    - `--no-session-persistence` (no session file with the transcript),
    - `--tools ""` and `--disable-slash-commands`,
    - `--safe-mode` (added 2026-11-20 after the measurement in "Follow-up of 2026-11-20": it changes neither the
-     login nor the result format and removes two more things of the user's from the request),
+     login nor the result format and removes one agent definition (source not identified) and one memory path that
+     the flags alone leave in the request),
    - never `--settings`, `--mcp-config`, `--plugin-dir`, `--plugin-url`, `--add-dir`, `--agents`, `--continue` or
      `--resume`,
    - the environment is the allowlist only (no `CLAUDE_*` or `ANTHROPIC_*` variable other than
@@ -145,7 +146,8 @@ its own `claude` login), that is a product decision with its own consent text: s
 
 `claude -p --model <m> --output-format json --tools "" --no-session-persistence --disable-slash-commands
 --strict-mcp-config --setting-sources "" --safe-mode --system-prompt <static text>`, content on stdin. All of them exist and
-work in 2.1.328 and 2.1.329 (every logged-in canary call of the default run uses them). Notes:
+work in 2.1.329 (every logged-in canary call of the default run uses all of them except `--safe-mode`, which the
+`safeMode` step adds to compare; the other flags were also used in 2.1.328). Notes:
 
 - `--bare` stays unusable with a subscription (it reads only `ANTHROPIC_API_KEY`); it is the candidate for Phase 2.
 - `--safe-mode` ("all customizations disabled", auth and built-in tools still work): measured alone in the first

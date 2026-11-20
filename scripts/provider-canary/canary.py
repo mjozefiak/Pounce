@@ -41,7 +41,10 @@ REQUIRED_WITH_REAL_CONFIG = ["-p", "--tools", "--no-session-persistence", "--dis
 FORBIDDEN_IN_PRODUCT = ["--settings", "--mcp-config", "--plugin-dir", "--plugin-url", "--add-dir", "--agents",
                         "--append-system-prompt", "--continue", "-c", "--resume", "-r", "--dangerously-skip-permissions"]
 # The only commands run with the real HOME and without the isolation flags in a default run: the product's processes
-# without content (spec, "Dwa rodzaje procesów"). `userConfig.noContentCommands` measures that they load nothing.
+# without content (spec, "Dwa rodzaje procesów"), plus `--help`, which only the canary runs (the `safeMode` step reads
+# it to see whether the flag exists). `userConfig.noContentCommands` measures that they load nothing.
+# `ISOLATION_FLAGS` below stays without `--safe-mode`: the `safeMode` step adds it to compare; the product's golden
+# list holds it since 2026-11-20 (ADR 0011, decision 9).
 NO_CONTENT_COMMANDS = [["--version"], ["auth", "status"], ["--help"]]
 USER_HOOK_EVENTS = ["SessionStart", "UserPromptSubmit", "Stop", "SessionEnd"]
 FIXED_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
@@ -167,7 +170,8 @@ def require_isolated(argv):
 
 
 def require_no_content(args):
-    """Refuses any command other than the content-free `--version` and `auth status` (no prompt, no session)."""
+    """Refuses any command other than the content-free `--version`, `auth status` and `--help` (no prompt, no
+    session)."""
     if list(args) not in NO_CONTENT_COMMANDS:
         raise RuntimeError("refusing to run without the isolation flags: not a command without content")
     return list(args)
@@ -1154,6 +1158,11 @@ def main(argv=None):
         print("claude binary not found; pass --claude", file=sys.stderr)
         return 2
     if args.positive_control_real_config:
+        if args.only != "realConfig":
+            # Alone, so that no other step (the `disk` scan opens changed files) runs after the real configuration.
+            print("--positive-control-real-config runs only as: --only realConfig --positive-control-real-config",
+                  file=sys.stderr)
+            return 2
         print(REAL_CONFIG_WARNING, file=sys.stderr)
     if args.only:
         unknown = sorted(set(args.only.split(",")) - set(STEP_NAMES))

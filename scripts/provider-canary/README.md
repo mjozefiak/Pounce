@@ -25,8 +25,9 @@ Tests of the script (no real CLI, a fake one, a fake home): `python3 -I -m unitt
   `--no-session-persistence` and `--tools ""`, so no session is saved. The report holds counts only (hooks started by
   event, user-tier hook modules, MCP servers, plugins, skills, slash commands, agents, tools). The script reads no file
   content in your config directory: it compares names and times before and after, prints what is new or changed to
-  stderr, and deletes nothing. Run it as `--only realConfig --positive-control-real-config` so that the `disk` step
-  (which searches changed files for the run's random markers) does not run. Use it only if you accept that. The
+  stderr, and deletes nothing. It runs only as `--only realConfig --positive-control-real-config` (the script refuses it
+  next to any other step), so that the `disk` step (which searches changed files for the run's random markers) does
+  not run after it. Use it only if you accept that. The
   first version of this script ran two such calls on every full run; that is how the owner's real hooks ran during
   the first measurement (ADR 0011, "What the first run did"). The first result of the pair is in ADR 0011,
   "Follow-up of 2026-11-20".
