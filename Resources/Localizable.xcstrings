@@ -25236,6 +25236,366 @@
           }
         }
       }
+    },
+    "A newer Lintel is already in Applications" : {
+      "comment" : "Move to Applications alert: title when the installed copy has a higher build number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A newer Lintel is already in Applications"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowsza wersja Lintel jest już w folderze Aplikacje"
+          }
+        }
+      }
+    },
+    "Another copy of Lintel is running from Applications. Quit it, then open this copy again." : {
+      "comment" : "Move to Applications error: a copy in Applications is running",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another copy of Lintel is running from Applications. Quit it, then open this copy again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inna kopia aplikacji Lintel działa z folderu Aplikacje. Zamknij ją, a potem otwórz ponownie tę kopię."
+          }
+        }
+      }
+    },
+    "Don't Move" : {
+      "comment" : "Move to Applications alert: button that keeps the app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't Move"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przenoś"
+          }
+        }
+      }
+    },
+    "Don't ask again" : {
+      "comment" : "Move to Applications alert: checkbox that stops the question",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't ask again"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie pytaj ponownie"
+          }
+        }
+      }
+    },
+    "Don't ask again about moving Lintel" : {
+      "comment" : "Move to Applications alert: accessibility label of the Don't ask again checkbox",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't ask again about moving Lintel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie pytaj ponownie o przeniesienie aplikacji Lintel"
+          }
+        }
+      }
+    },
+    "Don't move Lintel" : {
+      "comment" : "Move to Applications alert: accessibility label of the Don't Move button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't move Lintel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie przenoś aplikacji Lintel"
+          }
+        }
+      }
+    },
+    "Lintel can update itself only from the Applications folder. After the move it opens again from there." : {
+      "comment" : "Move to Applications alert: explanation",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel can update itself only from the Applications folder. After the move it opens again from there."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel może aktualizować się tylko z folderu Aplikacje. Po przeniesieniu otworzy się ponownie stamtąd."
+          }
+        }
+      }
+    },
+    "Lintel couldn't be moved to Applications" : {
+      "comment" : "Move to Applications error: title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel couldn't be moved to Applications"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przenieść aplikacji Lintel do folderu Aplikacje"
+          }
+        }
+      }
+    },
+    "Lintel was copied to Applications but could not be opened. Open it from the Applications folder." : {
+      "comment" : "Move to Applications error: the copy could not be opened",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel was copied to Applications but could not be opened. Open it from the Applications folder."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel został skopiowany do folderu Aplikacje, ale nie udało się go otworzyć. Otwórz go z folderu Aplikacje."
+          }
+        }
+      }
+    },
+    "Move" : {
+      "comment" : "Move to Applications alert: button that moves the app",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś"
+          }
+        }
+      }
+    },
+    "Move Lintel to Applications?" : {
+      "comment" : "Move to Applications alert: title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Lintel to Applications?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieść aplikację Lintel do folderu Aplikacje?"
+          }
+        }
+      }
+    },
+    "Move Lintel to the Applications folder" : {
+      "comment" : "Move to Applications alert: accessibility label of the Move button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move Lintel to the Applications folder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przenieś aplikację Lintel do folderu Aplikacje"
+          }
+        }
+      }
+    },
+    "Open Installed Copy" : {
+      "comment" : "Move to Applications alert: button that opens the newer installed copy",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Installed Copy"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz zainstalowaną kopię"
+          }
+        }
+      }
+    },
+    "Open the newer Lintel in the Applications folder" : {
+      "comment" : "Move to Applications alert: accessibility label of the Open Installed Copy button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the newer Lintel in the Applications folder"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz nowszą wersję Lintel z folderu Aplikacje"
+          }
+        }
+      }
+    },
+    "The copy in Applications could not be made. Nothing was changed, and Lintel keeps running from where it is." : {
+      "comment" : "Move to Applications error: the copy failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy in Applications could not be made. Nothing was changed, and Lintel keeps running from where it is."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się utworzyć kopii w folderze Aplikacje. Nic nie zostało zmienione, a Lintel działa dalej z obecnego miejsca."
+          }
+        }
+      }
+    },
+    "The copy in Applications is newer than this one, so it was not replaced." : {
+      "comment" : "Move to Applications error: the installed copy has a higher build number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy in Applications is newer than this one, so it was not replaced."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopia w folderze Aplikacje jest nowsza od tej, więc nie została zastąpiona."
+          }
+        }
+      }
+    },
+    "The copy in Applications is newer than this one, so it will not be replaced. Open it instead?" : {
+      "comment" : "Move to Applications alert: explanation when the installed copy has a higher build number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy in Applications is newer than this one, so it will not be replaced. Open it instead?"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopia w folderze Aplikacje jest nowsza od tej, więc nie zostanie zastąpiona. Otworzyć ją zamiast tej?"
+          }
+        }
+      }
+    },
+    "The new copy could not be put in Applications. The older copy is back in place." : {
+      "comment" : "Move to Applications error: the new copy could not be put in place, the old one was restored",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The new copy could not be put in Applications. The older copy is back in place."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się umieścić nowej kopii w folderze Aplikacje. Starsza kopia wróciła na swoje miejsce."
+          }
+        }
+      }
+    },
+    "The new copy could not be put in Applications. The older copy is in the Trash." : {
+      "comment" : "Move to Applications error: the new copy could not be put in place, the old one is in the Trash",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The new copy could not be put in Applications. The older copy is in the Trash."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się umieścić nowej kopii w folderze Aplikacje. Starsza kopia jest w Koszu."
+          }
+        }
+      }
+    },
+    "The older copy in Applications could not be moved to the Trash. Nothing was changed." : {
+      "comment" : "Move to Applications error: the old copy could not go to the Trash",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The older copy in Applications could not be moved to the Trash. Nothing was changed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się przenieść starszej kopii z folderu Aplikacje do Kosza. Nic nie zostało zmienione."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -19,6 +19,7 @@ section (pre-releases use `x.y.z-beta.N`). No version has been released yet.
 - Main window, a Settings window with Permissions and Advanced panes (Reset Ranking), and an About window with third-party notices.
 - Welcome screen that sets the shortcut and walks through the steps of the features you enable.
 - English and Polish interface.
+- Lintel offers to move itself to Applications when it starts from a disk image or Downloads, and never replaces a newer installed copy.
 
 ### Changed
 
