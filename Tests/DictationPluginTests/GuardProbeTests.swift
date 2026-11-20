@@ -3,163 +3,19 @@ import Testing
 
 @testable import DictationPlugin
 
-/// Runs `GuardProbeTable` (every probe of review rounds 1 to 3) against `FormatterGuard`, and the round 3 families:
-/// an unsaid word in the replacement, a dropped marker, and ordinary chunks without a marker. All text is invented.
-@Suite struct GuardProbeTests {
-    private func accepted(_ input: String, _ output: String) -> Bool {
-        if case .accepted = FormatterGuard.check(input: input, output: output) { return true }
-        return false
-    }
-
-    /// Correct cleanups the guard turns into the raw text. Each is a documented limit (ADR 0010, "What the guard
-    /// still cannot see"); the test fails when one starts to be accepted, so this list stays true.
-    private static let safeFallbacks: Set<String> = [
-        // A chained correction, a content "właściwie" or "sorry" that protects the words after it, "półtora",
-        // a currency sign, "2 tys.", a year, "2-go", a name's recognition spelling as the last word.
-        "H7a", "H8e", "N9", "N10", "N22", "N26", "N29", "N37", "N39", "F3", "F16",
-        // A content marker (actually, sorry, jednak, to znaczy, właściwie) in a long chunk: the chunk is checked
-        // as a correction, so any other dropped word falls back. A year spoken as two pairs ("twenty twenty
-        // six"), a recognition error in the very last word.
-        "A16", "A17", "A24", "A27", "A28", "A31", "A32",
-    ]
-
-    /// Texts that lose the final version or other content and that the guard still accepts. Each is a documented
-    /// limit; `main` accepts them too. The test fails when one starts to be rejected.
-    private static let knownLimits: Set<String> = [
-        // A long chunk: the edit budget (a tenth of the words) absorbs a spoken correction whose number words
-        // become digits, a single dropped "nie", a digit of another value, and the words before a content marker.
-        "B10", "B11", "B12", "B13",
-    ]
-
-    @Test func everyProbeOfRoundsOneAndTwo() {
-        for row in GuardProbeTable.rounds12 {
-            let result = accepted(row.input, row.output)
-            if row.ok {
-                #expect(result == !Self.safeFallbacks.contains(row.id), "\(row.id): \(row.output)")
-            } else {
-                #expect(!result, "\(row.id) is a hole: \(row.output)")
-            }
-        }
-    }
-
-    @Test func everyProbeOfRoundThree() {
-        for row in GuardProbeTable.round3 {
-            let result = accepted(row.input, row.output)
-            if row.ok {
-                #expect(result == !Self.safeFallbacks.contains(row.id), "\(row.id): \(row.output)")
-            } else {
-                #expect(result == Self.knownLimits.contains(row.id), "\(row.id): \(row.output)")
-            }
-        }
-    }
-
-    // MARK: A word the speaker never said, in the replacement
-
-    @Test(arguments: [
-        ("wyślij raport do Tomka nie czekaj do Adama jeszcze dziś", "Wyślij raport do Tomasza jeszcze dziś."),
-        ("send the report to Kate no wait to Mark today", "Send the report to Katie today."),
-        ("napisz do Oli nie czekaj do Ewy w sprawie urlopu", "Napisz do Olki w sprawie urlopu."),
-        ("wyślij raport do Kasi nie czekaj do Marka jeszcze dziś", "Wyślij raport do Tomka jeszcze dziś."),
-        ("wyślij raport do Kasi nie czekaj do Marka jeszcze dziś", "Wyślij raport do Kaśki jeszcze dziś."),
-        ("zamów pizzę z szynką nie czekaj z pieczarkami i colę", "Zamów pizzę z ananasem i colę."),
-        ("send it to Mark no wait to Steven and Paul today", "Send it to Zebra and Paul today."),
-    ])
-    func anUnsaidWordDoesNotStandForTheFinalVersion(input: String, output: String) {
-        #expect(!accepted(input, output), "\(output)")
-    }
-
-    @Test(arguments: [
-        // A close spelling (a recognition fix) and a contraction are allowed in the replacement.
-        ("send it to Mark no wait to Steven and Paul today", "Send it to Stephen and Paul today."),
-        (
-            "actually I think we should move the meeting to thursday because the client cannot join on monday",
-            "I think we should move the meeting to Thursday because the client can't join on Monday."
-        ),
-    ])
-    func aCloseSpellingOrAContractionStaysAccepted(input: String, output: String) {
-        #expect(accepted(input, output), "\(output)")
-    }
-
-    /// Replaces each word of the final version, one at a time, by a word nobody said: always rejected.
-    @Test func swappingAFinalVersionWordForAnInventedOneIsRejected() throws {
-        var checked = 0
-        for item in try AutocorrectCorpus.load() where AutocorrectCorpus.withdrawing.contains(item.category) {
-            let expected = item.expected.split(separator: " ").map(String.init)
-            let final = Set(Self.tail(of: AutocorrectCorpus.tokens(item.raw)))
-            for (index, word) in expected.enumerated() {
-                let bare = AutocorrectCorpus.tokens(word).first ?? ""
-                guard final.contains(bare), bare.count >= 4, !bare.contains(where: \.isNumber) else { continue }
-                var swapped = expected
-                swapped[index] = "Zebrafort" + (word.last.map { ".!?,".contains($0) ? String($0) : "" } ?? "")
-                checked += 1
-                #expect(!accepted(item.raw, swapped.joined(separator: " ")), "\(item.id): \(bare)")
-            }
-        }
-        #expect(checked > 20)
-    }
-
-    private static func tail(of tokens: [String]) -> [String] {
-        let markers: [[String]] = [
-            ["czekaj"], ["jednak"], ["właściwie"], ["pomyłka"], ["przepraszam"], ["to", "znaczy"], ["wait"],
-            ["actually"], ["sorry"], ["scratch", "that"], ["i", "mean"],
-        ]
-        for index in tokens.indices {
-            for marker in markers where index + marker.count < tokens.count {
-                if Array(tokens[index..<(index + marker.count)]) == marker {
-                    return Array(tokens[(index + marker.count)...])
-                }
-            }
-        }
-        return []
-    }
-
-    // MARK: The marker was dropped and both versions stayed
-
-    /// Answers the saved real-model runs gave on the corpus (invented sentences): the marker word is gone, both
-    /// versions are in the text and nothing says which one is final ("na pizzę albo na sushi"; in the first,
-    /// "we wtorek, a nie w środę", the meaning is inverted).
-    @Test(arguments: [
-        ("spotkajmy się we wtorek a nie czekaj w środę", "Spotkajmy się we wtorek, a nie w środę."),
-        ("pójdziemy na pizzę albo jednak na sushi", "Pójdziemy na pizzę albo na sushi."),
-        (
-            "przełóżmy spotkanie na piątek albo jednak na poniedziałek",
-            "Przełóżmy spotkanie na piątek albo na poniedziałek."
-        ),
-        ("kupimy czerwoną sofę albo jednak szarą sofę", "Kupimy czerwoną sofę albo szarą sofę."),
-        (
-            "użyjemy chmury albo jednak zostaniemy przy własnym serwerze",
-            "Użyjemy chmury albo zostaniemy przy własnym serwerze."
-        ),
-        ("wyślę to mailem albo jednak zadzwonię do klienta", "Wyślę to mailem albo zadzwonię do klienta."),
-    ])
-    func aDroppedMarkerWithTheWithdrawnVersionKeptIsRejected(input: String, output: String) {
-        #expect(!accepted(input, output), "\(output)")
-    }
-
-    @Test(arguments: [
-        // The marker stays, so the reader can see which version is final.
-        ("spotkanie z Anną nie przepraszam z Hanną w środę", "Spotkanie z Anną nie przepraszam – z Hanną w środę."),
-        ("wyślę to mailem albo jednak zadzwonię do klienta", "Wyślę to mailem, albo jednak zadzwonię do klienta."),
-        // The withdrawn version is gone: the ordinary correction.
-        ("spotkajmy się we wtorek a nie czekaj w środę", "Spotkajmy się w środę."),
-        ("kupimy czerwoną sofę albo jednak szarą sofę", "Kupimy szarą sofę."),
-        ("pójdziemy na pizzę albo jednak na sushi", "Pójdziemy na sushi."),
-    ])
-    func aKeptMarkerOrARemovedWithdrawnVersionIsAccepted(input: String, output: String) {
-        #expect(accepted(input, output), "\(output)")
-    }
-
-    // MARK: Chunks without a marker
-
-    /// A reference copy of the checks `main` runs on a chunk: the length range and the language.
-    private func mainAccepts(input: String, output: String) -> Bool {
-        let output = FormatterGuard.clean(output)
+/// A faithful copy of the check `main` ran on every chunk before the self-correction work: the length range and
+/// the language. A chunk without a retraction marker must get exactly this verdict from `FormatterGuard`.
+enum MainGuardReference {
+    static func accepts(input: String, output rawOutput: String) -> Bool {
+        let output = FormatterGuard.clean(rawOutput)
         guard !output.isEmpty else { return false }
         let inputWords = FormatterGuard.words(in: input)
         let outputWords = FormatterGuard.words(in: output)
         if inputWords >= 5 {
             let ratio = Double(outputWords) / Double(inputWords)
-            if !FormatterGuard.lengthRange.contains(ratio) { return false }
+            if ratio > FormatterGuard.lengthRange.upperBound || ratio < FormatterGuard.lengthRange.lowerBound {
+                return false
+            }
         } else if outputWords > inputWords + 3 {
             return false
         }
@@ -167,6 +23,69 @@ import Testing
         let after = Language.dominant(in: output)
         return !(before != .unknown && after != .unknown && before != after)
     }
+}
+
+/// Runs `GuardProbeTable` (every probe of review rounds 1 to 3, all invented) against `FormatterGuard`, and
+/// compares the chunks without a marker with `main`.
+@Suite struct GuardProbeTests {
+    private func accepted(_ input: String, _ output: String) -> Bool {
+        if case .accepted = FormatterGuard.check(input: input, output: output) { return true }
+        return false
+    }
+
+    private func hasMarker(_ input: String) -> Bool {
+        FormatterGuard.selfCorrection(in: FormatterGuard.tokens(input)) != nil
+    }
+
+    private static let table = GuardProbeTable.rounds12 + GuardProbeTable.round3 + GuardProbeTable.round4
+
+    /// Correct cleanups that the guard turns into the raw text (fail-safe). Each is a documented limit of the
+    /// marker rule (ADR 0010, "What the guard rejects although the result is right"); the test fails when one is
+    /// accepted or a new one appears, so the list and its count stay true.
+    static let falseAlarms: Set<String> = [
+        "H7a", "H8e", "N9", "N10", "N11", "N18", "N20", "N22", "N26", "N29", "N32", "N34", "N37", "N39", "F3", "F8",
+        "F15", "F16", "F19", "F20", "F23", "F26", "A24", "A27", "A28", "A31", "A32", "VS11", "VP6", "VM10",
+    ]
+
+    /// Texts that lose the final version or other content, have NO marker, and that `main` accepts too (ADR 0010,
+    /// "Limits shared with main"). The test fails when one starts to be rejected.
+    static let limitsSharedWithMain: Set<String> = [
+        "H6a", "H6b", "H6c", "H6d", "H8f", "H10a", "H10b", "B6", "B7", "B8", "B9", "B10", "B11", "B12", "B14", "VE4",
+        "VE5", "VC1", "VC2", "VD1", "VD2",
+    ]
+
+    @Test func noProbeWithAMarkerIsAHole() {
+        var checked = 0
+        for row in Self.table where !row.ok && hasMarker(row.input) {
+            checked += 1
+            #expect(!accepted(row.input, row.output), "\(row.id) is a hole: \(row.output)")
+        }
+        #expect(checked > 100)
+    }
+
+    @Test func aProbeWithoutAMarkerGetsTheVerdictOfMain() {
+        var accepting: Set<String> = []
+        for row in Self.table where !hasMarker(row.input) {
+            #expect(
+                accepted(row.input, row.output) == MainGuardReference.accepts(input: row.input, output: row.output),
+                "\(row.id)")
+            if !row.ok, accepted(row.input, row.output) { accepting.insert(row.id) }
+        }
+        #expect(accepting == Self.limitsSharedWithMain)
+    }
+
+    @Test func correctCleanupsAreAcceptedExceptTheListedFalseAlarms() {
+        var fallbacks: Set<String> = []
+        var total = 0
+        for row in Self.table where row.ok {
+            total += 1
+            if !accepted(row.input, row.output) { fallbacks.insert(row.id) }
+        }
+        #expect(fallbacks == Self.falseAlarms, "\(fallbacks.symmetricDifference(Self.falseAlarms).sorted())")
+        print("[guard-probes] correct cleanups \(total), false alarms \(fallbacks.count)")
+    }
+
+    // MARK: Chunks without a marker
 
     /// Spoken and written form of the same sentence parts; a chunk is some of them in order, so the written text
     /// always matches the spoken one part by part.
@@ -203,7 +122,6 @@ import Testing
         ("a samo spotkanie potrwa półtorej godziny", ", a samo spotkanie potrwa 1,5 godziny."),
         ("i ma to pięćdziesiąt procent szans", ", i ma to 50% szans."),
         ("daj znać okay", ", daj znać, OK?"),
-        ("limit wynosi do pięciuset to znaczy do tysiąca złotych", ", limit wynosi do 1000 złotych."),
     ]
     private static let englishEndings: [(spoken: String, written: String)] = [
         ("", "."),
@@ -238,25 +156,36 @@ import Testing
         return made
     }
 
-    /// A chunk of 5 to 60 words with no marker and no correction: whatever `main` accepts, the guard accepts.
-    /// (A clock time spoken as "wpół do ósmej" and written "7:30" is the one ordinary rewrite that falls back in
-    /// a short chunk; it is listed as a limit and not generated here.)
-    @Test func aChunkWithoutAMarkerIsAcceptedWheneverMainAcceptsIt() {
+    /// A chunk of 5 to 60 words with no marker: the verdict is the one `main` gives, accepted or rejected.
+    @Test func aChunkWithoutAMarkerGetsTheVerdictOfMain() {
         var checked = 0
         let all = chunks(Self.polishParts, Self.polishEndings) + chunks(Self.englishParts, Self.englishEndings)
         for item in all {
-            guard mainAccepts(input: item.spoken, output: item.written) else { continue }
+            #expect(!hasMarker(item.spoken))
             checked += 1
-            #expect(accepted(item.spoken, item.written), "\(item.spoken) -> \(item.written)")
+            #expect(
+                accepted(item.spoken, item.written)
+                    == MainGuardReference.accepts(input: item.spoken, output: item.written),
+                "\(item.spoken) -> \(item.written)")
         }
-        #expect(checked > 150)
+        print("[guard-main-comparison] \(checked) chunks")
+        #expect(checked > 100)
     }
 
-    /// Contractions are merged at no cost, however many a long chunk holds.
-    @Test func manyContractionsInALongChunkAreAccepted() {
-        let spoken = Self.englishParts.map(\.spoken).joined(separator: " ")
-        let written = Self.englishParts.map(\.written).joined(separator: " ") + "."
-        #expect(accepted(spoken, written))
+    /// The cases the third review found that a derivation-based rule had to give up on, now simply `main`'s.
+    @Test(arguments: [
+        (
+            "the build was kind of slow yesterday so we restarted it",
+            "The build was slow yesterday, so we restarted it."
+        ),
+        ("no to wyślij mi ten plik jeszcze dziś", "Wyślij mi ten plik jeszcze dziś."),
+        ("we will not ship it on friday", "We'll ship it on Friday."),
+        ("nie wysyłaj tego klientowi przed piątkiem", "Wysyłaj to klientowi przed piątkiem."),
+        ("ten bilet kosztuje dwieście euro", "Ten bilet kosztuje 200 zł."),
+        ("podwyżka wyniesie piętnaście procent", "Podwyżka wyniesie 15 zł."),
+    ])
+    func theReportedCasesFollowMain(input: String, output: String) {
+        #expect(accepted(input, output) == MainGuardReference.accepts(input: input, output: output))
     }
 
     /// The two ways that an ordinary rewrite becomes a contraction are read by form, not by a list of words.
@@ -270,15 +199,4 @@ import Testing
         #expect(FormatterGuard.isContraction(first, second, written) == expected)
     }
 
-    @Test(arguments: ["tysiąca", "dwóm", "stoma", "dwom", "tysięcy"])
-    func moreNumberForms(word: String) {
-        #expect(NumberWords.value(of: [word]) != nil)
-    }
-
-    @Test func aWholeWordThatStartsTheNextIsNotAStutter() {
-        #expect(!accepted("zamów dwie pizze nie czekaj pizze pizzerii obok", "Zamów pizzerii obok."))
-        #expect(
-            accepted("pro prosiłbym o zaakceptowanie tej zmiany dzisiaj", "Proszę o zaakceptowanie tej zmiany dzisiaj.")
-        )
-    }
 }

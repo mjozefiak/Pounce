@@ -4,10 +4,10 @@ import Testing
 @testable import DictationPlugin
 
 /// Regression tables for `FormatterGuard` (PR 134, review rounds 1 to 3). Every text is invented. A row says
-/// whether a CORRECT cleanup of the input is `ok` (true: the guard must accept it unless the id is listed in
-/// `GuardProbeTable.safeFallbacks`) or a text that loses the final version or other content (false: the guard must
-/// reject it, no exception). `safeFallbacks` are correct outputs the guard turns into the raw text; each is a
-/// documented limit (ADR 0010), and the test fails when one starts to be accepted so the list stays true.
+/// whether a CORRECT cleanup of the input is `ok` (true: the guard accepts it unless the id is in
+/// `GuardProbeTests.falseAlarms`, a documented fail-safe that pastes the raw text) or a text that loses the
+/// final version or other content (false: with a retraction marker the guard must reject it, no exception;
+/// without one it gets the verdict of `main`, and the ones `main` accepts are `limitsSharedWithMain`).
 enum GuardProbeTable {
     typealias Row = (id: String, input: String, output: String, ok: Bool)
 
@@ -441,4 +441,125 @@ enum GuardProbeTable {
 
         return rows
     }()
+
+    /// Review round 3 probes (58, all invented): a dropped marker with both versions kept (M), an unsaid word in
+    /// the replacement (S, P), units and negations at the end (E, C), dropped fillers (D). Rows C1, C2, E4 and E5
+    /// have no marker, so they follow the length-and-language check of `main`.
+    static let round4: [Row] = [
+        (
+            "VR1a", "wyślij raport do Tomka nie czekaj do Adama jeszcze dziś", "Wyślij raport do Tomasza jeszcze dziś.",
+            false
+        ),
+        ("VR1b", "send the report to Kate no wait to Mark today", "Send the report to Katie today.", false),
+        ("VR1c", "napisz do Oli nie czekaj do Ewy w sprawie urlopu", "Napisz do Olki w sprawie urlopu.", false),
+        (
+            "VR1d", "wyślij raport do Kasi nie czekaj do Marka jeszcze dziś", "Wyślij raport do Tomka jeszcze dziś.",
+            false
+        ),
+        (
+            "VR1e", "wyślij raport do Kasi nie czekaj do Marka jeszcze dziś", "Wyślij raport do Kaśki jeszcze dziś.",
+            false
+        ),
+        ("VR1f", "zamów pizzę z szynką nie czekaj z pieczarkami i colę", "Zamów pizzę z ananasem i colę.", false),
+        ("VR1g", "send it to Mark no wait to Steven and Paul today", "Send it to Zebra and Paul today.", false),
+        ("VR2a", "spotkajmy się we wtorek a nie czekaj w środę", "Spotkajmy się we wtorek, a nie w środę.", false),
+        ("VR2b", "pójdziemy na pizzę albo jednak na sushi", "Pójdziemy na pizzę albo na sushi.", false),
+        (
+            "VR2c", "przełóżmy spotkanie na piątek albo jednak na poniedziałek",
+            "Przełóżmy spotkanie na piątek albo na poniedziałek.", false
+        ),
+        ("VR2d", "kupimy czerwoną sofę albo jednak szarą sofę", "Kupimy czerwoną sofę albo szarą sofę.", false),
+        (
+            "VR2e", "użyjemy chmury albo jednak zostaniemy przy własnym serwerze",
+            "Użyjemy chmury albo zostaniemy przy własnym serwerze.", false
+        ),
+        (
+            "VR2f", "wyślę to mailem albo jednak zadzwonię do klienta", "Wyślę to mailem albo zadzwonię do klienta.",
+            false
+        ),
+        ("VS1", "wyślij to do Marka nie czekaj do Kasi", "Wyślij to do Basi.", false),
+        ("VS2", "zadzwoń do Tomka przepraszam do Marka", "Zadzwoń do Mirka.", false),
+        ("VS3", "send it to Mark no wait to Kate", "Send it to Nate.", false),
+        ("VS4", "call Anna sorry call Jim tomorrow", "Call Tim tomorrow.", false),
+        ("VS5", "napisz do Ewy nie czekaj do Uli w sprawie urlopu", "Napisz do Ali w sprawie urlopu.", false),
+        ("VS6", "zrób to przed obiadem nie czekaj zrób to do południa", "Zrób to po południu.", false),
+        ("VS7", "spotkajmy się w poniedziałek przepraszam za tydzień", "Spotkajmy się na tydzień.", false),
+        ("VS8", "put it under the desk sorry in the drawer", "Put it on the drawer.", false),
+        ("VS9", "przyjdę o dziesiątej nie czekaj przyjdę po dziesiątej", "Przyjdę do dziesiątej.", false),
+        ("VS10", "the price is fifty dollars sorry sixty dollars", "The price is 60 euros.", false),
+        ("VS11", "send it to Mark no wait to Steven", "Send it to Stephen.", true),
+        ("VS12", "napisz do Marka nie czekaj do Tomka", "Napisz do Tomka.", true),
+        ("VP1", "send it to Mark no wait to Steven", "Send it to O'Neil.", false),
+        (
+            "VP2", "tell the client he can join on friday sorry he can join on monday",
+            "Tell the client he can't join on Monday.", false
+        ),
+        ("VP3", "the server is down wait the server is up", "The server isn't up.", false),
+        ("VP4", "napisz do Marka nie czekaj do Tomka", "Napisz do O'Briena.", false),
+        ("VP5", "invite Anna wait invite Mark he will come", "Invite Mark, he won't come.", false),
+        ("VP6", "actually I think the client cannot join on monday", "I think the client can't join on Monday.", true),
+        (
+            "VM1", "wyślę to mailem do klienta albo jednak zadzwonię do klienta",
+            "Wyślę to mailem albo zadzwonię do klienta.", false
+        ),
+        (
+            "VM2", "spotkajmy się we wtorek o dziesiątej a nie czekaj w środę o dziesiątej",
+            "Spotkajmy się we wtorek, a nie w środę o 10.", false
+        ),
+        (
+            "VM3", "przełóżmy spotkanie na piątek rano albo jednak na poniedziałek rano",
+            "Przełóżmy spotkanie na piątek albo na poniedziałek rano.", false
+        ),
+        (
+            "VM4", "we will use the cloud server or actually our own server",
+            "We will use the cloud or our own server.", false
+        ),
+        (
+            "VM5", "meet me on tuesday at noon no wait on wednesday at noon",
+            "Meet me on Tuesday, not on Wednesday at noon.", false
+        ),
+        ("VM6", "kupimy czerwoną sofę albo jednak szarą sofę", "Kupimy czerwoną albo szarą sofę.", false),
+        (
+            "VM7", "spotkajmy się we wtorek a nie czekaj w środę", "Spotkajmy się we wtorek, czekaj, a nie w środę.",
+            false
+        ),
+        ("VM8", "zamów dwie pizze albo jednak trzy pizze", "Zamów 2 albo 3 pizze.", false),
+        (
+            "VM9", "wyślę to mailem do klienta albo jednak zadzwonię do klienta",
+            "Wyślę to mailem do klienta albo jednak zadzwonię do klienta.", true
+        ),
+        ("VM10", "wyślę to mailem do klienta albo jednak zadzwonię do klienta", "Zadzwonię do klienta.", true),
+        (
+            "VE1", "budżet wzrośnie o piętnaście procent nie czekaj o dwadzieścia procent", "Budżet wzrośnie o 15%.",
+            false
+        ),
+        ("VE2", "bilet kosztuje dwieście euro przepraszam dwieście złotych", "Bilet kosztuje 200 euro.", false),
+        (
+            "VE3", "czy wysyłamy raport klientowi dzisiaj wiesz co jednak nie", "Wysyłamy raport klientowi dzisiaj.",
+            false
+        ),
+        ("VE4", "ten bilet kosztuje dwieście euro", "Ten bilet kosztuje 200 zł.", false),
+        ("VE5", "podwyżka wyniesie piętnaście procent", "Podwyżka wyniesie 15 zł.", false),
+        ("VE6", "the invoice is two hundred dollars okay", "The invoice is $200, OK?", true),
+        ("VC1", "we will not ship it on friday", "We'll ship it on Friday.", false),
+        ("VC2", "nie wysyłaj tego klientowi przed piątkiem", "Wysyłaj to klientowi przed piątkiem.", false),
+        ("VC3", "send it on monday sorry we will not send it on monday", "We'll send it on Monday.", false),
+        (
+            "VC4", "we are sure it is not ready and we do not want it",
+            "We're sure it isn't ready, and we don't want it.", true
+        ),
+        (
+            "VD1", "move it to monday or rather to tuesday at noon in the big room",
+            "Move it to Monday at noon in the big room.", false
+        ),
+        (
+            "VD2", "przenieśmy to na wtorek znaczy na środę o piętnastej w dużej sali",
+            "Przenieśmy to na wtorek o 15:00 w dużej sali.", false
+        ),
+        (
+            "VD3", "the build was kind of slow yesterday so we restarted it",
+            "The build was slow yesterday, so we restarted it.", true
+        ),
+        ("VD4", "no to wyślij mi ten plik jeszcze dziś", "Wyślij mi ten plik jeszcze dziś.", true),
+    ]
 }

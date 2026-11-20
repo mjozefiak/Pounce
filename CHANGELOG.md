@@ -12,7 +12,7 @@ section (pre-releases use `x.y.z-beta.N`). No version has been released yet.
 - App suggestions on an empty query, based on how long each app has been in front.
 - File search by name with its own index kept fresh through FSEvents, and path search for queries that start with `/` or `~`. Indexing starts after the Full Disk Access step.
 - Clipboard history in an encrypted store, with a list and preview, paste into the previous app, and controls for ignored apps, retention and clearing.
-- Dictation (off by default) with on-device speech recognition, a recording HUD, paste into the active app, an encrypted history, and optional cleanup of the text by a built-in local model or a local server. The cleanup also tries to remove a fragment you take back out loud ("nie, czekaj", "albo jednak", "no wait") and keep the corrected version; when the result cannot be checked against what you said, the raw text is pasted instead, and the raw text always stays available.
+- Dictation (off by default) with on-device speech recognition, a recording HUD, paste into the active app, an encrypted history, and optional cleanup of the text by a built-in local model or a local server. The cleanup also tries to remove a fragment you take back out loud ("nie, czekaj", "albo jednak", "no wait") and keep the corrected version; when the result is not exactly what you said minus the part you took back, the raw text is pasted instead, and the raw text always stays available.
 - Meeting recording (off by default) with microphone and system audio, speaker labels and notes written by a local model. Audio and text stay on this Mac.
 - Notes workspace that brings meeting notes, transcripts and dictations together, with search, history and restore.
 - Window management (off by default).
