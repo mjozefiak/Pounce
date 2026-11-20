@@ -66,7 +66,7 @@ The `sign` job waits for you. Before approving, check:
 2. The version is the one you meant (the tag name and the changelog section).
 3. The diff since the previous release holds nothing unexpected:
    `git diff <previous-tag>..<tag> -- .github/ scripts/ Resources/`. A tag run uses the workflow and scripts of the tagged
-   commit, and the job holds the signing secrets, so read this diff yourself.
+   commit, and the job holds the signing secrets, so read this diff yourself. For the first release there is no previous tag; read those paths as they are on the tag.
 
 Then approve. If any check fails, reject the deployment and fix it on `main`; a tag that was pushed is not reused.
 
@@ -89,7 +89,8 @@ xcrun notarytool info <submission id>
 ```
 
 with your own App Store Connect credentials for `notarytool` (the CI key is not on your Mac). Then start a new run, with a larger
-`notary_wait_minutes` if you expect a long wait. A new run signs a new binary, so the old submission is not reused.
+`notary_wait_minutes` if you expect a long wait. Only a manual run takes that input; a tag run always waits 40 minutes
+and cannot be given more. A new run signs a new binary, so the old submission is not reused.
 Exit 1 is a rejection (the notary log is in `notary-logs`); exit 2 is a failed upload.
 
 ## After the release: install and verify
