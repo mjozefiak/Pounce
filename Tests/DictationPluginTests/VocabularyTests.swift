@@ -172,6 +172,52 @@ private func makeDirectory() throws -> URL {
         #expect(output.rawText == "segment 1")
     }
 
+    private func runBuiltIn(answer: String, replace: @escaping @Sendable (String) -> String) async throws
+        -> DictationSession.Output
+    {
+        let runtime = ScriptedRuntime()
+        await runtime.script(answer: answer)
+        let warm = KeepWarmRuntime(
+            runtime: runtime, modelURL: URL(fileURLWithPath: "/models/test.gguf"), keepWarm: { .seconds(60) })
+        let second = AudioFormat.sampleRate
+        let session = DictationSession(
+            audio: ScriptedAudioInput(seconds: 3), vad: RangeVAD([second..<(2 * second)]), engine: FakeEngine(),
+            formatter: BuiltInFormatter(runtime: warm), replaceTerms: replace, modelFolder: URL(filePath: "/tmp/none"))
+        try await session.start()
+        let output = try await session.finish()
+        await warm.unload()
+        return output
+    }
+
+    @Test func aRejectedModelOutputFallsBackToTheRawChunkAndOnlyThenGetsTheVocabulary() async throws {
+        let replacer = replacer
+        let output = try await runBuiltIn(
+            answer: "Zupełnie inny tekst, który nie ma nic wspólnego z tym, co zostało powiedziane.",
+            replace: { replacer.apply(to: $0) })
+        #expect(output.formatting.fellBack == output.formatting.chunks)
+        #expect(output.text == replacer.apply(to: "segment 1"))
+        #expect(output.text == "Seg-One")
+        #expect(output.rawText == "segment 1")
+    }
+
+    @Test func theGuardChecksTheModelOutputNotTheReplacedText() async throws {
+        let long = TermReplacer(entries: [.init(term: "Completely Different Long Name Zebra", aliases: ["segment 1"])])
+        let output = try await runBuiltIn(answer: "Segment 1.", replace: { long.apply(to: $0) })
+        #expect(output.formatting.fellBack == 0)
+        #expect(output.text == "Completely Different Long Name Zebra.")
+        #expect(output.rawText == "segment 1")
+    }
+
+    @Test func theRawTranscriptIsNeverChangedByTheVocabulary() async throws {
+        let replacer = replacer
+        for formatter in [nil, UppercasingFormatter()] as [(any TextFormatter)?] {
+            let output = try await run(formatter: formatter) { replacer.apply(to: $0) }
+            #expect(output.rawText == "segment 1")
+            #expect(output.text.contains("Seg-One"))
+            #expect(!output.rawText.contains("Seg-One"))
+        }
+    }
+
     @Test func withoutAVocabularyTheResultIsUnchanged() async throws {
         let plain = try await run(formatter: nil) { $0 }
         let empty = try await run(formatter: nil) { TermReplacer(entries: []).apply(to: $0) }

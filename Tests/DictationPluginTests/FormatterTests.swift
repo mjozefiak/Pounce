@@ -228,16 +228,16 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
             .map { "[\($0.role)]\n\($0.content)" }.joined(separator: "\n\n") + "\n"
         if ProcessInfo.processInfo.environment["LINTEL_RECORD_SNAPSHOT"] != nil {
             let source = URL(filePath: #filePath).deletingLastPathComponent()
-                .appending(path: "Fixtures/cleanup/prompt-v1.txt")
+                .appending(path: "Fixtures/cleanup/prompt-v2.txt")
             try rendered.write(to: source, atomically: true, encoding: .utf8)
         }
-        let url = try #require(Bundle.module.url(forResource: "Fixtures/cleanup/prompt-v1", withExtension: "txt"))
+        let url = try #require(Bundle.module.url(forResource: "Fixtures/cleanup/prompt-v2", withExtension: "txt"))
         let expected = try String(contentsOf: url, encoding: .utf8)
         #expect(
             rendered == expected,
             "The cleanup prompt changed. Bump CleanupPrompt.version, update the snapshot and note it in the release notes."
         )
-        #expect(CleanupPrompt.version == 1)
+        #expect(CleanupPrompt.version == 2)
     }
 
     @Test func transcriptsAreDelimitedAndQuestionsAreExamples() {

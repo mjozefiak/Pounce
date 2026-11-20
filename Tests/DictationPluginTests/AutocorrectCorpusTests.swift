@@ -174,29 +174,62 @@ enum AutocorrectCorpus {
         }
     }
 
-    /// Data for the next step (CleanupPrompt v2 and the guard): how many `expected` texts the current guard
-    /// would turn back into the raw text. No blocking assertion; the numbers go to the PR body.
-    @Test func reportsHowTheCurrentGuardTreatsExpected() throws {
-        var rejected: [String: [String]] = [:]
-        var total: [String: Int] = [:]
-        for item in try AutocorrectCorpus.load() {
-            total[item.category, default: 0] += 1
-            if case .rejected(let reason) = FormatterGuard.check(input: item.raw, output: item.expected) {
-                rejected[item.category, default: []].append("\(item.id):\(reason)")
-            }
+    /// How the guard treats the corpus' `expected` texts (a correct cleanup). The verdict is `main`'s plus the
+    /// one negation rule; a correct text can fall back to the raw text because of `main`'s length range or
+    /// because of the rule. Nothing is asserted about how many: the counts per reason go to the PR body, and the
+    /// equivalence with `main` is asserted.
+    @Test func theGuardTreatsEveryExpectedTextLikeMainPlusTheNegationRule() throws {
+        var reasons: [String: [String]] = [:]
+        let cases = try AutocorrectCorpus.load()
+        for item in cases {
+            let verdict = FormatterGuard.check(input: item.raw, output: item.expected)
+            #expect(
+                verdict == MainGuardReference.expected(input: item.raw, output: item.expected), "\(item.id)")
+            if case .rejected(let reason) = verdict { reasons["\(reason)", default: []].append(item.id) }
         }
-        let all = rejected.values.reduce(0) { $0 + $1.count }
-        print("[autocorrect-guard] rejected \(all) of \(total.values.reduce(0, +))")
-        for category in total.keys.sorted() {
-            let list = rejected[category, default: []]
-            print("[autocorrect-guard] \(category): \(list.count)/\(total[category] ?? 0) \(list.sorted())")
+        print(
+            "[autocorrect-guard] expected texts \(cases.count): "
+                + reasons.sorted { $0.key < $1.key }
+                .map { "\($0.key) \($0.value.count) \($0.value.sorted())" }.joined(separator: "; "))
+    }
+
+    /// An empty answer is always rejected; a foreign, extended or cut answer gets the verdict of `main`.
+    @Test func theGuardHoldsTheCorpusToMainsChecks() throws {
+        for item in try AutocorrectCorpus.load() {
+            #expect(FormatterGuard.check(input: item.raw, output: "") == .rejected(.empty), "\(item.id)")
+            let extended = item.expected + " Dodatkowo proszę o potwierdzenie rezerwacji sali i przesłanie notatki."
+            let words = item.raw.split(separator: " ")
+            let cut = words.prefix(words.count / 2).joined(separator: " ") + "."
+            for output in ["Jutro rano będzie padał deszcz w całym kraju.", extended, cut] {
+                #expect(
+                    FormatterGuard.check(input: item.raw, output: output)
+                        == MainGuardReference.expected(input: item.raw, output: output),
+                    "\(item.id)")
+            }
         }
     }
 
-    /// Cleans every case with the built-in model in `LINTEL_LLAMA_MODEL` and prints only counts per category
-    /// (no text): cases that keep and drop the right words, cleaned outputs that still hold the withdrawn
-    /// version (the ADR 0005 failure) and chunks that fell back to the raw text. Off by default, like the other
-    /// real-model tests. It loads its own copy of the model, so run it alone:
+    /// The negative cases are text that only looks like a retraction. The guard accepts the unchanged text, or
+    /// pastes the raw text (the same words) when a negation stands before the marker.
+    @Test func negativesComeBackUnchangedOrAsTheRawText() throws {
+        for item in try AutocorrectCorpus.load() where item.category == "negative" {
+            let verdict = FormatterGuard.check(input: item.raw, output: item.expected)
+            #expect(
+                verdict == .accepted(item.expected) || verdict == .rejected(.negationBeforeMarker), "\(item.id)")
+        }
+    }
+
+    /// The number of negation words in a text, counted like the guard counts them.
+    static func negations(in text: String, polish: Bool) -> Int {
+        AutocorrectCorpus.tokens(text).filter { FormatterGuard.negates($0, polish: polish) }.count
+    }
+
+    /// Cleans every case with the built-in model in `LINTEL_LLAMA_MODEL` and prints counts and case ids (the
+    /// corpus is invented, so the ids are public): cases that keep and drop the right words, and for the
+    /// answers the guard ACCEPTED the ones that lost the final version, kept the withdrawn version (alone, or
+    /// with the final one), changed the number of negations, or removed words of a negative case; and for the
+    /// chunks that fell back to the raw text the reason (length like `main`, the negation rule, other). Off by
+    /// default, like the other real-model tests. It loads its own copy of the model, so run it alone:
     /// `LINTEL_LLAMA_MODEL=<gguf> swift test --filter AutocorrectCorpusTests`.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["LINTEL_LLAMA_MODEL"] != nil))
     func realModelPassCountsPerCategory() async throws {
@@ -205,26 +238,179 @@ enum AutocorrectCorpus {
             runtime: LlamaRuntime(), modelURL: URL(fileURLWithPath: path), keepWarm: { .seconds(300) })
         let formatter = BuiltInFormatter(runtime: warm)
         await formatter.prepare()
-        var passed: [String: Int] = [:]
-        var keptWithdrawn: [String: Int] = [:]
-        var fellBack: [String: Int] = [:]
-        var total: [String: Int] = [:]
-        for item in try AutocorrectCorpus.load() {
+        let cases = try AutocorrectCorpus.load()
+        var passed: [String] = []
+        var passedByCategory: [String: Int] = [:]
+        var totalByCategory: [String: Int] = [:]
+        var fellBackLength: [String] = []
+        var fellBackNegation: [String] = []
+        var fellBackOther: [String] = []
+        var lostFinal: [String] = []
+        var keptWithdrawn: [String] = []
+        var bothVersions: [String] = []
+        var changedNegation: [String] = []
+        var overRemoved: [String] = []
+        var falseAlarms: [String] = []
+        for item in cases {
             let key = "\(item.lang)/\(item.category)"
-            total[key, default: 0] += 1
+            totalByCategory[key, default: 0] += 1
             let result = try await formatter.format(chunk: item.raw, previousContext: nil)
-            if AutocorrectCorpus.satisfies(result.text, item) { passed[key, default: 0] += 1 }
-            if case .fellBack = result.outcome {
-                fellBack[key, default: 0] += 1
-            } else if AutocorrectCorpus.keepsWithdrawn(result.text, item) {
-                keptWithdrawn[key, default: 0] += 1
+            if AutocorrectCorpus.satisfies(result.text, item) {
+                passed.append(item.id)
+                passedByCategory[key, default: 0] += 1
+            }
+            if case .fellBack(let reason) = result.outcome {
+                switch reason {
+                case .rejected(.tooShort), .rejected(.tooLong): fellBackLength.append(item.id)
+                case .rejected(.negationBeforeMarker): fellBackNegation.append(item.id)
+                default: fellBackOther.append(item.id)
+                }
+                // Greedy decoding gives the same answer again: a rejected answer that satisfies the case is a
+                // false alarm (the raw text was pasted although the cleanup was right).
+                let messages = CleanupPrompt.messages(transcript: item.raw, context: nil)
+                let words = FormatterGuard.words(in: item.raw)
+                let answer = (try? await warm.generate(messages: messages, maxTokens: words * 4 + 64)) ?? ""
+                if AutocorrectCorpus.satisfies(answer, item) { falseAlarms.append(item.id) }
+                continue
+            }
+            // From here the guard accepted the model's answer.
+            let words = Set(AutocorrectCorpus.tokens(result.text))
+            let polish = Language.dominant(in: item.raw) == .polish
+            if AutocorrectCorpus.withdrawing.contains(item.category) {
+                let finalKept = item.mustKeep.allSatisfy { AutocorrectCorpus.holds(words, $0) }
+                if !finalKept { lostFinal.append(item.id) }
+                if AutocorrectCorpus.keepsWithdrawn(result.text, item) {
+                    keptWithdrawn.append(item.id)
+                    if finalKept { bothVersions.append(item.id) }
+                }
+            }
+            if Self.negations(in: result.text, polish: polish) != Self.negations(in: item.expected, polish: polish) {
+                changedNegation.append(item.id)
+            }
+            if item.category == "negative", !AutocorrectCorpus.satisfies(result.text, item) {
+                overRemoved.append(item.id)
+            }
+            if ProcessInfo.processInfo.environment["LINTEL_CORPUS_VERBOSE"] != nil,
+                !AutocorrectCorpus.satisfies(result.text, item)
+            {
+                print("[autocorrect-fail] \(item.id): \(result.text)")
             }
         }
         await warm.unload()
-        for key in total.keys.sorted() {
-            let counts = "\(passed[key, default: 0])/\(total[key] ?? 0)"
-            let failures = "keptWithdrawn \(keptWithdrawn[key, default: 0]) fellBack \(fellBack[key, default: 0])"
-            print("[autocorrect-model] \(key): \(counts) \(failures)")
+        let withdrawing = AutocorrectCorpus.withdrawing
+        func sum(_ categories: Set<String>) -> (passed: Int, total: Int) {
+            func pick(_ counts: [String: Int]) -> Int {
+                counts.filter { categories.contains(String($0.key.split(separator: "/").last ?? "")) }
+                    .values.reduce(0, +)
+            }
+            return (pick(passedByCategory), pick(totalByCategory))
         }
+        let w = sum(withdrawing)
+        let n = sum(["negative"])
+        print(
+            "[autocorrect-model-total] prompt v\(CleanupPrompt.version) passed \(passed.count)/\(cases.count)"
+                + " withdrawals \(w.passed)/\(w.total) negatives \(n.passed)/\(n.total)")
+        print(
+            "[autocorrect-model-fellback] length(main) \(fellBackLength.count) \(fellBackLength.sorted())"
+                + " negationRule \(fellBackNegation.count) \(fellBackNegation.sorted())"
+                + " other \(fellBackOther.count) \(fellBackOther.sorted())"
+                + " falseAlarms \(falseAlarms.count) \(falseAlarms.sorted())")
+        print(
+            "[autocorrect-model-accepted] lostFinal \(lostFinal.count) \(lostFinal.sorted())"
+                + " keptWithdrawn \(keptWithdrawn.count) \(keptWithdrawn.sorted())"
+                + " bothVersions \(bothVersions.count) \(bothVersions.sorted())"
+                + " changedNegation \(changedNegation.count) \(changedNegation.sorted())"
+                + " overRemovedNegatives \(overRemoved.count) \(overRemoved.sorted())")
+        for key in totalByCategory.keys.sorted() {
+            print("[autocorrect-model] \(key): \(passedByCategory[key, default: 0])/\(totalByCategory[key] ?? 0)")
+        }
+    }
+}
+
+/// The prompt's examples teach the shape of a retraction; they must not be corpus cases, or a corpus pass
+/// would measure memory instead of behaviour. This fails when an example (input or output) or a quoted phrase
+/// of the system prompt shares three consecutive words with a corpus text, or too many content words, once
+/// the marker phrases and fillers are removed.
+@Suite struct CleanupPromptCorpusSeparationTests {
+    private static let fillers: [[String]] = [
+        ["um"], ["uh"], ["uhm"], ["erm"], ["eh"], ["mhm"], ["hmm"], ["no", "więc"], ["no", "cóż"], ["you", "know"],
+    ]
+
+    private static let phrases: [[String]] =
+        (FormatterGuard.retractionMarkers + Self.fillers + [
+            ["yyy"], ["yy"], ["eee"], ["ee"], ["nie"], ["albo"], ["no"], ["or"],
+        ])
+        .sorted { $0.count > $1.count }
+
+    /// Words of a text without marker phrases and fillers.
+    static func stripped(_ text: String) -> [String] {
+        var words = AutocorrectCorpus.tokens(text)
+        var index = 0
+        while index < words.count {
+            if let phrase = phrases.first(where: { phrase in
+                index + phrase.count <= words.count && Array(words[index..<(index + phrase.count)]) == phrase
+            }) {
+                words.removeSubrange(index..<(index + phrase.count))
+            } else {
+                index += 1
+            }
+        }
+        return words
+    }
+
+    static func runs(_ words: [String], length: Int) -> Set<[String]> {
+        guard words.count >= length else { return [] }
+        return Set((0...(words.count - length)).map { Array(words[$0..<($0 + length)]) })
+    }
+
+    /// Words of four letters or more: the vocabulary that makes two sentences about the same thing.
+    static func content(_ words: [String]) -> Set<String> {
+        Set(words.filter { $0.count >= 4 })
+    }
+
+    /// The reasons `text` is too close to a corpus text, empty when it is not.
+    static func overlaps(_ text: String, corpus: [AutocorrectCorpus.Case]) -> [String] {
+        let words = stripped(text)
+        let mine = runs(words, length: 3)
+        let vocabulary = content(words)
+        var found: [String] = []
+        for item in corpus {
+            for other in [item.raw, item.expected] {
+                let theirs = stripped(other)
+                if !mine.isDisjoint(with: runs(theirs, length: 3)) { found.append("\(item.id) run") }
+                let common = vocabulary.intersection(content(theirs))
+                let union = vocabulary.union(content(theirs))
+                if !union.isEmpty, Double(common.count) / Double(union.count) >= 0.3 {
+                    found.append("\(item.id) jaccard")
+                }
+            }
+        }
+        return found
+    }
+
+    /// The quoted samples in the system prompt that are phrases, not marker lists.
+    static func quotedSamples() -> [String] {
+        let parts = CleanupPrompt.system.components(separatedBy: "\"")
+        return stride(from: 1, to: parts.count, by: 2).map { parts[$0] }
+    }
+
+    @Test func examplesAreNotCorpusCases() throws {
+        let corpus = try AutocorrectCorpus.load()
+        for (index, example) in CleanupPrompt.examples.enumerated() {
+            #expect(Self.overlaps(example.input, corpus: corpus).isEmpty, "example \(index) input")
+            #expect(Self.overlaps(example.output, corpus: corpus).isEmpty, "example \(index) output")
+        }
+        for sample in Self.quotedSamples() {
+            #expect(Self.overlaps(sample, corpus: corpus).isEmpty, "system prompt sample \(sample)")
+        }
+    }
+
+    @Test func theCheckCatchesACopiedCase() throws {
+        let corpus = try AutocorrectCorpus.load()
+        let item = try #require(corpus.first)
+        #expect(!Self.overlaps(item.raw, corpus: corpus).isEmpty)
+        #expect(!Self.overlaps(item.expected, corpus: corpus).isEmpty)
+        let paraphrase = item.expected.split(separator: " ").dropLast().joined(separator: " ")
+        #expect(!Self.overlaps(paraphrase, corpus: corpus).isEmpty)
     }
 }

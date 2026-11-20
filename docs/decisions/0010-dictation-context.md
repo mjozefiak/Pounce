@@ -133,6 +133,15 @@ sets the rules the new prompt and the adjusted `FormatterGuard` must keep.
   spoken marker ("albo jednak", "nie, czekaj", "no wait", "scratch that"). Only the final version stays. The
   marker goes too. The markers are a closed PL and EN list in code. "To znaczy" and "I mean" usually explain
   instead of retracting, so they are on the list only if the regression set shows no wrongly removed text.
+  *Where the list in code comes from (stated plainly):* it was not derived independently of the corpus. The
+  eleven entries (`czekaj`, `jednak`, `właściwie`, `pomyłka`, `przepraszam`, `to znaczy`, `wait`, `actually`,
+  `sorry`, `scratch that`, `i mean`) are the marker words that the synthetic corpus uses, written as single words
+  or short phrases so that "nie, czekaj" and "albo jednak" are found through `czekaj` and `jednak`. The
+  conditional in the sentence above is therefore not met: "to znaczy" and "I mean" are on the list although the
+  corpus shows wrongly removed text with them (see the over-removal ids in the Result). Because the list and the
+  guard's tuning share one source, the guard tests include held-out retractions and attacks that are not corpus
+  cases (`GuardProbeTests`, `NegationRuleTests`), and the prompt's examples are checked against the corpus
+  (`CleanupPromptCorpusSeparationTests`).
 
 **The model may not:**
 
@@ -162,16 +171,19 @@ passes).
 - a chunk the guard rejects comes back raw, as today;
 - an empty result is never pasted: when the model removed everything, the chunk comes back raw.
 
-**What this means for `FormatterGuard`.** Today it rejects an output with fewer than 0.6 of the input's words,
-so a correctly removed long retraction is thrown away. The adjustment must keep these properties:
-
-- the upper bound (1.15) stays, and so do the "answered" and "language changed" checks: these enforce "may not
-  add";
-- the lower bound (0.6) may be relaxed only for a chunk whose input holds a marker from the closed list, found
-  by code, not on the model's word. The relaxed bound is one fixed number in code, chosen on the regression set
-  and recorded in that pull request. A chunk without a marker keeps 0.6;
-- for a relaxed chunk the guard also checks in code that nothing was added: the share of output words that do
-  not occur in the input is under a fixed number (not zero: numbers and inflection change).
+**What this means for `FormatterGuard`.** Best effort, not a guarantee (owner decision 2026-11-20, variant A,
+after five rounds of review of PR #134 in which every guard that tried to recognise a good cleanup was passed
+by a variant of the same class). The guard is EXACTLY the guard of `main`: the upper bound (1.15), the lower
+bound (0.6), the language and "answered". It adds ONE rule: when the input holds a spoken retraction marker of
+the closed list and any negation stands before the FIRST marker, the model's answer is dropped and the raw text
+is pasted (`negationBeforeMarker`). The negation words are an explicit list in code (Polish: `nie`, `nigdy`,
+`nic`, `nikt`, `żaden`, `żadna`, `żadne`, `bez`, `ani`; English: `not`, `never`, `none`, `nothing`, `nobody`,
+`neither`, `nor`, `without`, `cannot`, `no`, a word ending in `n't` and the apostrophe-less contractions `dont`,
+`cant`, `wont` and the like); a negation after the marker is the replacement and blocks nothing. Two details
+keep the rule from rejecting the ordinary case: "nie, czekaj", "nie, to znaczy" and "no wait" are listed whole
+(their "nie" or "no" belongs to the marker), and `no` counts only outside a Polish chunk ("no więc", "no to" are
+fillers). The lower bound is NOT relaxed: a correctly removed long retraction can be thrown away as too short
+and the raw text is pasted (the numbers are in the Result).
 
 **Version numbers.** The decision-7 change is `CleanupPrompt.version` 1 → 2, a user-visible behaviour
 (`BACKWARD_COMPATIBILITY.md` sections 3 and 5: release note, a new golden prompt file). DICT-4.2 (a list of
@@ -410,3 +422,71 @@ DICT-2.2, which is the first story that uses their values.
   text bound it; the regression set of the decision-7 work must prove the "wrong version kept" failure is gone.
 - No baseline means the epic's value is judged by the dogfood numbers and the owner's own use, not by a
   measured improvement.
+
+## Result of the version 2 change (2026-11-20, variant A)
+
+**Best effort, not a guarantee.** Prompt version 2 makes the models remove a retraction in many cases, and the
+guard protects as before (`main`'s length range and language) plus the negation rule. It does not read the
+words of the answer against the words that were spoken.
+
+`CleanupPrompt.version` is 2. Numbers come from the synthetic corpus (79 cases, 38 withdrawals, 21 negatives),
+both built-in catalog models, greedy decoding, Apple silicon, ONE run per model on the final guard
+(`AutocorrectCorpusTests.realModelPassCountsPerCategory`). "Pass" means the output keeps the `must_keep` words
+and drops the `must_drop` words; a raw fallback keeps both versions, so it does not pass a withdrawal.
+
+| Model | Pass, all (79) | Withdrawals (38) | Negatives (21) | Raw fallback: length range of `main` | Raw fallback: negation rule | Other fallback | of the fallbacks, the cleanup was right (false alarm) |
+|---|---|---|---|---|---|---|---|
+| Qwen3 4B Instruct 2507 Q4_K_M | 46 | 10 | 19 | 27 | 1 (`pl-cor-7`) | 0 | 25 |
+| Qwen3 30B-A3B Instruct 2507 Q4_K_M | 47 | 10 | 21 | 23 | 0 | 0 | 23 |
+
+Accepted answers (the guard let them through):
+
+| Model | Final version lost | Both versions kept | Negation count changed | Negative case lost a word |
+|---|---|---|---|---|
+| 4B | 0 | 2 (`pl-rth-3`, `pl-rth-4`) | 1 (`pl-neg-10`) | 2 (`en-neg-7`, `pl-neg-10`) |
+| 30B | 0 | 7 (`en-rth-1`, `pl-ret-9`, `pl-rth-1`, `pl-rth-2`, `pl-rth-3`, `pl-rth-4`, `pl-rth-5`) | 1 (`pl-ret-9`: the meaning is inverted and both versions stay) | 0 |
+
+Comparison with `main` (prompt version 1, numbers of the earlier measurement in this PR, the previous guard,
+not repeated): 4B passed 52 (14 withdrawals, 19 negatives), 30B passed 49 (12, 19). Variant A passes FEWER
+withdrawals than version 1 on this corpus (10 against 14 and 12): the prompt does remove the retraction in
+most cases, but `main`'s lower bound of 0.6 throws the shortened result away and the raw text, with both
+versions, is pasted (25 and 23 of the fallbacks were correct cleanups). What variant A buys is that nothing
+new is accepted that `main` would reject, and that a negation before a marker never reaches the model's
+rewrite. Negatives: 4B 19 (as version 1), 30B 21 (version 1: 19). The "wrong version kept and final lost"
+failure of version 1 did not occur in an accepted answer in this run (0 on both).
+
+## What the guard does not see
+
+Everything the guard of `main` did not see, and no rule has been added for it (issue #158 follows up):
+a lost final version, both versions kept without a marker, a changed number or name, a changed unit, a dropped
+negation outside the rule, swapped words, in an answer of a length between 0.6 and 1.15 of the input and in the
+same language. Numbers from the invented probe tables (`GuardProbeTable`, 355 rows, kept as documentation of
+known behaviour, asserted in `GuardProbeTests`):
+
+- 210 rows are bad outputs (189 of them with a retraction marker). The guard accepts **70** of them (49 with
+  a marker, 21 without). All 70 are accepted by `main` too: outside the negation rule the verdict is `main`'s
+  (`everyProbeGetsTheVerdictOfMainExceptTheNegationRule`, which also runs over 994 generated chunks and the
+  corpus). The 70 are the known limits: a removed part that was not withdrawn ("send it to anna and bob sorry
+  to carol" to "Send it to Carol."), both versions kept with a changed number, a dropped negation without a
+  marker, units swapped, an unlisted marker, and the like.
+- 145 rows are correct cleanups. The guard turns **70** of them into the raw text (2 by the negation rule, 68
+  by the length range): the price of keeping `main`'s lower bound.
+- The negation probes of the fifth verification (`GuardProbeTableRound8`, ids `R5-`), which `main` rejected by
+  length and the span rule of rounds 5 to 7 would have accepted, e.g. "nie przyjdę jutro czekaj przyjdę jutro"
+  to "Nie przyjdę jutro.", are rejected (`theNegationProbesOfRound5AreRejected`). The correct ones among them
+  with a negation before the marker ("nie dzwoń do Anny czekaj do Marka" to "Nie dzwoń do Marka.") are raw
+  fallbacks too.
+- The rule has its own false alarms: any negation before the first marker, also a harmless one ("nie mogę, przepraszam
+  za spóźnienie"), pastes the raw text; the markers `przepraszam`, `jednak`, `właściwie` and `actually` are
+  often content.
+- Not covered by any test or measurement: real dictation (40 to 60 word chunks, the owner's phrasing). The
+  corpus is small, single sentences written by one hand.
+
+## What variants were tried
+
+Rounds 1 to 7 of PR #134 built guards that derive the answer from the input (alignment at no cost, retracted
+span rules, number words, a property test over mutations). Each round the next review found a variant that
+got past it, and the code grew to about 330 lines. They were removed in favour of this decision: `main`'s 114
+lines plus the negation rule (57 lines, 171 in all). The probe tables stay.
+
+**Condition.** A smaller model added to the catalog must pass the same report before it may use version 2.

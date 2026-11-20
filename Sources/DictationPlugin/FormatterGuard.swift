@@ -3,6 +3,9 @@ import Foundation
 /// Checks what the formatting model returned and throws away what is not a cleaned version of the input
 /// (spec: `FormatterGuard`). A rejected chunk is replaced by the raw text, so a bad answer never reaches the
 /// user's document.
+///
+/// Best effort, not a guarantee (ADR 0010): the checks are the length range, the language and one rule for
+/// negation. The guard does not compare the words of the answer with the words that were spoken.
 enum FormatterGuard {
     enum Verdict: Equatable, Sendable {
         case accepted(String)
@@ -15,6 +18,10 @@ enum FormatterGuard {
         case tooShort
         case languageChanged
         case answered
+        /// The chunk holds a spoken retraction marker and a negation stands before the first one ("nie przyjdę
+        /// jutro czekaj przyjdę jutro"): a cleanup can drop the negation together with the withdrawn words and
+        /// turn the sentence round, and the guard cannot tell. The raw text is pasted.
+        case negationBeforeMarker
     }
 
     /// The output may hold 0.6 to 1.15 times the input's words.
@@ -40,7 +47,57 @@ enum FormatterGuard {
         let before = Language.dominant(in: input)
         let after = Language.dominant(in: output)
         if before != .unknown, after != .unknown, before != after { return .rejected(.languageChanged) }
+        if negationBeforeMarker(in: input) { return .rejected(.negationBeforeMarker) }
         return .accepted(output)
+    }
+
+    /// The spoken markers with which a speaker withdraws a fragment (the list of the cleanup prompt), as
+    /// lower-cased words. "nie, czekaj", "nie, to znaczy" and "no wait" are listed whole: the "nie" or "no" in
+    /// them belongs to the marker and is not a negation before it.
+    static let retractionMarkers: [[String]] = [
+        ["nie", "czekaj"], ["nie", "to", "znaczy"], ["no", "wait"],
+        ["czekaj"], ["jednak"], ["właściwie"], ["pomyłka"], ["przepraszam"], ["to", "znaczy"],
+        ["wait"], ["actually"], ["sorry"], ["scratch", "that"], ["i", "mean"],
+    ]
+
+    /// Words that negate (Polish, English). A contraction ends in `n't`, or is one of `contractions` when the
+    /// recogniser left the apostrophe out; "want" or "moment" is not one.
+    static let negations: Set<String> = [
+        "nie", "nigdy", "nic", "nikt", "żaden", "żadna", "żadne", "bez", "ani",
+        "not", "never", "none", "nothing", "nobody", "neither", "nor", "without", "cannot",
+    ]
+    static let contractions: Set<String> = [
+        "dont", "doesnt", "didnt", "cant", "couldnt", "wont", "wouldnt", "shouldnt", "isnt", "arent", "wasnt",
+        "werent", "hasnt", "havent", "hadnt", "mustnt", "neednt", "shant", "aint",
+    ]
+
+    /// "no" negates in English; in a Polish chunk it is the particle of "no więc" and "no to".
+    static func negates(_ token: String, polish: Bool) -> Bool {
+        negations.contains(token) || contractions.contains(token) || token.hasSuffix("n't")
+            || (token == "no" && !polish)
+    }
+
+    /// The index of the first word of the first retraction marker in the tokens, `nil` without one.
+    static func firstMarker(in tokens: [String]) -> Int? {
+        tokens.indices.first { index in
+            retractionMarkers.contains {
+                index + $0.count <= tokens.count && Array(tokens[index..<(index + $0.count)]) == $0
+            }
+        }
+    }
+
+    /// Whether the input holds a retraction marker with a negation anywhere before the first one.
+    static func negationBeforeMarker(in input: String) -> Bool {
+        let tokens = tokens(input)
+        guard let marker = firstMarker(in: tokens) else { return false }
+        let polish = Language.dominant(in: input) == .polish
+        return tokens[..<marker].contains { negates($0, polish: polish) }
+    }
+
+    /// Lower-cased words, split on anything that is not a letter, digit or apostrophe.
+    static func tokens(_ text: String) -> [String] {
+        text.lowercased().replacingOccurrences(of: "’", with: "'")
+            .split { !($0.isLetter || $0.isNumber || $0 == "'") }.map(String.init)
     }
 
     /// Removes thinking blocks and tags the model may echo, and the whitespace around the text.

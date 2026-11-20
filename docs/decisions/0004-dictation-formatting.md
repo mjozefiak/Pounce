@@ -80,3 +80,16 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
 - [7] https://huggingface.co/superwhisper/s1-mini-GGUF
 - [8] https://superwhisper.userjot.com/board/p/ability-to-have-language-model-ignore-questions.
 - [9] https://tryvoiceink.com/docs/prompt-management
+
+## Addendum (2026-11-20): CleanupPrompt version 2
+
+`CleanupPrompt.version` is 2 (owner decision 7, ADR 0010 decision 2): a fragment the speaker explicitly takes
+back with a spoken marker is removed together with the marker, the replacement stays, and the model keeps both
+versions (with the marker between them) when it is not sure. This is a best effort, not a guarantee.
+`FormatterGuard` is exactly the guard of `main` (the length range 0.6 to 1.15 of the input's words, the
+language, "answered") plus ONE rule (owner decision 2026-11-20, variant A): when the input holds a listed
+spoken retraction marker and any negation stands before the FIRST one, the model's answer is dropped and the
+raw text is pasted (`negationBeforeMarker`). The guard does not compare the words of the answer with the words
+that were spoken; what it does not see is listed, with numbers, in ADR 0010 "What the guard does not see". Both
+formatters (server and built-in) share the prompt and the guard. The prompt's examples are not corpus cases
+(`CleanupPromptCorpusSeparationTests`).
