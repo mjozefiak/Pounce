@@ -155,6 +155,17 @@ let package = Package(
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
+        // Shared fakes and waiting helpers for tests (clocks, latches, bounded waits). It imports Foundation,
+        // Synchronization, Observation and Testing only, depends on no repository target, and no non-test target
+        // may depend on it (`LintelTestSupportTests/PackageGraphTests`).
+        .target(
+            name: "LintelTestSupport",
+            path: "Tests/LintelTestSupport"
+        ),
+        .testTarget(
+            name: "LintelTestSupportTests",
+            dependencies: ["LintelTestSupport"]
+        ),
         .testTarget(
             name: "LintelKitTests",
             dependencies: ["LintelKit"]
