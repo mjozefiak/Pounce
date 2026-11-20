@@ -121,7 +121,7 @@ public struct ProviderDescriptor: Sendable {
     /// Flags that must be present, with the value they need (`nil`: no value of its own).
     static let requiredFlags: [(name: String, emptyValue: Bool)] = [
         ("--setting-sources", true), ("--strict-mcp-config", false), ("--no-session-persistence", false),
-        ("--tools", true), ("--disable-slash-commands", false),
+        ("--tools", true), ("--disable-slash-commands", false), ("--safe-mode", false),
     ]
 
     static let forbiddenFlags: [String] = [
@@ -165,6 +165,7 @@ public struct ProviderDescriptor: Sendable {
             "--disable-slash-commands",
             "--strict-mcp-config",
             "--setting-sources", "",
+            "--safe-mode",
             "--model", model,
         ]
         if !systemPrompt.isEmpty { argv += ["--system-prompt", systemPrompt] }

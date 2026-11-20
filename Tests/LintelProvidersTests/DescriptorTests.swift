@@ -11,7 +11,8 @@ import Testing
         #expect(
             argv == [
                 "-p", "--output-format", "json", "--tools", "", "--no-session-persistence",
-                "--disable-slash-commands", "--strict-mcp-config", "--setting-sources", "", "--model", "sonnet",
+                "--disable-slash-commands", "--strict-mcp-config", "--setting-sources", "", "--safe-mode", "--model",
+                "sonnet",
                 "--system-prompt", "Static prompt.",
             ])
         #expect(descriptor.isolationProblems(arguments: argv).isEmpty)
@@ -42,6 +43,7 @@ import Testing
 
     @Test(arguments: [
         "--setting-sources", "--strict-mcp-config", "--no-session-persistence", "--tools", "--disable-slash-commands",
+        "--safe-mode",
     ])
     func removingAnyRequirementNamesIt(flag: String) throws {
         var argv = try descriptor.arguments(model: "sonnet", systemPrompt: "")
