@@ -40,6 +40,15 @@ public enum ProviderParsedOutput: Sendable, Equatable {
 public struct ProviderModel: Sendable, Equatable {
     public let id: String
     public let displayName: String
+    /// The estimated tokens of transcript one request takes (spec `2026-11-10-external-ai-providers`, Q12). A working
+    /// number until the measurement of step 0.2; a model id the user typed gets `ProviderDescriptor.defaultInputBudgetTokens`.
+    public let inputBudgetTokens: Int
+
+    public init(id: String, displayName: String, inputBudgetTokens: Int = ProviderDescriptor.defaultInputBudgetTokens) {
+        self.id = id
+        self.displayName = displayName
+        self.inputBudgetTokens = inputBudgetTokens
+    }
 }
 
 /// Data and pure functions of one provider (spec: `ProviderDescriptor`). The argv is made in `arguments`, nowhere
@@ -89,6 +98,17 @@ public struct ProviderDescriptor: Sendable {
             environmentAllowlist: environmentAllowlist, argumentBuilder: argumentBuilder)
     }
 
+    /// The model a consumer offers first: the first entry of `models`.
+    public var defaultModelID: String { models.first?.id ?? "" }
+
+    /// The input budget of a model the catalog does not list.
+    public static let defaultInputBudgetTokens = 100_000
+
+    /// The budget of `model`: its catalog entry, else the default.
+    public func inputBudgetTokens(forModel model: String) -> Int {
+        models.first { $0.id == model }?.inputBudgetTokens ?? Self.defaultInputBudgetTokens
+    }
+
     // MARK: Claude Code
 
     /// Claude Code CLI. `isolationVerified` stays `false` until canary point 5 (TCC) has an owner decision (ADR 0011).
@@ -101,9 +121,15 @@ public struct ProviderDescriptor: Sendable {
         authStatusArguments: ["auth", "status"],
         // Measured with 2.1.328; the canary is repeated for every new range.
         supportedVersions: ProviderVersion([2, 1, 0])...ProviderVersion([2, 1, Int.max]),
+        // All CLI aliases (owner decision D15, 2026-11-20); `sonnet` is the default (`defaultModelID`). Quality gate G
+        // was measured on `sonnet` ONLY: `haiku`, `opus` and `fable` are UNMEASURED. The input budgets of `opus` and
+        // `fable` are an ASSUMPTION (not above sonnet's) until someone measures them. There is no per-model minimum CLI
+        // version: a CLI that does not know an alias fails the run (never a silent switch to another model).
         models: [
             ProviderModel(id: "sonnet", displayName: "Sonnet"),
             ProviderModel(id: "haiku", displayName: "Haiku"),
+            ProviderModel(id: "opus", displayName: "Opus"),
+            ProviderModel(id: "fable", displayName: "Fable"),
         ],
         isolationVerified: false,
         environmentAllowlist: Self.claudeEnvironmentAllowlist)

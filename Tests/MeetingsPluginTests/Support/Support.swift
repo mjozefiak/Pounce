@@ -46,6 +46,8 @@ final class MemoryKeychain: KeychainClient {
     }
 
     let state = Mutex(State())
+    /// Runs on the reading thread before every read (a test blocks it to hold an open in the middle).
+    let beforeRead = Mutex<(@Sendable () -> Void)?>(nil)
 
     var itemNames: Set<String> { state.withLock { Set($0.items.keys) } }
     var deleteCount: Int { state.withLock { $0.deletes } }
@@ -55,6 +57,7 @@ final class MemoryKeychain: KeychainClient {
     }
 
     func readGenericPassword(service: String, account: String) throws(KeychainError) -> Data {
+        beforeRead.withLock { $0 }?()
         let result: Result<Data, KeychainError> = state.withLock { state in
             if let error = state.readError { return .failure(error) }
             guard let data = state.items["\(service)/\(account)"] else { return .failure(.itemNotFound) }

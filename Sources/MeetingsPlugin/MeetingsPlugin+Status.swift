@@ -22,7 +22,7 @@ extension MeetingsPlugin {
             modelTitle: model.speech.package.title, packageID: model.speech.package.id, deniedPermissions: denied,
             allowMicrophone: { await model.requestMicrophoneAccess() },
             retryLibrary: {
-                library.open()
+                await library.openInBackground()
                 changed()
             })
     }

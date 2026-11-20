@@ -100,6 +100,7 @@ public final class MeetingsPlugin: LintelPlugin {
                 modelFile: { model in
                     await llmManager.location(of: model.package).folder.flatMap { model.fileURL(in: $0) }
                 },
+                providerRunner: system.makeProviderRunner(context.cachesDirectory),
                 openModels: context.openModels, changed: changed, logger: context.logger))
         self.notes = notes
         library.onMeetingReady = { [weak notes] id in notes?.meetingBecameReady(id) }
@@ -129,7 +130,7 @@ public final class MeetingsPlugin: LintelPlugin {
     // MARK: Lifecycle
 
     public func activate() async throws {
-        library.open()
+        await library.openInBackground()
         await notes.start()
         let detector = makeDetector()
         let workspace = context.workspace
@@ -196,7 +197,7 @@ public final class MeetingsPlugin: LintelPlugin {
     /// archives and the spool). Models live in the shared `Models/` folder and stay.
     public func eraseData() async throws {
         libraryActions.closeWindows()
-        try library.erase()
+        try await library.eraseAfterOpens()
     }
 
     // MARK: Contributions
