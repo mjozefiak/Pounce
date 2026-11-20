@@ -37,9 +37,9 @@ final class ReadyEvents: Sendable {
     }
 
     /// The next id told, as soon as it is. `nil` when the task is cancelled or `hangGuard` passes; the guard
-    /// only ends a test whose event never comes (it does not estimate how long the work takes, so it is not
-    /// tuned to the machine; #165).
-    func next(hangGuard: Duration) async -> Int64? {
+    /// only ends a test whose event never comes. One wait per instance after a `nil`: cancelling the wait ends
+    /// the stream for good, so a later `next` returns `nil` at once (#165).
+    func next(hangGuard: Duration = .seconds(60)) async -> Int64? {
         await withTaskGroup(of: Int64?.self) { group in
             group.addTask { [stream] in
                 var iterator = stream.makeAsyncIterator()
