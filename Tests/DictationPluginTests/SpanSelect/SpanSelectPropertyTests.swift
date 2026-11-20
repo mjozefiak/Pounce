@@ -41,20 +41,112 @@ import Testing
         #expect(checked > 500)
     }
 
+    /// The end of the last marker of the input, as `SpanSelect.run` finds them (left to right).
+    static func lastMarkerEnd(_ words: [String]) -> Int? {
+        let keys = words.map(SpanSelect.key)
+        var end: Int?
+        var from = 0
+        while let found = SpanSelect.marker(in: keys, from: from) {
+            end = found.end
+            from = found.end
+        }
+        return end
+    }
+
+    /// Every result reachable by any choice of decisions on a chain of markers (the whole space inside the
+    /// window, not a sample: the walk is asserted not to hit its cap) is a subsequence of the input and keeps
+    /// every word after the input's last marker.
     @Test func chainsOfSeveralMarkersStayASubsequenceWithoutForeignWords() throws {
         var chains = 0
         for item in try SpanEval.items() {
             let words = SpanSelect.words(item.raw)
+            let tailStart = Self.lastMarkerEnd(words)
             for rule in [false, true] {
-                for leaf in SpanEval.leaves(item.raw, limit: 12, rule: rule) {
+                let leaves = SpanEval.leaves(item.raw, limit: 12, rule: rule)
+                #expect(leaves.count < 4000, "\(item.id): the walk was cut off")
+                for leaf in leaves {
                     let result = SpanSelect.words(leaf.text)
                     #expect(isSubsequence(result, of: words), "\(item.id)")
-                    #expect(leaf.decisions.count >= 0)
+                    if let tailStart {
+                        #expect(
+                            Array(result.suffix(words.count - tailStart)) == Array(words[tailStart...]), "\(item.id)")
+                    }
                     if leaf.decisions.count > 1 { chains += 1 }
                 }
             }
         }
         #expect(chains > 0)
+    }
+
+    /// The rules after the model's answer can only keep it, turn it into `none` or move the start by one word
+    /// inside the window; the result of every rule set, left to right or from the end, stays a subsequence
+    /// that keeps every word after the last marker. Every decision of the window is tried (a scripted
+    /// "model" that answers each start in turn for the first marker and `none` afterwards).
+    @Test func theDeterministicRulesOnlyKeepCancelOrShiftByOne() throws {
+        let sets: [SpanSelect.Rules] = [
+            [], [.negation], [.align], [.negation, .align], [.requireRepair], [.negation, .align, .requireRepair],
+            [.negation, .align, .requireRepair, .anchorNegatingMarkers], [.negation, .align, .anchorAll],
+        ]
+        var checked = 0
+        for item in try SpanEval.items() {
+            let words = SpanSelect.words(item.raw)
+            guard let marker = SpanSelect.marker(in: words.map(SpanSelect.key)), marker.start > 0 else { continue }
+            let tailStart = try #require(Self.lastMarkerEnd(words))
+            let polish = Language.dominant(in: item.raw) == .polish
+            for limit in Self.limits {
+                let window = SpanSelect.window(before: marker, limit: limit)
+                let query = SpanSelect.Query(words: words, marker: marker, window: window, polish: polish)
+                for choice in [SpanSelect.Decision.none] + window.map({ .start($0) }) {
+                    for rules in sets {
+                        let ruled = SpanSelect.applyRules(choice, rules, in: query)
+                        switch (choice, ruled) {
+                        case (_, .none): break
+                        case (.start(let s), .start(let r)):
+                            #expect(abs(s - r) <= 1 && window.contains(r), "\(item.id)")
+                            if !rules.contains(.align) { #expect(s == r, "\(item.id)") }
+                        case (.none, .start): Issue.record("a rule turned none into a cut: \(item.id)")
+                        }
+                        for fromEnd in [false, true] {
+                            var first = true
+                            let decide: (SpanSelect.Query) -> SpanSelect.Decision = { _ in
+                                defer { first = false }
+                                return first ? choice : .none
+                            }
+                            let outcome =
+                                fromEnd
+                                ? SpanSelect.runFromEnd(item.raw, limit: limit, rules: rules, decide: decide)
+                                : SpanSelect.run(item.raw, limit: limit, rules: rules, decide: decide)
+                            let result = SpanSelect.words(outcome.text)
+                            #expect(isSubsequence(result, of: words), "\(item.id)")
+                            #expect(
+                                Array(result.suffix(words.count - tailStart)) == Array(words[tailStart...]),
+                                "\(item.id)")
+                            checked += 1
+                        }
+                    }
+                }
+            }
+        }
+        #expect(checked > 10_000)
+    }
+
+    /// From the end, a cut never joins two words into a new marker: the next marker is searched only before
+    /// the cut. Left to right the search goes on after the cut's start, so a joined marker cannot form either.
+    @Test func aCutNeverCreatesANewMarker() {
+        // "y sorry" cut leaves "to" next to "znaczy": "x to znaczy z" would hold the marker "to znaczy".
+        let text = "x to y sorry znaczy z"
+        var seen: [SpanSelect.Marker] = []
+        let left = SpanSelect.run(text, limit: 8, rules: []) { query in
+            seen.append(query.marker)
+            return seen.count == 1 ? .start(2) : .start(0)
+        }
+        #expect(left.text == "x to znaczy z" && left.calls == 1)
+        seen = []
+        let right = SpanSelect.runFromEnd(text, limit: 8, rules: []) { query in
+            seen.append(query.marker)
+            return seen.count == 1 ? .start(2) : .start(0)
+        }
+        #expect(right.text == "x to znaczy z" && right.calls == 1)
     }
 
     /// A start at or before the first withdrawn word never leaves a withdrawn word that is not repeated after
@@ -283,5 +375,84 @@ import Testing
         let unsolvable = groups[0].1.filter { SpanEval.gold($0)?.solvable != true }.map(\.id).sorted()
         print("[span-ceiling] withdrawals no span cut can solve (\(unsolvable.count)): \(unsolvable)")
         #expect(!withdrawals.isEmpty)
+    }
+
+    /// Model-free cost and benefit of the deterministic rules over the whole decision space of every labeled
+    /// single-marker input: what the alignment does to each possible start, how many correct cuts an anchor
+    /// rule refuses, how many inputs it makes safe, and the markers that hold a negation.
+    @Test func printsWhatTheRulesDoOverTheWholeDecisionSpace() throws {
+        let items = try SpanEval.items()
+        var adjacent: [String] = []
+        for item in items {
+            let keys = SpanSelect.words(item.raw).map(SpanSelect.key)
+            var from = 0
+            var previous: SpanSelect.Marker?
+            while let found = SpanSelect.marker(in: keys, from: from) {
+                if let previous, previous.end == found.start { adjacent.append(item.id) }
+                previous = found
+                from = found.end
+            }
+        }
+        print("[span-rules] chunks with two markers side by side: \(Set(adjacent).count) \(Set(adjacent).sorted())")
+        for limit in [6, 8] {
+            var transitions: [String: Int] = [:]
+            var gold = (cuts: 0, unanchored: 0, negatingMarker: 0, negatingUnanchored: 0)
+            var noneInputs = (all: 0, negating: 0, safeWithAnchorNeg: 0, safeWithAnchorAll: 0)
+            for item in items {
+                guard let target = SpanEval.gold(item), target.solvable else { continue }
+                let words = SpanSelect.words(item.raw)
+                guard let marker = SpanSelect.marker(in: words.map(SpanSelect.key)) else { continue }
+                let window = SpanSelect.window(before: marker, limit: limit)
+                let query = SpanSelect.Query(
+                    words: words, marker: marker, window: window,
+                    polish: Language.dominant(in: item.raw) == .polish)
+                let set = item.isProbe ? "probes" : "corpus"
+                for start in window {
+                    let before = SpanEval.classify(.start(start), against: target, marker: marker)
+                    let after = SpanEval.classify(
+                        SpanSelect.align(.start(start), in: query), against: target, marker: marker)
+                    if before != after { transitions["\(set) \(before.rawValue)->\(after.rawValue)", default: 0] += 1 }
+                }
+                let negating = SpanSelect.markerNegates(query)
+                switch target.decision {
+                case .start(let g) where window.contains(g):
+                    gold.cuts += 1
+                    if !SpanSelect.anchored(g, in: query) { gold.unanchored += 1 }
+                    if negating {
+                        gold.negatingMarker += 1
+                        if !SpanSelect.anchored(g, in: query) { gold.negatingUnanchored += 1 }
+                    }
+                case .none:
+                    noneInputs.all += 1
+                    if negating { noneInputs.negating += 1 }
+                    let rule = { (rules: SpanSelect.Rules) in
+                        window.allSatisfy { SpanSelect.applyRules(.start($0), rules, in: query) == .none }
+                    }
+                    if rule([.anchorNegatingMarkers]) { noneInputs.safeWithAnchorNeg += 1 }
+                    if rule([.anchorAll]) { noneInputs.safeWithAnchorAll += 1 }
+                default: break
+                }
+            }
+            print(
+                "[span-rules] N=\(limit) alignment over every start: "
+                    + transitions.keys.sorted().map { "\($0) \(transitions[$0] ?? 0)" }.joined(separator: "; "))
+            print(
+                "[span-rules] N=\(limit) correct cuts \(gold.cuts): not anchored (lost with anchorAll) \(gold.unanchored);"
+                    + " with a negating marker \(gold.negatingMarker), not anchored (lost with anchorNeg) \(gold.negatingUnanchored)"
+                    + " | inputs where none is right \(noneInputs.all) (negating marker \(noneInputs.negating)):"
+                    + " no cut possible with anchorNeg \(noneInputs.safeWithAnchorNeg), with anchorAll \(noneInputs.safeWithAnchorAll)"
+            )
+        }
+        // Inputs whose (first) marker holds a negation, by set.
+        var negatingByCategory: [String: Int] = [:]
+        for item in items {
+            let words = SpanSelect.words(item.raw)
+            guard let marker = SpanSelect.marker(in: words.map(SpanSelect.key)), marker.start > 0 else { continue }
+            let query = SpanSelect.Query(words: words, marker: marker, window: 0..<marker.start, polish: false)
+            if SpanSelect.markerNegates(query) { negatingByCategory[item.category, default: 0] += 1 }
+        }
+        print(
+            "[span-rules] callable inputs whose marker holds a negation: \(negatingByCategory.sorted { $0.key < $1.key })"
+        )
     }
 }

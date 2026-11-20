@@ -3,8 +3,8 @@ import Foundation
 @testable import DictationPlugin
 @testable import LintelSpeech
 
-/// Measurement prototype of "span selection" for removing dictated self-corrections (PR measurement note in
-/// `docs/decisions/0013-span-selection-measurement.md`). Nothing here is product code: the model never rewrites
+/// Measurement prototype of "span selection" for removing dictated self-corrections (measurement note:
+/// `docs/decisions/notes/2026-11-20-span-selection-measurement.md`). Nothing here is product code: the model never rewrites
 /// text. It gets the words before a spoken retraction marker, numbered, and answers ONE number (the first word
 /// that the marker takes back) or `none`. The code builds the result as the input without `[start...marker]`,
 /// so the result is always the input's words in the input's order, minus one contiguous span that ends at the
@@ -133,6 +133,78 @@ enum SpanSelect {
         return (.none, false)
     }
 
+    // MARK: deterministic rules after the model's answer (review of PR 180)
+
+    /// The rules the code may apply to the model's decision. Each one can only move the start by one word
+    /// (`align`) or turn a cut into `none` (`anchor...`, `negation`); none can add a word.
+    struct Rules: OptionSet, Hashable {
+        let rawValue: Int
+        static let negation = Rules(rawValue: 1)
+        /// Moves the start one word back or forward onto the word that the repair after the marker opens
+        /// with ("w [piątek] nie, czekaj, w sobotę": the start moves from "piątek" to "w").
+        static let align = Rules(rawValue: 2)
+        /// A marker that holds a negation ("nie, czekaj", "no wait") cuts only when the first word after it
+        /// is repeated in the removed span; otherwise it is read as content ("nie czekaj na mnie").
+        static let anchorNegatingMarkers = Rules(rawValue: 4)
+        /// The same anchor for every marker (the voxtype rule).
+        static let anchorAll = Rules(rawValue: 8)
+        /// A marker with no word after it in the chunk ("we need sixty units actually") has no repair to keep,
+        /// so it never cuts.
+        static let requireRepair = Rules(rawValue: 16)
+    }
+
+    /// Two spellings of one word for the anchor and the alignment: the Polish vocalic prepositions and "a/an".
+    static let sameWord: [String: String] = [
+        "we": "w", "ze": "z", "ode": "od", "nade": "nad", "pode": "pod", "przeze": "przez", "beze": "bez",
+        "an": "a",
+    ]
+
+    static func folded(_ key: String) -> String { sameWord[key] ?? key }
+
+    /// The folded key of the first word after the marker, `nil` when the marker ends the chunk.
+    static func repairOnset(_ query: Query) -> String? {
+        guard query.marker.end < query.words.count else { return nil }
+        return folded(key(query.words[query.marker.end]))
+    }
+
+    static func align(_ decision: Decision, in query: Query) -> Decision {
+        guard case .start(let start) = decision, let onset = repairOnset(query) else { return decision }
+        let keys = query.words.map { folded(key($0)) }
+        if keys[start] == onset { return decision }
+        if start - 1 >= query.window.lowerBound, keys[start - 1] == onset { return .start(start - 1) }
+        if start + 1 < query.marker.start, keys[start + 1] == onset { return .start(start + 1) }
+        return decision
+    }
+
+    static func markerNegates(_ query: Query) -> Bool {
+        query.words[query.marker.start..<query.marker.end].map(key).contains {
+            // The marker's own "nie"/"no" is what matters here, so English "no" counts in Polish too.
+            FormatterGuard.negates($0, polish: false)
+        }
+    }
+
+    static func anchored(_ start: Int, in query: Query) -> Bool {
+        guard let onset = repairOnset(query) else { return false }
+        return query.words[start..<query.marker.start].contains { folded(key($0)) == onset }
+    }
+
+    /// The negation rule judges the model's own choice first: the alignment must not move a start past a
+    /// negation that the model wanted to remove ("do [not] send it yet sorry send it now" moved one word on
+    /// keeps "do not" and turns the sentence round), so a choice the rule refuses stays refused.
+    static func applyRules(_ decision: Decision, _ rules: Rules, in query: Query) -> Decision {
+        if rules.contains(.negation), negationRule(decision, in: query) == .none { return .none }
+        var decision = decision
+        if rules.contains(.align) { decision = align(decision, in: query) }
+        if rules.contains(.requireRepair), repairOnset(query) == nil { decision = .none }
+        if case .start(let start) = decision {
+            let needsAnchor =
+                rules.contains(.anchorAll) || (rules.contains(.anchorNegatingMarkers) && markerNegates(query))
+            if needsAnchor, !anchored(start, in: query) { decision = .none }
+        }
+        if rules.contains(.negation) { decision = negationRule(decision, in: query) }
+        return decision
+    }
+
     // MARK: running a chunk
 
     struct Step {
@@ -156,6 +228,13 @@ enum SpanSelect {
         _ text: String, limit: Int, negationRule useRule: Bool,
         decide: (Query) throws -> Decision
     ) rethrows -> Outcome {
+        try run(text, limit: limit, rules: useRule ? .negation : [], decide: decide)
+    }
+
+    static func run(
+        _ text: String, limit: Int, rules: Rules,
+        decide: (Query) throws -> Decision
+    ) rethrows -> Outcome {
         var words = words(text)
         let polish = Language.dominant(in: text) == .polish
         var steps: [Step] = []
@@ -167,8 +246,7 @@ enum SpanSelect {
                 continue
             }
             let query = Query(words: words, marker: found, window: window, polish: polish)
-            var decision = try decide(query)
-            if useRule { decision = negationRule(decision, in: query) }
+            let decision = applyRules(try decide(query), rules, in: query)
             steps.append(
                 Step(
                     marker: found, window: window, decision: decision,
@@ -181,5 +259,42 @@ enum SpanSelect {
             }
         }
         return Outcome(text: words.joined(separator: " "), steps: steps)
+    }
+    /// The chain variant "one decision per marker, from the end": the last marker is resolved first, then
+    /// the one before it, searched only in the words before the last cut (so a cut can never join two words
+    /// into a new marker). `none` leaves the marker as content.
+    static func runFromEnd(
+        _ text: String, limit: Int, rules: Rules,
+        decide: (Query) throws -> Decision
+    ) rethrows -> Outcome {
+        var words = words(text)
+        let polish = Language.dominant(in: text) == .polish
+        var steps: [Step] = []
+        var bound = words.count
+        while true {
+            let keys = Array(words[..<bound].map(key))
+            var last: Marker?
+            var from = 0
+            while let found = marker(in: keys, from: from) {
+                last = found
+                from = found.end
+            }
+            guard let found = last else { break }
+            let window = window(before: found, limit: limit)
+            if window.isEmpty { break }
+            let query = Query(words: words, marker: found, window: window, polish: polish)
+            let decision = applyRules(try decide(query), rules, in: query)
+            steps.append(
+                Step(
+                    marker: found, window: window, decision: decision,
+                    markerKeys: words[found.start..<found.end].map(key)))
+            switch decision {
+            case .none: bound = found.start
+            case .start(let start):
+                words = apply(words, marker: found, decision: decision)
+                bound = start
+            }
+        }
+        return Outcome(text: words.joined(separator: " "), steps: steps.reversed())
     }
 }

@@ -158,6 +158,43 @@ enum SpanEval {
             negationLost: negations(result, polish: polish) < negations(refTokens, polish: polish), passes: passes)
     }
 
+    /// A stricter score than `AutocorrectCorpus.satisfies` (which looks at a set of words, so it does not see
+    /// a word of the kept version that is not listed in `must_keep`, nor a doubled word). Strict also needs:
+    /// no word of the reference that the input had is missing, and no doubled neighbouring word that the
+    /// reference does not have. Applied to every track the same way.
+    static func strictPasses(_ text: String, of item: Item) -> Bool {
+        guard let quality = quality(text, of: item), quality.passes, quality.lost.isEmpty else { return false }
+        let ref = item.refs.min { distance(tokens(text), tokens($0)) < distance(tokens(text), tokens($1)) }
+        return doubled(tokens(text)) <= doubled(tokens(ref ?? item.refs[0]))
+    }
+
+    static func doubled(_ tokens: [String]) -> Int {
+        zip(tokens, tokens.dropFirst()).filter { $0 == $1 }.count
+    }
+
+    /// Rough word classes for the off-by-one analysis (closed lists, both languages).
+    static func wordClass(_ key: String, polish: Bool) -> String {
+        let prepositions: Set<String> = [
+            "w", "we", "na", "do", "o", "z", "ze", "po", "od", "dla", "przy", "u", "za", "przed", "pod", "nad",
+            "przez", "bez", "około", "koło", "to", "on", "at", "in", "for", "of", "with", "by", "from", "into",
+            "about", "until", "till", "after", "before",
+        ]
+        let conjunctions: Set<String> = [
+            "i", "a", "ale", "albo", "lub", "że", "czy", "oraz", "and", "or", "but", "that",
+        ]
+        let articles: Set<String> = ["the", "an"]
+        let pronouns: Set<String> = [
+            "ja", "ty", "on", "ona", "my", "wy", "oni", "mi", "mu", "jej", "go", "ich", "i", "you", "he", "she",
+            "we", "they", "it", "me", "him", "her", "us", "them", "my", "your", "our", "their", "this", "that",
+        ]
+        if articles.contains(key) || (key == "a" && !polish) { return "article" }
+        if prepositions.contains(key) { return "preposition" }
+        if conjunctions.contains(key) { return "conjunction" }
+        if pronouns.contains(key) { return "pronoun" }
+        if key.allSatisfy(\.isNumber) { return "number" }
+        return "content"
+    }
+
     // MARK: decision classes (single callable marker)
 
     enum Class: String, CaseIterable {
@@ -176,6 +213,19 @@ enum SpanEval {
             if s == g - 1 { return .offByOneLong }
             return .wrong
         }
+    }
+
+    /// Whether a chunk has two or more markers with words before them (a chain the model is asked about twice
+    /// when it answers `none` to the first).
+    static func isChain(_ text: String, limit: Int) -> Bool {
+        let keys = SpanSelect.words(text).map(SpanSelect.key)
+        var count = 0
+        var from = 0
+        while let found = SpanSelect.marker(in: keys, from: from) {
+            if !SpanSelect.window(before: found, limit: limit).isEmpty { count += 1 }
+            from = found.end
+        }
+        return count >= 2
     }
 
     // MARK: all decisions (worst case)
