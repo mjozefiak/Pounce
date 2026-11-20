@@ -121,6 +121,31 @@ import Testing
         #expect(!rig.model.diarization.isVerifying)
     }
 
+    @Test func copyDiagnosticsPutsOnlyCountersOnThePasteboard() async throws {
+        let rig = try SettingsRig()
+        var counters = CaptureCounters()
+        counters.meetingID = 3
+        counters.system.ringDropped = 2
+        let copied = Mutex<[String]>([])
+        rig.model.captureCounters = { [counters] in [counters] }
+        rig.model.copyText = { text in copied.withLock { $0.append(text) } }
+        #expect(!rig.model.copiedDiagnostics)
+        rig.model.copyDiagnostics()
+        #expect(rig.model.copiedDiagnostics)
+        let text = try #require(copied.withLock { $0.first })
+        #expect(text.hasPrefix("Lintel Meetings capture diagnostics"))
+        #expect(text.contains("ring buffers dropped: 2"))
+    }
+
+    @Test func copyDiagnosticsWithoutAnyMeetingSaysSo() async throws {
+        let rig = try SettingsRig()
+        let copied = Mutex<[String]>([])
+        rig.model.captureCounters = { [] }
+        rig.model.copyText = { text in copied.withLock { $0.append(text) } }
+        rig.model.copyDiagnostics()
+        #expect(copied.withLock { $0.first }?.contains("Meetings listed: 0") == true)
+    }
+
     @Test func theDiarizationFolderHasItsOwnKey() async throws {
         let rig = try SettingsRig()
         rig.pick(try rig.diarizationModels.makeUserFolder())

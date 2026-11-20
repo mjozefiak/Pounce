@@ -32,7 +32,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
     @Test func finishingAnIncompleteMeetingTranscribesTheRestAssignsSpeakersAndDeletesTheSpool() async throws {
         let rig = try RecoveryRig(texts: words)
         let micTrack = mic()
-        let meeting = try rig.seed(.incomplete, mic: micTrack, stored: [(.mic, 16_000..<64_000, words[11]!)])
+        let meeting = try await rig.seed(.incomplete, mic: micTrack, stored: [(.mic, 16_000..<64_000, words[11]!)])
         let library = rig.library(resumer: rig.resumerFactory(mic: micTrack))
         library.open()
         let store = try #require(library.store)
@@ -64,7 +64,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
     @Test func cancellingKeepsWhatWasWrittenAndLaterRunsContinueWithoutDuplicates() async throws {
         let rig = try RecoveryRig(texts: words)
         let micTrack = mic()
-        let meeting = try rig.seed(.incomplete, mic: micTrack)
+        let meeting = try await rig.seed(.incomplete, mic: micTrack)
         let library = rig.library(resumer: rig.resumerFactory(mic: micTrack))
         library.open()
         let store = try #require(library.store)
@@ -94,7 +94,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
     @Test func aSegmentThatFailsKeepsTheMeetingIncompleteAndTheSpoolUntilARetrySucceeds() async throws {
         let rig = try RecoveryRig(texts: words)
         let micTrack = mic()
-        let meeting = try rig.seed(.processing, mic: micTrack)
+        let meeting = try await rig.seed(.processing, mic: micTrack)
         rig.engine.fail(12, times: 1)
         let library = rig.library(resumer: rig.resumerFactory(mic: micTrack))
         library.open()
@@ -116,7 +116,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
     @Test func aDamagedSpoolMidwayKeepsTheMeetingIncomplete() async throws {
         let rig = try RecoveryRig(texts: words)
         let micTrack = mic()
-        let meeting = try rig.seed(.recording, mic: micTrack)
+        let meeting = try await rig.seed(.recording, mic: micTrack)
         // Flip a byte inside the second frame (header 44 B, frame header 5 B, 64 000 B body, 16 B tag).
         let file = rig.spool.file(for: meeting.uuid, track: .mic)
         var bytes = try Data(contentsOf: file)
@@ -140,7 +140,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
         let rig = try RecoveryRig(texts: words)
         let system = TrackScript.build([(2, 21, 3)], tail: 3)  // 2-5 s
         let micTrack = TrackScript.build([(2.5, 22, 3)], tail: 2.5)  // 2.5-5.5 s
-        let meeting = try rig.seed(.incomplete, mic: micTrack, system: system)
+        let meeting = try await rig.seed(.incomplete, mic: micTrack, system: system)
         let library = rig.library(resumer: rig.resumerFactory(mic: micTrack, system: system))
         library.open()
         let handle = try #require(library.finish(meetingID: meeting.id))
@@ -152,7 +152,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
 
     @Test func aMeetingWithoutReadableAudioIsClosedFromItsTranscriptWhenTheUserAsks() async throws {
         let rig = try RecoveryRig(texts: words)
-        let meeting = try rig.seed(
+        let meeting = try await rig.seed(
             .processing, mic: mic(), stored: [(.mic, 16_000..<64_000, words[11]!)], writeSpool: false)
         let library = rig.library(resumer: rig.resumerFactory(mic: mic()))
         library.open()
@@ -170,7 +170,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
     @Test(.enabled(if: getuid() != 0, "root ignores file permissions"))
     func aSpoolThatTheDiskCannotAnswerChangesNothing() async throws {
         let rig = try RecoveryRig(texts: words)
-        let meeting = try rig.seed(.incomplete, mic: mic())
+        let meeting = try await rig.seed(.incomplete, mic: mic())
         let library = rig.library(resumer: rig.resumerFactory(mic: mic()))
         library.open()
         let store = try #require(library.store)

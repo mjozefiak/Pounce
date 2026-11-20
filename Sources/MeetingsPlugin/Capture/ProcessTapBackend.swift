@@ -35,6 +35,12 @@ struct TapBuffer: Sendable, Equatable {
 /// A running tap; stopping is idempotent and releases the tap, the aggregate device and the IO proc.
 protocol ProcessTapSession: Sendable {
     func stop()
+    /// Buffers the tap dropped because its ring was full (a statistic). Zero by default.
+    var droppedBuffers: Int { get }
+}
+
+extension ProcessTapSession {
+    var droppedBuffers: Int { 0 }
 }
 
 /// An observation of the default output device (a Bluetooth headset connecting, say).

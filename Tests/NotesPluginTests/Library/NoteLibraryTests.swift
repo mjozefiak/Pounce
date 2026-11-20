@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import Synchronization
 import Testing
 
 @testable import NotesPlugin
@@ -267,7 +268,50 @@ struct NoteLibrarySourceSetTests {
         trigger.finish()
         #expect(await iterator.next() == nil)
     }
+
+    // Regression (#102): the library must follow a source before it yields or waits for the next change of the
+    // set. It used to subscribe later, in each watcher's own task, so a change signalled in between was lost.
+    @Test("a source is already followed when the library starts waiting for the next change of the set")
+    func followedBeforeWaiting() async throws {
+        let meetings = ScriptedNoteSource("meetings")
+        let store = FakeOverlayStore()
+        // The task that reads the set is the one that runs `changes`.
+        let reader = Mutex<Int?>(nil)
+        let waiting = DispatchSemaphore(value: 0)
+        // The unlucky but legal schedule, forced: a subscription made on any other task (a watcher of its own)
+        // does not get to run until the library waits for the next set change.
+        meetings.setOnSubscribe {
+            if currentTaskID() != reader.withLock({ $0 }) { waiting.wait() }
+        }
+        let library = NoteLibrary(
+            sources: {
+                reader.withLock { $0 = currentTaskID() }
+                return [meetings]
+            }, overlays: store, detacher: store, clock: ManualClock())
+        let (seen, report) = AsyncStream.makeStream(of: Int.self)
+        let (never, hold) = AsyncStream.makeStream(of: Void.self)
+        // A failed `#require` must not leave the library waiting on this stream.
+        defer { hold.finish() }
+        // The library asks for the next set change only after it restarted: count the live subscriptions then.
+        let setChanges = AsyncStream<Void>(unfolding: {
+            report.yield(meetings.changeStreams)
+            waiting.signal()
+            for await _ in never {}
+            return nil
+        })
+        var iterator = library.changes(sourceSetChanges: setChanges).makeAsyncIterator()
+        var counts = seen.makeAsyncIterator()
+        let live = try #require(await counts.next())
+        try #require(live == 1)
+        // So a change signalled right now is not lost.
+        meetings.signalChange()
+        await iterator.next()
+        hold.finish()
+        #expect(await iterator.next() == nil)
+    }
 }
+
+private func currentTaskID() -> Int? { withUnsafeCurrentTask { $0?.hashValue } }
 
 @Suite("NoteLibrary: overlays")
 struct NoteLibraryOverlayTests {

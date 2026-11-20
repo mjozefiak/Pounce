@@ -17,6 +17,45 @@ func waitFor(timeout: Duration = .seconds(20), _ condition: @MainActor () -> Boo
     return condition()
 }
 
+/// The meeting ids a library reports through `onMeetingReady`, as events instead of a polled list.
+final class ReadyEvents: Sendable {
+    private let continuation: AsyncStream<Int64>.Continuation
+    private let stream: AsyncStream<Int64>
+    private let seen = Mutex<[Int64]>([])
+
+    init() {
+        (stream, continuation) = AsyncStream.makeStream(of: Int64.self, bufferingPolicy: .unbounded)
+    }
+
+    /// Every id told so far.
+    var all: [Int64] { seen.withLock { $0 } }
+
+    /// The callback to install as `onMeetingReady`.
+    func tell(_ id: Int64) {
+        seen.withLock { $0.append(id) }
+        continuation.yield(id)
+    }
+
+    /// The next id told, as soon as it is. `nil` when the task is cancelled or `hangGuard` passes; the guard
+    /// only ends a test whose event never comes. One wait per instance after a `nil`: cancelling the wait ends
+    /// the stream for good, so a later `next` returns `nil` at once (#165).
+    func next(hangGuard: Duration = .seconds(60)) async -> Int64? {
+        await withTaskGroup(of: Int64?.self) { group in
+            group.addTask { [stream] in
+                var iterator = stream.makeAsyncIterator()
+                return await iterator.next()
+            }
+            group.addTask {
+                try? await Task.sleep(for: hangGuard)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+    }
+}
+
 /// The notes service over a real (temporary, encrypted) library, a scripted model and an in-memory keychain.
 @MainActor
 final class NotesServiceRig {

@@ -54,6 +54,8 @@ public final class DictationPlugin: LintelPlugin {
     let history: DictationHistory
     /// The user's vocabulary (DICT-1.1); loaded on activation, so the settings pane never reads the disk.
     let vocabulary: VocabularyStore
+    /// The Vocabulary section's model (DICT-1.2); it reads the store, which `activate()` loads.
+    let vocabularyModel: VocabularyPanelModel
     /// The history as a Notes source (`noteSources`); its change streams end on `deactivate()`.
     let noteSource: DictationNoteSource
     private let noteChanges = NoteChangeHub()
@@ -122,7 +124,14 @@ public final class DictationPlugin: LintelPlugin {
                 resultsChanged()
                 noteChanges.notify()
             })
+        #if DEBUG
+        vocabulary = VocabularyQA.makeStore(context: context)
+        #else
         vocabulary = VocabularyStore(directory: context.storageDirectory, logger: context.logger)
+        #endif
+        vocabularyModel = VocabularyPanelModel(
+            store: vocabulary, settings: settings,
+            revealInFinder: { url in workspace.revealInFinder([url]) })
         noteSource = DictationNoteSource(history: history, hub: noteChanges)
         historyModel = HistorySettingsModel(settings: settings, history: history)
         let keptNoteCopies = context.keptNoteCopies
@@ -224,6 +233,10 @@ public final class DictationPlugin: LintelPlugin {
         relay.controller = controller
         history.open()
         vocabulary.load()
+        vocabularyModel.reload()
+        #if DEBUG
+        VocabularyQA.apply(to: vocabularyModel, context: context)
+        #endif
         // The banner's state is known before the shell first reads it; coming back from System Settings or from
         // a download elsewhere re-reads it.
         await settingsModel.refreshStatus()
@@ -252,6 +265,7 @@ public final class DictationPlugin: LintelPlugin {
     public func eraseData() async throws {
         // The vocabulary first: a history that cannot be erased must not keep the user's terms alive.
         try vocabulary.erase()
+        vocabularyModel.reload()
         try history.erase()
     }
 
@@ -498,6 +512,7 @@ public final class DictationPlugin: LintelPlugin {
         AnyView(
             DictationSettingsPane(
                 model: settingsModel, formatting: formattingModel, history: historyModel,
+                vocabulary: vocabularyModel,
                 recorder: context.makeShortcutRecorder(Self.recordCommandID), isActive: controller != nil,
                 openModels: context.openModels))
     }

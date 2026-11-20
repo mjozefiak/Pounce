@@ -116,10 +116,13 @@ private final class CoreAudioTapSession: ProcessTapSession, @unchecked Sendable 
     }
 
     private let handles = Mutex(Handles())
+    private let ringBox = Mutex<TapRing?>(nil)
     private let queue = DispatchQueue(label: "com.lintelapp.meetings.system-audio", qos: .userInteractive)
     private let workerQueue = DispatchQueue(label: "com.lintelapp.meetings.system-audio.worker", qos: .userInitiated)
 
     deinit { stop() }
+
+    var droppedBuffers: Int { ringBox.withLock { $0?.dropped ?? 0 } }
 
     func open(excludingOwnProcess: Bool, onBuffer: @escaping @Sendable (TapBuffer) -> Void) throws(SystemAudioError) {
         // The output device first: without one there is nothing to tap, and creating the tap would show
@@ -165,6 +168,7 @@ private final class CoreAudioTapSession: ProcessTapSession, @unchecked Sendable 
 
         // Worker: the IO callback only copies frames into the ring and pokes this source.
         let ring = TapRing()
+        ringBox.withLock { $0 = ring }
         let worker = DispatchSource.makeUserDataAddSource(queue: workerQueue)
         worker.setEventHandler {
             while let buffer = ring.pop() { onBuffer(buffer) }
