@@ -47,6 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             #if DEBUG
             await recordQAUses(environment)
             #endif
+            // Before the plugins start, so a moved copy never runs next to a started one.
+            guard await offerMoveToApplications(environment) else { return }
             await coordinator.start()
             started = true
             if !pendingFiles.isEmpty {
@@ -123,6 +125,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    /// The "Move Lintel to Applications?" alert, once per launch (spec `2026-11-19-updates-and-open-source-hygiene`, step 4.2).
+    /// Release builds only; DEBUG builds and QA mode never show it, except QA with `--qa-move-prompt`, which uses
+    /// fakes and never quits. Returns whether the launch goes on (`false` once the moved copy was opened).
+    private func offerMoveToApplications(_ environment: AppEnvironment) async -> Bool {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        #if DEBUG
+        guard let options = qaOptions, options.showsMovePrompt else { return true }
+        // The alert is modal and comes before `runQAActions`, so `--qa-quit-after` gets its own timer here.
+        if let quitAfter = options.quitAfter {
+            schedule(after: quitAfter) { [weak self] in
+                self?.qaQuitDuringMovePrompt = true
+                self?.closeModalForQA(snapshotPath: options.snapshotPath)
+            }
+        }
+        let fakes = QAInstallFakes(scenario: options.moveScenario)
+        var prompt = MoveToApplicationsPrompt(
+            settings: environment.settings,
+            mover: MoveToApplications(
+                files: fakes, processes: fakes, quarantine: fakes, relauncher: fakes, versions: fakes))
+        prompt.ask = { MoveToApplicationsPrompt.presentAlert($0, activates: false) }
+        prompt.report = { MoveToApplicationsPrompt.presentFailure($0, activates: false) }
+        let outcome = await prompt.offerIfNeeded(bundleURL: QAInstallFakes.bundleURL, home: home)
+        logger.info("QA move prompt: \(String(describing: outcome), privacy: .public)")
+        if qaQuitDuringMovePrompt {
+            SystemAppRelauncher().quit()
+            return false
+        }
+        // The fakes never quit, so QA goes on with the launch whatever the answer.
+        return true
+        #else
+        let prompt = MoveToApplicationsPrompt(
+            settings: environment.settings,
+            mover: MoveToApplications(
+                files: SystemInstallFileManager(), processes: SystemRunningAppListing(),
+                quarantine: SystemQuarantineRemover(), relauncher: SystemAppRelauncher(),
+                versions: SystemBundleVersionReader()))
+        return await prompt.offerIfNeeded(bundleURL: Bundle.main.bundleURL, home: home)
+            .continuesLaunch
+        #endif
+    }
+
     private func presentFatalAlert(_ error: any Error) {
         let alert = NSAlert()
         alert.messageText = String(
@@ -136,6 +179,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     #if DEBUG
     private var qaOptions: QAOptions?
+    /// `--qa-quit-after` fired while the `--qa-move-prompt` alert was up.
+    private var qaQuitDuringMovePrompt = false
 
     private func runQAActions() {
         guard let options = qaOptions else { return }
@@ -194,6 +239,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.terminate(nil)
             }
         }
+    }
+
+    /// `--qa-quit-after` while the `--qa-move-prompt` alert runs: snapshots the alert instead of the main window when
+    /// `--qa-snapshot` is set, then ends the modal session so the app can quit.
+    private func closeModalForQA(snapshotPath: String?) {
+        guard let window = NSApp.modalWindow else { return }
+        if let snapshotPath, let view = window.contentView?.superview ?? window.contentView,
+            let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
+        {
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            if let data = bitmap.representation(using: .png, properties: [:]) {
+                do {
+                    try data.write(to: URL(filePath: snapshotPath))
+                } catch {
+                    logger.error("Cannot write the snapshot: \(String(describing: error), privacy: .public)")
+                }
+            }
+        }
+        NSApp.abortModal()
     }
 
     /// `--qa-record-use`: seeds the QA ranking database before the plugins start.

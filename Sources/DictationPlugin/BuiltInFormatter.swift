@@ -95,9 +95,10 @@ extension FormatResult {
 /// cannot be interrupted, and the caller must not wait for it.
 enum FirstResult {
     /// The operation's value, or `nil` when the time ran out first. Cancelling the caller cancels the
-    /// operation and throws `CancellationError`.
+    /// operation and throws `CancellationError`. The limit is measured on `clock` (a test passes a virtual one).
     static func within<T: Sendable>(
-        _ limit: Duration, _ operation: @escaping @Sendable () async -> T
+        _ limit: Duration, clock: any Clock<Duration> = ContinuousClock(),
+        _ operation: @escaping @Sendable () async -> T
     ) async throws -> T? {
         let gate = Gate<T?>()
         return try await withTaskCancellationHandler {
@@ -105,7 +106,7 @@ enum FirstResult {
                 gate.install(continuation)
                 let work = Task { gate.finish(.success(await operation())) }
                 let timer = Task {
-                    do { try await Task.sleep(for: limit) } catch { return }
+                    do { try await clock.sleep(for: limit) } catch { return }
                     gate.finish(.success(nil))
                 }
                 gate.onFinish {

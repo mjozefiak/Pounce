@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelTestSupport
 import Testing
 
 @testable import DictationPlugin
@@ -172,26 +173,52 @@ private let cleaned = "Jutro mamy spotkanie o dziesiątej, nie to znaczy o jeden
     }
 }
 
-@Suite struct FirstResultTests {
+@Suite(.timeLimit(.minutes(1))) struct FirstResultTests {
     @Test func aFastOperationWins() async throws {
         let value = try await FirstResult.within(.seconds(5)) { 42 }
         #expect(value == 42)
     }
 
-    @Test func aSlowOperationIsGivenUpOnWithoutWaitingForIt() async throws {
+    @Test func aSlowOperationIsGivenUpOnAtItsLimitWithoutWaitingForIt() async throws {
         let release = Release()
-        let started = ContinuousClock.now
+        let clock = TestClock()
+        let limit = Duration.seconds(40)
         // Ignores cancellation, like a model load that cannot be interrupted.
-        let value = try await FirstResult.within(.milliseconds(60)) { await release.wait() }
-        #expect(value == nil)
-        #expect(ContinuousClock.now - started < .seconds(3))
+        let task = Task { try await FirstResult.within(limit, clock: clock) { await release.wait() } }
+        #expect(await clock.waitForSleepers(1))
+
+        // Not before the limit.
+        clock.advance(by: limit - .milliseconds(1))
+        #expect(clock.sleeperCount == 1)
+        #expect(clock.wokenDeadlines.isEmpty)
+
+        // Exactly at it, and the registered deadline is the limit itself.
+        clock.advance(by: .milliseconds(1))
+        #expect(clock.wokenDeadlines == [TestInstant().advanced(by: limit)])
+        guard !clock.wokenDeadlines.isEmpty else {
+            // The limit was not honoured: end the test instead of hanging on the result.
+            clock.finish()
+            await release.open()
+            _ = try? await task.value
+            return
+        }
+        // Returns while the operation is still suspended.
+        #expect(try await task.value == nil)
         await release.open()
+    }
+
+    @Test func anOperationThatAnswersBeforeTheLimitWinsAndLeavesNoTimer() async throws {
+        let clock = TestClock()
+        let value = try await FirstResult.within(.seconds(40), clock: clock) { 7 }
+        #expect(value == 7)
+        #expect(clock.wokenDeadlines.isEmpty)
     }
 
     @Test func cancellingTheCallerThrows() async throws {
         let release = Release()
-        let task = Task { try await FirstResult.within(.seconds(30)) { await release.wait() } }
-        try await Task.sleep(for: .milliseconds(60))
+        let clock = TestClock()
+        let task = Task { try await FirstResult.within(.seconds(30), clock: clock) { await release.wait() } }
+        #expect(await clock.waitForSleepers(1))
         task.cancel()
         await #expect(throws: CancellationError.self) { _ = try await task.value }
         await release.open()
