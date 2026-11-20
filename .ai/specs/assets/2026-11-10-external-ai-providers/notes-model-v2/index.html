@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en" data-prototype-id="lintel-app">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lintel notes model mockup v2</title>
+<style>
+*{box-sizing:border-box}
+:root{--ts:1}
+body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:#d9d5cc;color:#191610}
+body.dark{background:#0c0a08;color:#F1EEE9}
+.light{--win:#F6F4F0;--side:#E7E4DE;--card:#fff;--ink:#191610;--sec:#6B645A;--hair:rgba(25,22,16,.11);--accent:#267C6C;--atext:#036152;--tint:rgba(38,124,108,.14);--onacc:#fff;--ok:#1E8E3E;--att:#B25E00;--er:#D70015;--glass:rgba(255,255,255,.72);--fill:rgba(25,22,16,.06)}
+.dark{--win:#1C1915;--side:#141210;--card:#26221E;--ink:#F1EEE9;--sec:#A39B8F;--hair:rgba(255,255,255,.11);--accent:#6BBDAB;--atext:#6BBDAB;--tint:rgba(107,189,171,.20);--onacc:#161310;--ok:#32D74B;--att:#FF9F0A;--er:#FF6961;--glass:rgba(38,34,30,.72);--fill:rgba(255,255,255,.08)}
+#bar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:8px 16px;background:#191610;color:#F1EEE9;font-size:13px}
+#bar nav{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+#bar a{color:#9fdccd;text-decoration:none}
+.seg{display:inline-flex;border:1px solid #5a544b;border-radius:7px;overflow:hidden}
+.seg button{background:none;color:#F1EEE9;border:0;padding:3px 10px;font:inherit;cursor:pointer}
+.seg button[aria-pressed=true]{background:#6BBDAB;color:#161310;font-weight:600}
+main{padding:16px 24px 80px;max-width:1280px;margin:auto}
+.doc{background:#fff;color:#191610;border-radius:10px;padding:8px 24px 20px;margin:20px 0}
+.doc h2,h2.sec{font-size:22px;margin:32px 0 6px}
+.doc h3{font-size:16px;margin:20px 0 4px}
+.doc table{border-collapse:collapse;font-size:13px;margin:8px 0;width:100%}
+.doc td,.doc th{border:1px solid #ddd;padding:5px 9px;text-align:left;vertical-align:top}
+.doc th{background:#f3f0ea}
+.doc code{background:#eee;padding:0 4px;border-radius:3px}
+.tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:9px;background:#e7e4de}
+.keep{background:#d6efdf}.simp{background:#fbe9c8}.reth{background:#f9d4d0}.miss{background:#d8e3f7}
+h2.sec{color:inherit}
+figure.scr{margin:22px 0}
+figure.scr>figcaption{font-size:12px;opacity:.75;margin-bottom:5px}
+figure.scr>figcaption b{font-family:ui-monospace,monospace;opacity:1}
+/* window */
+.win{width:1040px;height:680px;display:flex;position:relative;font-size:calc(13px*var(--ts));background:var(--win);color:var(--ink);border:1px solid var(--hair);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.22)}
+.win.sm{width:600px;height:auto;min-height:0}
+.lights{display:flex;gap:7px;padding:14px 14px 6px}.lights i{width:12px;height:12px;border-radius:50%;background:#8883}
+.side{width:min(14.5em,215px);flex:none;background:var(--side);display:flex;flex-direction:column;padding-bottom:12px;border-right:1px solid var(--hair);overflow:hidden}
+.brand{display:flex;gap:8px;align-items:center;font-weight:600;padding:8px 14px 12px;font-size:1.05em}
+.brand svg{width:20px;height:20px}
+.sg{font-size:.82em;font-weight:600;color:var(--sec);padding:10px 14px 3px}
+.si{display:flex;gap:8px;align-items:center;margin:1px 8px;padding:5px 8px;border-radius:7px;color:var(--ink)}
+.si .n{margin-left:auto;color:var(--sec);font-size:.9em}.si .n.att-t{color:var(--att)}
+.si.on{background:var(--tint)}.si.on .l{color:var(--atext);font-weight:600}.si.off .l{color:var(--sec)}
+.si .off-t{margin-left:auto;font-size:.8em;color:var(--sec)}
+.sp{flex:1}
+.setbtn{margin:0 8px;display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:7px;border:0;background:none;font:inherit;color:var(--ink);text-align:left}
+.setbtn kbd{margin-left:auto}
+.ic{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.2em}
+.si .ic{color:var(--sec)}.si.on .ic{color:var(--atext)}
+kbd{font:600 .82em -apple-system,sans-serif;background:var(--fill);border-radius:5px;padding:1px 6px;color:var(--sec)}
+/* list */
+.list{width:min(23em,330px);flex:none;border-right:1px solid var(--hair);display:flex;flex-direction:column;background:var(--win)}
+.lh{padding:12px 12px 8px}
+.search{display:flex;gap:8px;align-items:center;background:var(--fill);border-radius:8px;padding:6px 10px;color:var(--sec)}
+.search .q{color:var(--ink)}
+.rows{overflow:hidden;flex:1;padding:0 6px}
+.rw{display:flex;gap:10px;padding:8px;border-radius:8px;position:relative}
+.rw.sel{background:var(--tint)}.rw.sel:before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:2px;background:var(--accent)}
+.kind{width:2em;height:2em;border-radius:7px;background:var(--fill);display:grid;place-items:center;color:var(--sec);flex:none}
+.rw .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rw .s{color:var(--sec);font-size:.92em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.rw .m{color:var(--sec);font-size:.85em;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.rw .b1{min-width:0;flex:1}
+mark{background:var(--tint);color:var(--atext);border-radius:3px;font-weight:600;padding:0 1px}
+.badge{align-self:flex-start;font-size:.82em;border-radius:9px;padding:0 7px;border:1px solid var(--hair);color:var(--sec);white-space:nowrap}
+.badge.att{color:var(--att);border-color:currentColor}.badge.er{color:var(--er);border-color:currentColor}.badge.acc{color:var(--atext);border-color:currentColor}
+.rd{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--win)}
+.rh{padding:18px 24px 10px}
+.rh h3{margin:0;font-size:1.55em;line-height:1.2}
+.rh .meta{color:var(--sec);margin-top:3px}
+.acts{display:flex;gap:8px;margin:12px 0 0;flex-wrap:wrap}
+.tabs{display:inline-flex;background:var(--fill);border-radius:8px;padding:2px;margin:12px 0 0}
+.tabs span{padding:3px 14px;border-radius:6px}.tabs .on{background:var(--card);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.rb{padding:6px 24px 20px;overflow:auto;flex:1}
+.rb h4{margin:16px 0 4px;font-size:.88em;color:var(--sec);text-transform:none}
+.rb ul{margin:0;padding-left:1.2em}.rb li{margin:3px 0}
+.q{color:var(--atext);font-size:.85em;margin-left:6px;white-space:nowrap}
+.spk{display:flex;gap:10px;padding:6px 0}.spk .who{width:5.5em;flex:none;font-weight:600}.spk .tm{color:var(--sec);font-size:.85em;width:3.2em;flex:none}
+/* buttons */
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:5px 12px;border:1px solid var(--hair);background:var(--card);color:var(--ink);display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--onacc);border-color:transparent}
+.btn.dng{color:var(--er)}.btn.dng.fill{background:var(--er);color:#fff;border-color:transparent}
+.btn.sm{padding:2px 9px;font-size:.92em}
+.btn[disabled]{opacity:.45}
+.sw{width:2.5em;height:1.45em;border-radius:1em;background:var(--hair);position:relative;flex:none}
+.sw:after{content:"";position:absolute;top:.15em;left:.15em;width:1.15em;height:1.15em;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.sw.on{background:var(--accent)}.sw.on:after{left:1.2em}
+.sel-c{display:inline-flex;gap:6px;align-items:center;color:var(--sec)}
+/* banner */
+.bn{display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:10px;background:var(--card);border:1px solid var(--hair);margin:0 0 14px}
+.bn .g{width:1.9em;height:1.9em;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;background:var(--sec)}
+.bn.ok .g{background:var(--ok)}.bn.att .g{background:var(--att)}.bn.er .g{background:var(--er)}.bn.acc .g{background:var(--accent);color:var(--onacc)}
+.bn .tx{flex:1;min-width:0}.bn .tt{font-weight:600}.bn .ss{color:var(--sec);font-size:.92em}
+.bn .ba{display:flex;gap:8px;flex-wrap:wrap}
+.bn.ok .g,.bn.att .g,.bn.er .g{color:#fff}.dark .bn.ok .g,.dark .bn.att .g,.dark .bn.er .g{color:#161310}
+.prog{height:4px;border-radius:2px;background:var(--hair);margin-top:6px}.prog i{display:block;height:4px;border-radius:2px;background:var(--accent)}
+.rd .bn{margin:0 24px 8px}
+/* settings pane */
+.pane{flex:1;overflow:auto;padding:20px 28px;min-width:0;position:relative}
+.pane>.in{max-width:640px;margin:auto}
+.pane h3{margin:0 0 12px;font-size:1.5em}
+.sh{font-size:.82em;font-weight:600;color:var(--sec);margin:18px 0 5px 4px}
+.card{background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:2px 14px}
+.fr{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--hair);min-height:2.6em}
+.fr:first-child{border-top:0}
+.fr .lb{min-width:0}.fr .hp{color:var(--sec);font-size:.9em}
+.fr .v{color:var(--sec);display:flex;gap:8px;align-items:center;flex:none}
+.ft{color:var(--sec);font-size:.88em;margin:5px 4px 0}
+.disc{display:flex;gap:6px;align-items:center;color:var(--sec);font-weight:600;font-size:.88em;margin:16px 4px 0}
+.chip{font-size:.8em;border-radius:9px;padding:0 7px;background:var(--fill);color:var(--sec);white-space:nowrap}
+.ok-t{color:var(--ok)}.att-t{color:var(--att)}.er-t{color:var(--er)}
+.dim{opacity:.5}
+.skel{background:var(--fill);border-radius:6px;height:1em;margin:6px 0}
+/* sheet */
+.stage{position:relative;width:640px;height:300px;border-radius:12px;background:linear-gradient(135deg,#c9c3b6,#9a948a);display:grid;place-items:center;font-size:calc(13px*var(--ts))}
+.dark .stage{background:linear-gradient(135deg,#3a3630,#1f1c18)}
+.sheet{width:380px;background:var(--win);color:var(--ink);border:1px solid var(--hair);border-radius:14px;padding:18px 20px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.sheet h5{margin:0 0 4px;font-size:1.1em}.sheet p{margin:0;color:var(--sec)}
+.sheet .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn.def{box-shadow:0 0 0 2px var(--accent)}
+/* menu, hud */
+.menu{width:300px;border-radius:10px;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);padding:5px;font-size:calc(13px*var(--ts));color:var(--ink)}
+.mi{display:flex;gap:8px;padding:3px 10px;border-radius:5px;align-items:center}.mi kbd{margin-left:auto;background:none}.mi.hl{background:var(--accent);color:var(--onacc)}.mi.hl kbd{color:var(--onacc)}
+.msep{height:1px;background:var(--hair);margin:4px 8px}
+.rdot{width:.6em;height:.6em;border-radius:50%;background:var(--er)}
+.cap{white-space:nowrap;height:2.9em;border-radius:1.5em;background:var(--glass);backdrop-filter:blur(30px);border:1px solid var(--hair);display:inline-flex;align-items:center;gap:10px;padding:0 14px;font-weight:500;color:var(--ink);font-size:calc(14px*var(--ts))}
+.bars{display:inline-flex;gap:3px;align-items:center;height:1.2em}.bars i{width:3px;border-radius:2px;background:var(--accent)}
+.wall{width:640px;padding:22px 16px;border-radius:12px;background:linear-gradient(135deg,#c9c3b6,#9a948a);display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center}
+.dark .wall{background:linear-gradient(135deg,#3a3630,#1f1c18)}
+.blur{filter:blur(6px);user-select:none}
+.big{font-size:1.6em;margin:0 0 4px}
+@media(prefers-reduced-motion:no-preference){.bars i{animation:b 1s ease-in-out infinite alternate}@keyframes b{to{transform:scaleY(.5)}}}
+
+/* ===== v2 Notes: Orca-like, dense, tool feel ===== */
+.win{width:1180px;height:720px}
+.side{width:min(19em,250px)}
+.win.nt{flex-direction:column;font-size:calc(12.5px*var(--ts))}
+.nt .wb{flex:1;display:flex;min-height:0}
+.sp{flex:1}
+.dot{width:.55em;height:.55em;border-radius:50%;flex:none;background:var(--sec)}
+.dot.ok{background:var(--ok)}.dot.acc{background:var(--accent)}.dot.att{background:var(--att)}.dot.er{background:var(--er)}.dot.mute{background:var(--hair)}.dot.ne{background:var(--sec)}
+.ex{width:min(19em,250px);flex:none;background:var(--side);border-right:1px solid var(--hair);display:flex;flex-direction:column;min-width:0}
+.exs{display:flex;gap:8px;align-items:center;margin:6px 10px;padding:6px 10px;border-radius:7px;background:var(--fill);color:var(--sec)}.exs .qq{color:var(--ink)}
+.exl{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 4px;color:var(--sec);font-weight:600;font-size:.9em}.exl b{font-weight:600;margin-left:4px;opacity:.7}.exl .ico{display:flex;gap:10px}
+.exb{flex:1;overflow:hidden;padding:2px 0}
+.grp{display:flex;gap:6px;align-items:center;padding:6px 14px 2px;color:var(--sec);font-size:.85em;font-weight:600}.grp span{margin-left:auto;font-weight:400}
+.tr2{display:flex;gap:9px;padding:6px 10px;margin:1px 6px;border-radius:7px;align-items:flex-start}
+.tr2 .dot{margin-top:.45em}
+.tr2.on{background:var(--tint)}
+.tr2 .tx{min-width:0;flex:1}.tr2 .a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}.tr2.on .a{color:var(--atext)}
+.tr2 .b{color:var(--sec);font-size:.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tr2 .b mark{white-space:normal}
+.tr2 .c{font-size:.85em;margin-top:1px;color:var(--sec)}.tr2 .c.acc{color:var(--atext)}.tr2 .c.att{color:var(--att)}.tr2 .c.er{color:var(--er)}
+.nr{padding:18px 18px;color:var(--sec);text-align:center}
+.exf{display:flex;align-items:center;padding:8px 14px;border-top:1px solid var(--hair);color:var(--sec)}.lnk2{display:inline-flex;gap:8px;align-items:center}
+.cn{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--win);position:relative}
+.tbs{display:flex;align-items:stretch;height:2.7em;background:var(--side);border-bottom:1px solid var(--hair)}
+.tb{flex:0 1 12em;display:flex;gap:7px;align-items:center;padding:0 10px 0 12px;border-right:1px solid var(--hair);color:var(--sec);min-width:0;max-width:15em}
+.tb .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tb.on{background:var(--win);color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
+.tb .x{opacity:.5;display:grid}.tb.pl{padding:0 12px}
+.mk{color:var(--att);font-size:.8em}.spin{display:inline-grid;color:var(--atext)}
+.cmdb{display:flex;gap:8px;align-items:center;padding:0 14px;color:var(--sec)}
+.crb{display:flex;align-items:center;height:2.6em;padding:0 12px 0 16px;border-bottom:1px solid var(--hair);color:var(--sec)}
+.pth{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
+.ibs{display:flex;gap:2px}.ib{width:2.1em;height:2.1em;display:grid;place-items:center;border-radius:6px;color:var(--sec)}.ib.on{background:var(--tint);color:var(--atext)}
+.fmt{display:flex;align-items:center;gap:2px;height:2.7em;padding:0 12px;border-bottom:1px solid var(--hair);background:var(--fill);color:var(--sec)}
+.fmt .f{min-width:2em;height:2em;display:inline-grid;place-items:center;padding:0 5px;border-radius:6px;font-weight:600}.fmt i{width:1px;height:1.3em;background:var(--hair);margin:0 6px}
+.fmt .cb{margin-left:auto;gap:6px;display:inline-flex;align-items:center;color:var(--atext)}
+.strip{display:flex;align-items:center;gap:10px;min-height:2.3em;padding:0 16px;border-bottom:1px solid var(--hair);font-size:.95em}
+.strip.att{background:color-mix(in srgb,var(--att) 11%,transparent)}.strip.er{background:color-mix(in srgb,var(--er) 11%,transparent)}.strip.acc{background:var(--tint)}.strip.ne{background:var(--fill)}
+.lnk{color:var(--atext);font-weight:600;margin-left:10px;white-space:nowrap}
+.ed{flex:1;overflow:auto;padding:0 0 24px}
+.dh{padding:20px 24px 8px 5.4em}.dh h1{margin:0;font-size:1.9em;line-height:1.2}
+.dm{display:flex;gap:6px;align-items:center;margin-top:8px;color:var(--sec);flex-wrap:wrap}
+.chip2{border:1px solid var(--hair);border-radius:6px;padding:0 8px;font-size:.9em}
+.vs{display:inline-flex;background:var(--fill);border-radius:7px;padding:2px}.vs span{padding:2px 12px;border-radius:5px}.vs .on{background:var(--card);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.blk{display:flex;padding:2px 28px 2px 0}
+.gt{width:4.2em;flex:none;text-align:right;padding:.55em 10px 0 0;font:.74em ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--sec);position:relative;letter-spacing:.02em}
+.gt:after{content:"";position:absolute;right:0;top:3px;bottom:3px;width:3px;border-radius:2px}
+.gt.ag:after{background:var(--accent)}.gt.you:after{background:var(--ink)}.gt.stt:after{background:var(--sec);opacity:.5}
+.noauth .gt{visibility:hidden}
+.bd{flex:1;min-width:0;padding-left:6px;line-height:1.6;font-size:1.04em}
+.bd h2{margin:.5em 0 .2em;font-size:1.3em}.bd p{margin:.3em 0}.bd ul{margin:.2em 0;padding-left:1.3em}
+.qc{font:.82em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--fill);border-radius:4px;padding:1px 6px;color:var(--atext)}
+.bd table{border-collapse:collapse;width:100%;margin:.4em 0;font-size:.97em}.bd th{text-align:left;color:var(--sec);font-weight:600;font-size:.88em}
+.bd td,.bd th{border:1px solid var(--hair);padding:7px 10px;vertical-align:top}
+.bd tr.you td{background:color-mix(in srgb,var(--ink) 4%,transparent)}.by{font-size:.85em;color:var(--sec)}
+.cm{background:var(--tint);border-bottom:2px solid var(--accent);border-radius:2px}.sel{background:rgba(120,160,255,.35);border-radius:2px}
+.pop{display:flex;flex-direction:column;gap:8px;position:absolute;margin-top:6px;width:20em;padding:10px;border-radius:10px;background:var(--card);border:1px solid var(--hair);box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:3;font-size:.95em}
+.pop .pt{display:flex;gap:6px;align-items:center;font-weight:600}.pop .pi{border:1px solid var(--accent);border-radius:7px;padding:6px 8px;display:block}.pop .pa{display:flex;justify-content:flex-end;gap:12px;align-items:center}
+.caret2{display:inline-block;width:1px;height:1em;background:var(--ink);vertical-align:-.15em;margin-left:1px}
+.find{display:flex;align-items:center;gap:8px;margin:6px 28px 6px 5.4em;padding:5px 10px;border-radius:7px;background:var(--fill);color:var(--sec)}
+.tl{display:flex;gap:12px;align-items:baseline}.tl b{width:5.5em;flex:none}.tl span{flex:1}.was{margin:2px 0 4px 6.8em;color:var(--sec);text-decoration:line-through;font-size:.92em}
+.df{margin:12px 28px 0 5.4em;border:1px solid var(--hair);border-radius:8px;overflow:hidden;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+.dl{display:flex;gap:10px;padding:5px 10px}.dl .gm{width:1em;color:var(--sec)}.dl .gx{flex:1}.dl .by2{color:var(--sec);font-size:.85em}
+.dl.rm{background:color-mix(in srgb,var(--er) 12%,transparent)}.dl.rm .gm{color:var(--er)}.dl.ad{background:color-mix(in srgb,var(--ok) 13%,transparent)}.dl.ad .gm{color:var(--ok)}
+.insp{width:min(23em,300px);flex:none;border-left:1px solid var(--hair);background:var(--side);display:flex;flex-direction:column;min-width:0}
+.its{display:flex;align-items:center;gap:4px;height:2.7em;padding:0 10px;border-bottom:1px solid var(--hair);color:var(--sec)}
+.it{display:inline-flex;gap:6px;align-items:center;padding:3px 8px;border-radius:6px}.it.on{background:var(--tint);color:var(--atext)}.it sup{font-size:.75em;color:var(--sec)}
+.ip{flex:1;overflow:auto;padding:10px 12px}.ipf{display:flex;gap:6px;margin-bottom:8px}
+.chip3{border:1px solid var(--hair);border-radius:12px;padding:0 10px;font-size:.88em;color:var(--sec)}.chip3.on{background:var(--tint);color:var(--atext);border-color:transparent}
+.th{border:1px solid var(--hair);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:var(--win)}.th.res{opacity:.6}
+.tq{color:var(--sec);font-size:.9em;border-left:2px solid var(--accent);padding-left:8px;margin-bottom:4px}.tm{font-size:.88em;color:var(--sec)}.tm b{color:var(--ink)}.tx2{margin:3px 0}.ta{display:flex;gap:2px}.ta .lnk{margin:0 12px 0 0;font-size:.92em}
+.ipb{padding:10px 12px;border-top:1px solid var(--hair)}.hp2{color:var(--sec);font-size:.88em;margin-top:6px}
+.he{display:flex;gap:10px;padding:0 0 12px;position:relative}.hd{width:.7em;height:.7em;border-radius:50%;margin-top:.45em;flex:none;background:var(--sec)}.hd.ag{background:var(--accent)}.hd.you{background:var(--ink)}
+.hm{font-size:.88em;color:var(--sec)}.hm b{color:var(--ink);font-family:ui-monospace,Menlo,monospace}.hx{margin:1px 0 2px}
+.ish{font-size:.8em;font-weight:600;color:var(--sec);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em}.ish:first-child{margin-top:2px}
+.tgr{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair)}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0;color:var(--sec)}.kv span:last-child{color:var(--ink);text-align:right}
+.acl{display:flex;flex-direction:column}.acl span{display:flex;gap:8px;align-items:center;padding:6px 0}.acl kbd{margin-left:auto}
+.sbar{height:2.1em;flex:none;display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--side);border-top:1px solid var(--hair);color:var(--sec);font-size:.9em}
+.sbar .sb{display:inline-flex;gap:14px;align-items:center}.sbar .sb>span{display:inline-flex;gap:6px;align-items:center}
+.pb{display:inline-block;width:8em;height:4px;border-radius:2px;background:var(--hair);margin-left:8px}.pb i{display:block;height:4px;border-radius:2px;background:var(--accent)}
+.emp{flex:1;display:grid;place-items:center}.em{text-align:center;max-width:26em}.mk0{width:3.2em;height:3.2em;margin:0 auto 12px;color:var(--ink);opacity:.9}.mk0 svg{width:100%;height:100%}
+.e1{font-weight:600;font-size:1.2em}.e2{color:var(--sec);margin:4px 0 14px}.sr{display:flex;flex-direction:column;gap:6px;align-items:center;color:var(--sec)}.sr span{display:flex;gap:16px;align-items:center;justify-content:space-between;width:19em}
+.pal{position:absolute;left:50%;top:5em;transform:translateX(-50%);width:30em;background:var(--card);border:1px solid var(--hair);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.45);overflow:hidden;z-index:5}
+.pi2{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--hair);color:var(--sec)}
+.pr{display:flex;justify-content:space-between;padding:7px 14px}.pr.on{background:var(--tint)}.pr.on span:first-child{color:var(--atext);font-weight:600}.pm{color:var(--sec)}
+/* ===== notes-model mockup additions (tokens only from the prototype) ===== */
+html{--ts:1}
+body{background:#d9d5cc}body.dark{background:#0c0a08}
+main.m{padding:16px 24px 60px;max-width:1260px;margin:auto}
+.lead{font-size:13px;max-width:900px;opacity:.85;margin:6px 0 0}
+.opts{display:grid;gap:10px;margin:8px 0 0}
+.opt{display:flex;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid var(--hair);background:var(--card)}
+.opt.on{border:2px solid var(--accent);padding:11px 13px}
+.rad{width:1.15em;height:1.15em;border-radius:50%;border:1.5px solid var(--sec);flex:none;margin-top:.2em;position:relative}
+.opt.on .rad{border-color:var(--accent)}.opt.on .rad:after{content:"";position:absolute;inset:.18em;border-radius:50%;background:var(--accent)}
+.opt .oh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.opt .oh b{font-size:1.05em}
+.opt ul{margin:6px 0 0;padding-left:1.15em}.opt li{margin:2px 0}
+.opt .wr{margin-top:6px;color:var(--sec);font-size:.92em}
+.opt .wr b{color:var(--ink)}
+.chip.q{background:var(--tint);color:var(--atext);margin:0}
+.chip.d{border:1px solid var(--hair);background:none}
+.dim-win{filter:brightness(.62) saturate(.8)}
+.light .dim-win{filter:brightness(.82)}
+.overlay{position:relative}
+.overlay .sheetwrap{position:absolute;inset:0;display:grid;place-items:center}
+.sheet.wide{width:590px;padding:18px 22px;font-size:calc(12.5px*var(--ts))}
+.sheet.wide h5{font-size:1.2em}
+.sheet.wide .sec{margin-top:10px}
+.sheet.wide .sec>b{display:block;font-size:.86em;color:var(--sec);margin-bottom:2px;font-weight:600}
+.sheet.wide ul{margin:0;padding-left:1.15em;color:var(--ink)}.sheet.wide li{margin:2px 0}
+.sheet.wide .no{color:var(--sec)}
+.sheet.wide .bt{margin-top:14px;align-items:center}
+.sheet.wide .bt .sp{flex:1}
+.sheet.wide .ack{color:var(--sec);font-size:.92em}
+.board{display:grid;grid-template-columns:1fr 1fr;gap:6px 22px}
+.cell .sh{margin-top:14px}
+.cell .bn{margin:0}
+.cell .card{margin-top:8px}
+.mk{display:inline-flex;gap:5px;align-items:center;font-size:.9em;color:var(--atext);background:var(--tint);border-radius:9px;padding:0 8px}
+.mk .ic{width:1em;height:1em}
+.cmp{width:100%;border-collapse:collapse;font-size:.92em}
+.note{font-size:.85em;color:var(--sec);margin:6px 4px 0}
+.libwrap{width:520px;margin-top:14px}
+#D-marker .qc,#D-marker .by{display:none}
+.fr .v{position:relative}
+.dd{position:relative;display:inline-block}
+.mn{position:absolute;right:0;top:calc(100% + 4px);min-width:21em;background:var(--card);border:1px solid var(--hair);border-radius:10px;box-shadow:0 14px 36px rgba(0,0,0,.4);padding:4px;z-index:6;text-align:left;color:var(--ink)}
+.mn.stat{position:static;box-shadow:none;min-width:0}
+.menuwrap{display:flex;justify-content:flex-start}
+.mg{font-size:.78em;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--sec);padding:6px 10px 2px}
+.mi{display:flex;gap:8px;align-items:flex-start;padding:5px 10px;border-radius:6px}.mi.on{background:var(--tint)}.mi small{display:block;color:var(--sec);font-size:.88em}
+.mi .mc{width:1em;flex:none;color:var(--atext)}.mi.off{opacity:.55}.mi.fut{outline:1px dashed var(--hair);outline-offset:-2px}
+.mhr{height:1px;background:var(--hair);margin:4px 6px}.mnote{font-size:.85em;color:var(--sec);padding:4px 10px 6px;max-width:23em}
+.chip.fut{border:1px dashed var(--sec);background:none;color:var(--sec)}
+.nfo{margin-top:10px;border:1px solid var(--hair);border-radius:10px;background:var(--card);padding:10px 12px}
+.nfo summary{display:flex;gap:10px;align-items:flex-start;list-style:none;cursor:pointer}.nfo summary::-webkit-details-marker{display:none}
+.nfo .ni{color:var(--atext);flex:none;margin-top:.1em}.nfo .nt{flex:1}.nfo .det{margin:0}
+.nfo .dbody{margin-top:10px;padding-top:8px;border-top:1px solid var(--hair);font-size:.95em}
+.dh2{font-size:.8em;font-weight:600;color:var(--sec);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 3px}.dh2:first-child{margin-top:0}
+.nfo ul{margin:0;padding-left:1.15em}.nfo li{margin:2px 0}.nfo .no{color:var(--sec)}
+#A-local .win,#A-menu .win,#A2-claude-on .win,#B-details .win{height:auto;min-height:700px}
+#E-tomorrow .cell .nfo{font-size:.95em}
+</style></head><body>
+<div id="bar"><b>Lintel · mockup v2: notes model (A5b/A6)</b><span class="seg" id="s-theme"><button data-v="light">Light</button><button data-v="dark">Dark</button></span><span class="seg" id="s-lang"><button data-v="en">EN</button><button data-v="pl">PL</button></span><span style="margin-left:auto;opacity:.7">Static mockup, fictional data. Not a spec. Choices: DECYZJE.md</span></div>
+<main class="m"><div id="screens"></div></main><script>
+const S={lang:'en',theme:'dark',size:1};
+const x=(en,pl)=>S.lang==='pl'?pl:en;
+const P={
+gear:'<circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4"/>',
+back:'<path d="M10 3L5 8l5 5"/>',fwd:'<path d="M6 3l5 5-5 5"/>',
+mic:'<rect x="6" y="1.5" width="4" height="8" rx="2"/><path d="M3.5 7.5a4.5 4.5 0 0 0 9 0M8 12v2.5"/>',
+people:'<circle cx="6" cy="5.5" r="2.2"/><path d="M2 13c0-2.3 1.8-4 4-4s4 1.7 4 4"/><circle cx="11.5" cy="6" r="1.6"/><path d="M11 9.2c2 0 3.5 1.3 3.5 3.3"/>',
+doc:'<path d="M4 1.5h5l3 3v10H4z"/><path d="M9 1.5v3h3"/>',
+search:'<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>',
+trash:'<path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4"/>',
+copy:'<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/>',
+check:'<path d="M3 8.5l3.2 3L13 4.5"/>',
+warn:'<path d="M8 2l6.5 11.5h-13z"/><path d="M8 6.5v3.2M8 11.6v.2"/>',
+eye:'<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/>',
+eyeoff:'<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><path d="M2 2l12 12"/>',
+down:'<path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13.5h10"/>',
+dots:'<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>',
+lock:'<rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>',
+x:'<path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/>',refresh:'<path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.5v3h-3"/>',
+folder:'<path d="M1.5 4h4.5l1.5 1.5h7v7.5h-13z"/>',info:'<circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 4.9v.2"/>',
+grid:'<rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/>',
+cube:'<path d="M8 1.5l6 3v7l-6 3-6-3v-7zM2 4.5l6 3 6-3M8 7.5v7"/>',sliders:'<path d="M2 4.5h12M2 11.5h12"/><circle cx="5.5" cy="4.5" r="1.6"/><circle cx="10.5" cy="11.5" r="1.6"/>',
+hand:'<path d="M5 8V3.5a1 1 0 0 1 2 0V7M7 7V2.5a1 1 0 0 1 2 0V7M9 7V3.5a1 1 0 0 1 2 0V9M11 7.5a1 1 0 0 1 2 0V10c0 2.5-1.5 4-4 4H8c-2 0-3-1-4-2.5L2.5 9a1 1 0 0 1 1.7-1L5 9"/>',
+bolt:'<path d="M9 1.5L3.5 9H8l-1 5.5L12.5 7H8z"/>',pen:'<path d="M2.5 13.5l.7-3L11 2.7a1.4 1.4 0 0 1 2 2L5.2 12.5z"/>'};
+const ic=n=>`<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${P[n]}</svg>`;
+const mark=`<svg viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M99.01 19.82A112 112 0 1 1 19.82 99.01L64.25 110.92A66 66 0 1 0 110.92 64.25Z"/><circle cx="128" cy="128" r="34" fill="var(--accent)"/></svg>`;
+const lights='<div class="lights"><i></i><i></i><i></i></div>';
+const sw=on=>`<span class="sw${on?' on':''}" role="switch" aria-checked="${!!on}"></span>`;
+const btn=(t,c='',i='')=>`<span class="btn ${c}">${i?ic(i):''}${t}</span>`;
+const banner=(k,tt,ss,acts='',extra='')=>`<div class="bn ${k}" role="status"><span class="g">${ic(k==='ok'?'check':k==='att'||k==='er'?'warn':k==='acc'?'refresh':'info')}</span><div class="tx"><div class="tt">${tt}</div>${ss?`<div class="ss">${ss}</div>`:''}${extra}</div><div class="ba">${acts}</div></div>`;
+const fig=(id,name,reqs,body)=>`<figure class="scr" id="${id}" data-screen="${id}"><figcaption><b>${id}</b> · ${name} · <i>${reqs}</i></figcaption>${body}</figure>`;
+const R=(label,help,ctl)=>`<div class="fr"><div class="lb">${label}${help?`<div class="hp">${help}</div>`:''}</div><div class="v">${ctl||''}</div></div>`;
+const sel=t=>`<span class="sel-c">${t} ⌃</span>`;
+
+/* ---------- sidebars ---------- */
+const GROUPS=(off=[])=>[
+ [x('Lintel','Lintel'),[['general',x('General','Ogólne'),'gear'],['features',x('Features','Funkcje'),'grid'],['notes',x('Notes','Notatki'),'doc'],['permissions',x('Permissions','Uprawnienia'),'hand']]],
+ [x('Search','Szukanie'),[['apps',x('Apps','Aplikacje'),'grid'],['files',x('Files','Pliki'),'doc'],['clipboard',x('Clipboard','Schowek'),'copy']]],
+ [x('Voice','Głos'),[['dictation',x('Dictation','Dyktowanie'),'mic'],['meetings',x('Meetings','Spotkania'),'people']]],
+ [x('Models','Modele'),[['models',x('Models','Modele'),'cube']]],
+ [x('Advanced','Zaawansowane'),[['advanced',x('Advanced','Zaawansowane'),'sliders']]]];
+const setSide=(act,off=[],dot={})=>`<aside class="side">${lights}<div class="si" style="margin-top:2px">${ic('back')}<span class="l">${x('Notes','Notatki')}</span></div>
+ ${GROUPS().map(([g,items])=>`${g===x('Models','Modele')||g===x('Advanced','Zaawansowane')?'<div style="height:8px"></div>':`<div class="sg">${g}</div>`}${items.map(([k,l,i])=>`<div class="si ${act===k?'on':''} ${off.includes(k)?'off':''}">${ic(i)}<span class="l">${l}</span>${off.includes(k)?`<span class="off-t">${x('Off','Wył.')}</span>`:dot[k]?`<span class="n att-t">●</span>`:''}</div>`).join('')}`).join('')}<div class="sp"></div></aside>`;
+
+/* ---------- Notes (v2: explorer · tabs + editable document · inspector) ---------- */
+Object.assign(P,{
+ comment:'<path d="M2.5 3h11v8h-6l-3 2.5V11h-2z"/>',clock:'<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>',
+ diff:'<path d="M5 2v8M3 4l2-2 2 2M11 14V6M9 12l2 2 2-2"/>',outline:'<path d="M2 4h12M4 8h10M6 12h8"/>',
+ sidebar:'<rect x="2" y="3" width="12" height="10" rx="2"/><path d="M6 3v10"/>',plus:'<path d="M8 3v10M3 8h10"/>',
+ caret:'<path d="M4 6l4 4 4-4"/>',filter:'<path d="M2 4h12M4 8h8M6 12h4"/>',play:'<path d="M5 3l8 5-8 5z"/>',
+ code:'<path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5"/>',quote:'<path d="M3 5h4v4H4.5c0 1.2.8 2 2.5 2M9 5h4v4h-2.5c0 1.2.8 2 2.5 2"/>',
+ link:'<path d="M6.5 9.5a3 3 0 0 0 4.2 0l2-2a3 3 0 0 0-4.2-4.2l-.8.8M9.5 6.5a3 3 0 0 0-4.2 0l-2 2a3 3 0 0 0 4.2 4.2l.8-.8"/>',
+ ul:'<path d="M6 4h8M6 8h8M6 12h8"/><circle cx="2.8" cy="4" r=".8" fill="currentColor"/><circle cx="2.8" cy="8" r=".8" fill="currentColor"/><circle cx="2.8" cy="12" r=".8" fill="currentColor"/>',
+ task:'<rect x="2" y="3" width="4" height="4" rx="1"/><path d="M8 5h6M8 11h6"/><path d="M2.5 11l1 1 2-2"/>'});
+
+const NT=[
+ {id:'orchard',k:'m',g:'today',st:'ok',t:()=>x('Orchard weekly sync','Cotygodniowy sync Orchard'),sub:()=>x('14:05 · 42 min · Zoom','14:05 · 42 min · Zoom'),act:()=>x('Edited by you 15:02','Edytowane przez Ciebie 15:02'),src:'Zoom'},
+ {id:'kasia',k:'d',g:'today',st:'mute',t:()=>x('Hi Kasia, I moved the review to Thu…','Cześć Kasia, przesunąłem przegląd na czw…'),sub:()=>x('11:20 · 0:18 · Mail','11:20 · 0:18 · Mail'),src:'Mail'},
+ {id:'m0930',k:'m',g:'today',st:'acc',t:()=>x('Meeting 3 Nov, 09:30','Spotkanie 3 lis, 09:30'),sub:()=>x('09:30 · 12 min','09:30 · 12 min'),act:()=>x('Agent writing notes 2/5','Agent pisze notatki 2/5'),src:'—'},
+ {id:'call',k:'m',g:'yday',st:'att',t:()=>x('Customer call','Rozmowa z klientem'),sub:()=>x('16:40 · 31 min · Teams','16:40 · 31 min · Teams'),act:()=>x('Interrupted · finish it','Przerwane · dokończ'),src:'Teams'},
+ {id:'domain',k:'d',g:'yday',st:'mute',t:()=>x('Reminder: renew the domain before Friday','Przypomnienie: odnowić domenę przed piątkiem'),sub:()=>x('10:02 · 0:07 · Notes','10:02 · 0:07 · Notes'),src:'Notes'},
+ {id:'design',k:'m',g:'early',st:'er',t:()=>x('Design review','Przegląd designu'),sub:()=>x('1 Nov · 58 min · Meet','1 lis · 58 min · Meet'),act:()=>x('Notes failed','Notatki nie wyszły'),src:'Meet'}];
+const GN=()=>({today:x('Today','Dzisiaj'),yday:x('Yesterday','Wczoraj'),early:x('Earlier','Wcześniej')});
+const ntRow=(it,sel,snip)=>`<div class="tr2 ${sel?'on':''}"><span class="dot ${it.st}"></span><div class="tx"><div class="a">${it.t()}</div><div class="b">${snip||it.sub()}</div>${(it.act&&(sel||it.st!=='ok'))?`<div class="c ${it.st}">${it.act()}</div>`:''}</div></div>`;
+const exHead=()=>`<div class="lights" style="padding-bottom:2px">${'<i></i><i></i><i></i>'}<span style="margin-left:auto;color:var(--sec)">${ic('sidebar')}</span></div>`;
+const exSearch=(q)=>`<div class="exs">${ic('search')}<span class="${q?'qq':''}">${q||x('Search notes','Szukaj w notatkach')}</span>${q?`<span style="margin-left:auto;color:var(--sec)">${ic('x')}</span>`:`<kbd style="margin-left:auto">⌘P</kbd>`}</div>`;
+const exLabel=(n,extra='')=>`<div class="exl"><span>${x('Notes','Notatki')} <b>${n}</b></span><span class="ico">${extra||ic('filter')+ic('caret')+ic('plus')}</span></div>`;
+function exBy(by,sel){ // by: time | source
+ const G=GN();let h='';
+ if(by==='time'){['today','yday','early'].forEach(g=>{const l=NT.filter(i=>i.g===g);h+=`<div class="grp">${ic('caret')}${G[g]}<span>${l.length}</span></div>`+l.map(i=>ntRow(i,i.id===sel)).join('')});}
+ else{[['Zoom'],['Teams'],['Meet'],['Mail'],['Notes']].forEach(([s])=>{const l=NT.filter(i=>i.src===s);if(l.length)h+=`<div class="grp">${ic('caret')}${s}<span>${l.length}</span></div>`+l.map(i=>ntRow(i,i.id===sel)).join('')});}
+ return h;}
+const exFoot=()=>`<div class="exf"><span>${ic('gear')}</span><span class="sp"></span><span class="lnk2">${x('Settings','Ustawienia')} <kbd>⌘,</kbd></span></div>`;
+const explorer=({by='time',sel='orchard',q='',body=null,count=27,hide=false}={})=>`<aside class="ex">${exHead()}${exSearch(q)}${exLabel(count)}<div class="exb ${hide?'blur':''}">${body!==null?body:exBy(by,sel)}</div>${exFoot()}</aside>`;
+
+/* tabs + chrome */
+const tab=(it,on,extra='')=>`<div class="tb ${on?'on':''}">${ic(it.k==='m'?'people':'mic')}<span class="tt">${it.t()}</span>${extra}<span class="x">${ic('x')}</span></div>`;
+const tabsBar=(openIds=['orchard','kasia','m0930'],cur='orchard',marks={})=>`<div class="tbs">${openIds.map(id=>{const it=NT.find(i=>i.id===id);return tab(it,id===cur,marks[id]||(id==='orchard'?`<span class="mk" title="${x('Edited by you','Edytowane przez Ciebie')}">●</span>`:id==='m0930'?`<span class="spin">${ic('refresh')}</span>`:''))}).join('')}<div class="tb pl">${ic('plus')}</div><span class="sp"></span><div class="cmdb" title="${x('Command','Polecenie')}">${ic('play')} <kbd>⌘K</kbd></div></div>`;
+const crumb=(path,mode='read')=>`<div class="crb"><span class="pth">${path}</span><span class="sp"></span><span class="ibs"><span class="ib ${mode==='edit'?'on':''}" title="${x('Edit','Edytuj')}">${ic('pen')}</span><span class="ib ${mode==='diff'?'on':''}" title="${x('Compare versions','Porównaj wersje')}">${ic('diff')}</span><span class="ib" title="${x('Outline','Konspekt')}">${ic('outline')}</span><span class="ib" title="${x('Copy Markdown','Kopiuj Markdown')}">${ic('copy')}</span><span class="ib" title="${x('Save .md…','Zapisz .md…')}">${ic('down')}</span><span class="ib">${ic('dots')}</span></span></div>`;
+const fmtBar=()=>`<div class="fmt">${['¶','H1','H2','H3'].map(t=>`<span class="f">${t}</span>`).join('')}<i></i><span class="f"><b>B</b></span><span class="f"><em>I</em></span><span class="f"><s>S</s></span><i></i><span class="f">${ic('ul')}</span><span class="f">${ic('task')}</span><span class="f">${ic('quote')}</span><span class="f">${ic('link')}</span><i></i><span class="f cb">${ic('comment')} ${x('Comment','Komentarz')} <kbd>⌘⇧M</kbd></span></div>`;
+const strip=(k,t,a='')=>`<div class="strip ${k}"><span class="dot ${k}"></span><span class="st">${t}</span><span class="sp"></span>${a}</div>`;
+const L=(t)=>`<span class="lnk">${t}</span>`;
+const sbar=(l,r)=>`<div class="sbar"><span class="sb">${l}</span><span class="sp"></span><span class="sb">${r}</span></div>`;
+const sbDefault=()=>sbar(`<span class="dot ok"></span>${x('Notes model ready','Model notatek gotowy')} · Qwen3 4B`+`<span>${ic('lock')} ${x('Encrypted on this Mac','Zaszyfrowane na tym Macu')}</span>`,x('27 notes · 1 writing','27 notatek · 1 w toku'));
+const ntWin=({left,center,right='',status=sbDefault()})=>`<div class="win nt"><div class="wb">${left}<div class="cn">${center}</div>${right}</div>${status}</div>`;
+
+/* document pieces */
+const AUTH=()=>({ag:'AI',you:x('You','Ty'),stt:'STT'});
+const blk=(a,h,cls='')=>`<div class="blk ${cls}"><div class="gt ${a}">${AUTH()[a]}</div><div class="bd">${h}</div></div>`;
+const qc=t=>`<code class="qc">${t}</code>`;
+const docHead=(title,meta,view='notes',kind='m')=>`<div class="dh"><h1>${title}</h1><div class="dm">${meta.map(m=>`<span class="chip2">${m}</span>`).join('')}<span class="sp"></span><span class="vs"><span class="${view==='notes'?'on':''}">${kind==='m'?x('Notes','Notatki'):x('Cleaned','Po formatowaniu')}</span><span class="${view==='tr'?'on':''}">${kind==='m'?x('Transcript','Transkrypt'):x('Original','Oryginał')}</span></span></div></div>`;
+const T1=()=>x('Orchard weekly sync','Cotygodniowy sync Orchard');
+const META=()=>[x('3 Nov, 14:05','3 lis, 14:05'),'42 min','Zoom','Kasia · Marek · '+x('You','Ty')];
+const notesDoc=({cm=true,pop=false,hideAuth=false}={})=>`<div class="ed ${hideAuth?'noauth':''}">${docHead(T1(),META())}
+ ${blk('ag',`<h2>${x('Summary','Podsumowanie')}</h2><p>${x('The team agreed to ship the new onboarding on 12 Nov and to postpone the pricing page.','Zespół zdecydował o wydaniu nowego onboardingu 12 listopada i przesunięciu strony cennika.')} ${qc('12:41')}</p>`)}
+ ${blk('ag',`<h2>${x('Decisions','Decyzje')}</h2><ul><li>${x('Ship onboarding on 12 Nov.','Wydanie onboardingu: 12 listopada.')} ${qc('12:42')}</li></ul>`)}
+ ${blk('you',`<ul start="2"><li>${x('Pricing page moves to the','Strona cennika przechodzi do')} <span class="${pop?'sel':cm?'cm':''}">${x('next sprint','następnego sprintu')}</span> ${x('(Marek confirmed).','(potwierdził Marek).')}${pop?`<span class="pop"><span class="pt">${ic('comment')} ${x('New comment','Nowy komentarz')}</span><span class="pi">${x('Which sprint? Name it.','Który sprint? Podaj nazwę.')}<i class="caret2"></i></span><span class="pa"><span class="lnk">${x('Cancel','Anuluj')}</span><span class="btn sm pri">${x('Comment','Skomentuj')} <kbd style="background:none;color:inherit">⌘↩</kbd></span></span></span>`:''}</li></ul>`)}
+ ${blk('ag',`<h2>${x('Tasks','Zadania')}</h2><table><tr><th>#</th><th>${x('Task','Zadanie')}</th><th>${x('Owner','Osoba')}</th><th>${x('Due','Termin')}</th><th>${x('Source','Źródło')}</th></tr>
+  <tr><td>T1</td><td>${x('Update the release checklist','Zaktualizować checklistę wydania')}</td><td>Kasia</td><td><span class="${cm?'cm':''}">${x('Thu','czw.')}</span></td><td>${qc('12:44')}</td></tr>
+  <tr><td>T2</td><td>${x('Send the demo build to QA','Wysłać wersję demo do QA')}</td><td>Marek</td><td>${x('today','dziś')}</td><td>${qc('12:43')}</td></tr>
+  <tr class="you"><td>T3</td><td>${x('Ask legal about the pricing copy','Zapytać prawników o tekst cennika')}</td><td>Kasia</td><td>—</td><td><span class="by">${x('added by you','dodane przez Ciebie')}</span></td></tr></table>`)}
+ ${blk('ag',`<h2>${x('Open questions','Otwarte pytania')}</h2><ul><li>${x('Who reviews the Polish translation?','Kto sprawdza polskie tłumaczenie?')} ${qc('12:46')}</li></ul>`)}</div>`;
+const trDoc=()=>`<div class="ed">${docHead(T1(),META(),'tr')}<div class="find">${ic('search')} ${x('Find in transcript','Szukaj w transkrypcie')} <kbd style="margin-left:auto">⌘F</kbd></div>
+ ${blk('stt',`<div class="tl"><b>Kasia</b><code class="qc">12:41</code><span><span class="cm">${x('I’d move the pricing page, it isn’t ready.','Przesunęłabym stronę cennika, nie jest gotowa.')}</span></span></div>`)}
+ ${blk('you',`<div class="tl"><b>${x('You','Ty')}</b><code class="qc">12:42</code><span>${x('Agreed. Onboarding first, then pricing.','Zgoda. Najpierw onboarding, potem cennik.')}</span></div><div class="was">${x('was: Agreed. Onboarding first.','było: Zgoda. Najpierw onboarding.')}</div>`)}
+ ${blk('stt',`<div class="tl"><b>Marek</b><code class="qc">12:43</code><span>${x('I’ll send QA the demo build today.','Wyślę dziś QA wersję demo.')}</span></div>`)}
+ ${blk('stt',`<div class="tl"><b>Kasia</b><code class="qc">12:44</code><span>${x('And I’ll update the release checklist by Thursday.','A ja zaktualizuję checklistę wydania do czwartku.')}</span></div>`)}</div>`;
+const dictDoc=(orig)=>`<div class="ed">${docHead(x('Dictation, 3 Nov 11:20','Dyktowanie, 3 lis 11:20'),[x('0:18','0:18'),'Mail','Parakeet Ultra'],orig?'tr':'notes','d')}
+ ${orig?blk('stt',`<p>${x('hi kasia i moved the review to thursday at ten uh could you send me the agenda before hand','cześć kasia przesunąłem przegląd na czwartek na dziesiątą yyy prześlesz mi wcześniej agendę')}</p>`):blk('ag',`<p>${x('Hi Kasia, I moved the review to Thursday at 10. Could you send me the agenda beforehand?','Cześć Kasia, przesunąłem przegląd na czwartek na 10. Prześlesz mi wcześniej agendę?')}</p>`)}</div>`;
+
+/* inspector */
+const inspTabs=(on)=>`<div class="its">${[['comment','comments',x('Comments','Komentarze'),'2'],['clock','history',x('History','Historia'),''],['sliders','details',x('Details','Szczegóły'),'']].map(([i,k,l,n])=>`<span class="it ${on===k?'on':''}" title="${l}">${ic(i)}${on===k?`<b>${l}</b>`:''}${n?`<sup>${n}</sup>`:''}</span>`).join('')}<span class="sp"></span><span class="it">${ic('sidebar')}</span></div>`;
+const thread=(q,who,when,txt,res)=>`<div class="th ${res?'res':''}"><div class="tq">“${q}”</div><div class="tm"><b>${who}</b> · ${when}</div><div class="tx2">${txt}</div><div class="ta"><span class="lnk">${x('Reply','Odpowiedz')}</span><span class="lnk">${res?x('Reopen','Otwórz ponownie'):x('Resolve','Rozwiąż')}</span>${res?'':`<span class="lnk">${x('Ask agent','Zapytaj agenta')}</span>`}</div></div>`;
+const commentsPane=()=>`${inspTabs('comments')}<div class="ip"><div class="ipf"><span class="chip3 on">${x('Open','Otwarte')} 2</span><span class="chip3">${x('Resolved','Rozwiązane')} 1</span></div>
+ ${thread(x('next sprint','następnego sprintu'),x('You','Ty'),x('today 14:58','dziś 14:58'),x('Which sprint? Name it.','Który sprint? Podaj nazwę.'))}
+ ${thread(x('Thu','czw.'),x('You','Ty'),x('today 14:59','dziś 14:59'),x('Give the date.','Podaj datę.'))}
+ ${thread(x('Marek','Marek'),'AI',x('today 14:57','dziś 14:57'),x('Added the owner to T2.','Dodano osobę do T2.'),true)}
+ </div><div class="ipb"><span class="btn pri" style="justify-content:center">${ic('refresh')} ${x('Revise with 2 comments','Popraw według 2 komentarzy')}</span><div class="hp2">${x('The agent rewrites only commented blocks. Your edits stay.','Agent poprawia tylko skomentowane bloki. Twoje zmiany zostają.')}</div></div>`;
+const hEntry=(a,when,txt,acts)=>`<div class="he"><span class="hd ${a}"></span><div><div class="hm"><b>${AUTH()[a]}</b> · ${when}</div><div class="hx">${txt}</div><div class="ta">${acts}</div></div></div>`;
+const historyPane=()=>`${inspTabs('history')}<div class="ip"><div class="ipf"><span class="chip3 on">${x('All','Wszystko')}</span><span class="chip3">AI</span><span class="chip3">${x('You','Ty')}</span></div>
+ ${hEntry('you',x('today 15:02','dziś 15:02'),x('Edited 2 blocks, added task T3','Zmieniono 2 bloki, dodano zadanie T3'),`<span class="lnk">${x('Compare','Porównaj')}</span>`)}
+ ${hEntry('ag',x('today 14:59','dziś 14:59'),x('Revised 1 block from the comment “Add an owner to T2”','Poprawiono 1 blok wg komentarza „Dodaj osobę do T2”'),`<span class="lnk">${x('Compare','Porównaj')}</span><span class="lnk">${x('Restore','Przywróć')}</span>`)}
+ ${hEntry('ag',x('today 14:52','dziś 14:52'),x('Wrote the notes · Qwen3 4B · prompt v3','Napisał notatki · Qwen3 4B · prompt v3'),`<span class="lnk">${x('Restore','Przywróć')}</span>`)}
+ ${hEntry('stt',x('today 14:51','dziś 14:51'),x('Transcript · Parakeet Ultra · speakers separated','Transkrypt · Parakeet Ultra · rozdzieleni mówcy'),`<span class="lnk">${x('Open original','Otwórz oryginał')}</span>`)}
+ </div><div class="ipb"><div class="hp2">${x('History stays on this Mac, encrypted, as long as the note.','Historia zostaje na tym Macu, zaszyfrowana, tak długo jak notatka.')}</div></div>`;
+const tg=(l,on,h='')=>`<div class="tgr"><div><div>${l}</div>${h?`<div class="hp2">${h}</div>`:''}</div>${sw(on)}</div>`;
+const kv=(k,v)=>`<div class="kv"><span>${k}</span><span>${v}</span></div>`;
+const detailsPane=()=>`${inspTabs('details')}<div class="ip"><div class="ish">${x('View','Widok')}</div>${tg(x('Author bars','Pasek autora'),true,x('Who wrote each block: AI, You, STT.','Kto napisał każdy blok: AI, Ty, STT.'))}${tg(x('Source quotes','Cytaty ze źródła'),true,x('Timestamps that open the transcript.','Znaczniki czasu otwierające transkrypt.'))}${tg(x('Comments in text','Komentarze w tekście'),true)}${tg(x('Wrap lines','Zawijaj wiersze'),true)}
+ <div class="ish">${x('Note','Notatka')}</div>${kv(x('Source','Źródło'),'Zoom')}${kv(x('Language','Język'),'PL, EN')}${kv(x('Speech','Mowa'),'Parakeet Ultra')}${kv(x('Notes model','Model notatek'),'Qwen3 4B · v3')}${kv(x('Audio','Dźwięk'),x('deleted','usunięty'))}${kv(x('Kept until','Zachowane do'),x('1 Feb (90 days)','1 lut (90 dni)'))}
+ <div class="ish">${x('Actions','Akcje')}</div><div class="acl"><span>${ic('copy')} ${x('Copy Markdown','Kopiuj Markdown')}<kbd>⌘⇧C</kbd></span><span>${ic('down')} ${x('Save .md…','Zapisz .md…')}</span><span>${ic('refresh')} ${x('Regenerate notes…','Napisz notatki od nowa…')}</span><span class="er-t">${ic('trash')} ${x('Delete…','Usuń…')}<kbd>⌘⌫</kbd></span></div></div>`;
+const insp=(c)=>`<aside class="insp">${c}</aside>`;
+
+const diffDoc=()=>`<div class="ed"><div class="dh"><h1>${x('Compare','Porównanie')}</h1><div class="dm"><span class="chip2">${x('AI 14:52','AI 14:52')}</span>→<span class="chip2">${x('You 15:02','Ty 15:02')}</span><span class="sp"></span><span class="vs"><span class="on">${x('Inline','W tekście')}</span><span>${x('Side by side','Obok siebie')}</span></span></div></div>
+ <div class="df"><div class="dl ctx"><span class="gm"> </span><span class="gx">## ${x('Decisions','Decyzje')}</span></div>
+ <div class="dl rm"><span class="gm">−</span><span class="gx">${x('Pricing page moves to the next sprint.','Strona cennika przechodzi do następnego sprintu.')}</span><span class="by2">AI</span></div>
+ <div class="dl ad"><span class="gm">+</span><span class="gx">${x('Pricing page moves to the next sprint (Marek confirmed).','Strona cennika przechodzi do następnego sprintu (potwierdził Marek).')}</span><span class="by2">${x('You','Ty')}</span></div>
+ <div class="dl ctx"><span class="gm"> </span><span class="gx">## ${x('Tasks','Zadania')}</span></div>
+ <div class="dl ad"><span class="gm">+</span><span class="gx">| T3 | ${x('Ask legal about the pricing copy','Zapytać prawników o tekst cennika')} | Kasia | — |</span><span class="by2">${x('You','Ty')}</span></div></div></div>`;
+
+const centerOf=(doc,{path,strip:s='',mode='read',fmt=false,open,cur,marks}={})=>`${tabsBar(open,cur,marks)}${crumb(path||`${x('Today','Dzisiaj')} / ${T1()}`,mode)}${fmt?fmtBar():''}${s}${doc}`;
+const emptyC=(ico,tt,tx,rows='')=>`<div class="emp"><div class="em"><div class="mk0">${mark}</div><div class="e1">${tt}</div><div class="e2">${tx}</div>${rows}</div></div>`;
+const shortRows=()=>`<div class="sr"><span>${x('New note','Nowa notatka')}<kbd>⌘N</kbd></span><span>${x('Record a meeting','Nagraj spotkanie')}<kbd>⌃⌥M</kbd></span><span>${x('Dictate','Dyktuj')}<kbd>⌃⌥D</kbd></span><span>${x('Go to a note','Przejdź do notatki')}<kbd>⌘P</kbd></span></div>`;
+
+const setWin=(act,inner,o={})=>`<div class="win">${setSide(act,o.off||[],o.dot||{})}<div class="pane"><div class="in">${inner}</div></div></div>`;
+const adv=l=>`<div class="disc">${ic('fwd')} ${l||x('Advanced','Zaawansowane')}</div>`;
+const sh=t=>`<div class="sh">${t}</div>`;
+const permRow=(name,need,state,kind,act)=>`<div class="fr"><div class="lb"><b>${name}</b><div class="hp">${x('Needed for','Potrzebne do')}: ${need}</div></div><div class="v"><span class="${kind==='ok'?'ok-t':kind==='att'?'att-t':''}">${kind==='ok'?'✓ ':''}${state}</span>${act?btn(act,'sm'+(kind==='att'?' pri':'')):''}</div></div>`;
+const modelRow=(n,lic,used,size,state,act,prog)=>`<div class="fr"><div class="lb"><b>${n}</b> <span class="hp">${lic}</span><div class="hp">${used.map(u=>`<span class="chip">${u}</span>`).join(' ')} · ${size}</div>${prog?`<div class="prog" style="width:14em"><i style="width:${prog}%"></i></div>`:''}</div><div class="v"><span class="${state.ok?'ok-t':''}">${state.t}</span>${act}</div></div>`;
+/* ---------- notes-model mockup v2 screens (new code; helpers above are the prototype's) ---------- */
+Object.assign(P,{send:'<path d="M2 8l12-5.5L9.5 14 8 9z"/><path d="M8 9l3-3"/>',cloud:'<path d="M4.5 12.5a3 3 0 0 1-.4-6A4 4 0 0 1 12 6.5a3 3 0 0 1-.5 6z"/>',term:'<rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M4.5 6l2 2-2 2M8 10.5h3.5"/>',key:'<circle cx="5.5" cy="10.5" r="2.7"/><path d="M7.4 8.6L13.5 2.5M11 5l1.7 1.7"/>',mac:'<rect x="2" y="3" width="12" height="8" rx="1.5"/><path d="M5.5 13.5h5"/>'});
+const MEET=()=>x('Meetings','Spotkania');
+const MODEL='Sonnet';
+const FUT=()=>`<span class="chip fut">${x('example of the layout, not a promise','przykład układu, nie obietnica')}</span>`;
+/* menus ------------------------------------------------------- */
+const mi=(ico,t,sub,o={})=>`<div class="mi ${o.on?'on':''} ${o.off?'off':''} ${o.fut?'fut':''}"><span class="mc">${o.on?ic('check'):''}</span>${ic(ico)}<div><div>${t}</div>${sub?`<small>${sub}</small>`:''}</div>${o.fut?`<span class="chip fut" style="margin-left:auto">${x('example','przykład')}</span>`:''}</div>`;
+const mg=t=>`<div class="mg">${t}</div>`;
+const provMenuToday=(withAdd)=>`<div class="mn" role="listbox">${mg(x('On this Mac','Na tym Macu'))}${mi('mac',x('Local','Lokalnie'),x('Built-in models. Nothing leaves this Mac.','Wbudowane modele. Nic nie opuszcza Maca.'),{on:!1})}
+ ${mg(x('Tools on your subscription','Narzędzia na Twojej subskrypcji'))}${mi('term',x('Claude Code','Claude Code'),x('Anthropic · through the Claude Code on this Mac','Anthropic · przez Claude Code na tym Macu'))}
+ ${withAdd?`<div class="mhr"></div>${mi('plus',x('Add provider…','Dodaj dostawcę…'),'',{})}`:''}</div>`;
+const provMenuTomorrow=(variant)=>`<div class="mn stat" role="listbox">${mg(x('On this Mac','Na tym Macu'))}${mi('mac',x('Local','Lokalnie'),'')}
+ ${mg(x('Tools on your subscription','Narzędzia na Twojej subskrypcji'))}${mi('term','Claude Code','',{on:true})}
+ ${variant==='grey'?mi('term','Codex',x('Not installed · Set up…','Niezainstalowany · Skonfiguruj…'),{off:1,fut:1})+mi('term','Pi',x('Not signed in · Set up…','Niezalogowany · Skonfiguruj…'),{off:1,fut:1})+mi('term','OpenCode','',{fut:1}):''}
+ ${mg(x('API key','Klucz API'))}${variant==='grey'?mi('key',x('Anthropic API','Anthropic API'),x('No key yet · Add a key…','Brak klucza · Dodaj klucz…'),{off:1,fut:1}):''}
+ <div class="mhr"></div>${mi('plus',x('Add provider…','Dodaj dostawcę…'),variant==='add'?x('Codex, Pi, OpenCode, an API key…','Codex, Pi, OpenCode, klucz API…'):'',{fut:variant==='add'})}</div>`;
+const modelMenu=()=>`<div class="mn" role="listbox">${mg(x('Models offered by Claude Code','Modele oferowane przez Claude Code'))}
+ ${mi('cube','Sonnet',x('Newest Sonnet your Claude Code knows','Najnowszy Sonnet, jaki zna Twoje Claude Code'),{on:true})}${mi('cube','Haiku',x('Newest Haiku your Claude Code knows','Najnowszy Haiku, jaki zna Twoje Claude Code'))}
+ <div class="mhr"></div><div class="mnote">${x('Today the app ships two entries (Sonnet, Haiku). Opus, Fable and “account default” are not in the list yet: see D15.','Dziś aplikacja ma dwie pozycje (Sonnet, Haiku). Opusa, Fable ani „domyślnego modelu konta” w liście nie ma: patrz D15.')}</div></div>`;
+const localModelMenu=()=>`<div class="mn" role="listbox">${mg(x('Built-in models','Modele wbudowane'))}${mi('cube','Qwen3 4B Instruct 2507',x('2.5 GB · installed · for 8 GB Macs and up','2,5 GB · zainstalowany · od Maców z 8 GB'),{on:true})}${mi('cube','Qwen3 30B-A3B Instruct 2507',x('18.6 GB · not installed · for 32 GB Macs and up','18,6 GB · niezainstalowany · od Maców z 32 GB'))}</div>`;
+/* rows ---------------------------------------------------------- */
+const drop=(t,menu)=>`<span class="dd">${t}${menu||''}</span>`;
+const provSel=(kind)=>`<span class="sel-c">${ic(kind==='local'?'mac':kind==='api'?'key':'term')} ${kind==='local'?x('Local','Lokalnie'):kind==='api'?x('Anthropic API','Anthropic API'):'Claude Code'} ⌃</span>`;
+const provRow=(kind,menu)=>R(x('Notes are written by','Notatki pisze'),'',drop(provSel(kind),menu));
+const modelRow2=(kind,menu)=>R(x('Model','Model'),kind==='local'?x('Used for every meeting.','Używany dla każdego spotkania.'):'',drop(`<span class="sel-c">${kind==='local'?'Qwen3 4B Instruct 2507':MODEL} ⌃</span>`,menu));
+const notice=(prov,o={})=>`<details class="nfo" ${o.open?'open':''}><summary><span class="ni">${ic('cloud')}</span><span class="nt">${x(`Meeting transcripts, speaker names and your approved dictionary terms leave this Mac and go to <b>${prov}</b>. Choosing this provider is your consent.`,`Transkrypty spotkań, imiona mówców i zatwierdzone terminy ze słownika opuszczają tego Maca i trafiają do <b>${prov}</b>. Wybór tego dostawcy oznacza Twoją zgodę.`)}</span><span class="lnk det">${x('Details','Szczegóły')}</span></summary>
+ <div class="dbody">${o.api?detailsApi(prov):detailsList(prov)}</div></details>`;
+const detailsList=(prov)=>`<div class="dh2">${x('What leaves this Mac, for every meeting','Co opuszcza Maca, przy każdym spotkaniu')}</div><ul>
+ <li>${x('The <b>whole transcript</b>, in one go (a very long meeting in several large parts).','<b>Cały transkrypt</b>, naraz (bardzo długie spotkanie w kilku dużych częściach).')}</li>
+ <li>${x('<b>Speaker names</b>, including names you gave and your own.','<b>Imiona mówców</b>, także nadane przez Ciebie i Twoje własne.')}</li>
+ <li>${x('<b>Timestamps</b> of each segment ([mm:ss]).','<b>Znaczniki czasu</b> każdego fragmentu ([mm:ss]).')}</li>
+ <li>${x('Your <b>whole dictation vocabulary</b> of approved terms: correct spelling only, not the forms as heard, not unapproved suggestions. Only while Dictation is on.','Cały Twój <b>słownik Dyktowania</b> zatwierdzonych terminów: sama poprawna pisownia, bez usłyszanych form i niezatwierdzonych propozycji. Tylko gdy Dyktowanie jest włączone.')}</li></ul>
+ <div class="dh2">${x('Not sent','Nie wysyłamy')}</div><div class="no">${x('Audio, meeting titles, the app a meeting came from, your own notes, the meetings vocabulary, dictated text.','Nagrań, tytułów spotkań, aplikacji źródłowej spotkania, Twoich własnych notatek, słownika spotkań ani treści dyktowań.')}</div>
+ <div class="dh2">${x('When it happens','Kiedy to następuje')}</div><ul>
+ <li>${x('<b>With every meeting and with no question asked</b>: after each recording, when an interrupted meeting is finished (also in the background after a restart), after a speaker name changes, and on automatic retries after an error or timeout (a retry sends the transcript again).','<b>Przy każdym spotkaniu i bez pytania</b>: po każdym nagraniu, przy dokończeniu przerwanego spotkania (także w tle po restarcie), po zmianie imienia mówcy i przy automatycznych ponowieniach po błędzie lub przekroczeniu czasu (ponowienie wysyła transkrypt jeszcze raz).')}</li>
+ <li>${x('“Regenerate notes” sends the transcript <b>again</b>, also for meetings recorded before you chose this provider.','„Napisz notatki od nowa” wysyła transkrypt <b>jeszcze raz</b>, także spotkań nagranych, zanim wybrałeś tego dostawcę.')}</li>
+ <li>${x('Changing the model of the same provider asks nothing and changes nothing about what is sent.','Zmiana modelu u tego samego dostawcy o nic nie pyta i nie zmienia tego, co jest wysyłane.')}</li></ul>
+ <div class="dh2">${x('What you should know','Co warto wiedzieć')}</div><ul>
+ <li>${x(`It goes through <b>your ${prov==='Anthropic'?'Claude':'subscription'} account</b>, under the provider’s terms and your plan; ${prov} may keep the text.`,`Idzie przez <b>Twoje konto${prov==='Anthropic'?' Claude':' na subskrypcji'}</b>, na zasadach dostawcy i Twojego planu; ${prov} może przechowywać tekst.`)}</li>
+ <li>${x('<b>What was sent can’t be taken back.</b> Switching back to Local stops further sending only.','<b>Wysłanego nie da się cofnąć.</b> Powrót do Lokalnie zatrzymuje tylko dalsze wysyłanie.')}</li>
+ <li>${x('<b>Lintel doesn’t tell meeting participants.</b> Informing them is up to you.','<b>Lintel nie informuje uczestników spotkań.</b> Poinformowanie ich należy do Ciebie.')}</li></ul>`;
+const detailsApi=(prov)=>`<div class="dh2">${x('What leaves this Mac, for every meeting','Co opuszcza Maca, przy każdym spotkaniu')}</div><ul>
+ <li>${x('The <b>whole transcript</b>, speaker names and segment timestamps — as with the other providers.','<b>Cały transkrypt</b>, imiona mówców i znaczniki czasu — jak u pozostałych dostawców.')}</li>
+ <li>${x('<b>Not</b> your dictation vocabulary: terms go only through Claude Code (ADR 0013).','<b>Bez</b> słownika Dyktowania: terminy idą tylko przez Claude Code (ADR 0013).')}</li></ul>
+ <div class="dh2">${x('What differs from a subscription','Czym różni się od subskrypcji')}</div><ul>
+ <li>${x(`It goes to ${prov} on your <b>API key</b>, under the <b>API terms</b> (not the subscription terms) and billed per use.`,`Idzie do ${prov} na Twój <b>klucz API</b>, na <b>warunkach API</b> (nie subskrypcji) i jest rozliczane za użycie.`)}</li>
+ <li>${x('The key is stored in the Keychain, never in files. Everything else (automatic sending, retries, “can’t be taken back”, participants) is as in the list for the other providers.','Klucz jest w Pęku kluczy, nigdy w plikach. Reszta (automatyczne wysyłanie, ponowienia, „nie da się cofnąć”, uczestnicy) jak na liście u pozostałych dostawców.')}</li></ul>`;
+const localNote=()=>`<div class="ft">${x('Nothing leaves this Mac. Shorter, simpler notes than a provider writes (D10).','Nic nie opuszcza tego Maca. Notatki krótsze i prostsze niż u dostawcy (D10).')}</div>`;
+const tryRow=()=>R(x('Try it','Wypróbuj'),x('Sends a short fixed example, not a meeting.','Wysyła krótki, stały przykład, nie spotkanie.'),btn(x('Test','Testuj'),'sm'));
+const statusRow=()=>R(x('Status','Stan'),'',`<span class="ok-t">✓ ${x('Claude Code 2.1.329, signed in','Claude Code 2.1.329, zalogowano')}</span>`);
+const banLocal=()=>banner('ok',x('Ready','Gotowe'),x('Notes are written on this Mac. Nothing is sent anywhere.','Notatki powstają na tym Macu. Nic nie jest nigdzie wysyłane.'));
+const banClaude=()=>banner('acc',x('Ready · Notes are written by Claude Code.','Gotowe · Notatki pisze Claude Code.'),x('Transcripts leave this Mac.','Transkrypty opuszczają tego Maca.'),btn(x('Use Local','Użyj Lokalnie'),'sm'));
+const basics=()=>`${sh(x('Basics','Podstawy'))}<div class="card">${R(x('Record meeting','Nagraj spotkanie'),x('Press to start and again to stop.','Naciśnij, aby zacząć i zakończyć.'),`<kbd>⌃⌥M</kbd>`)}${R(x('Write notes after each meeting','Pisz notatki po każdym spotkaniu'),x('Summary, decisions, tasks.','Podsumowanie, decyzje, zadania.'),sw(true))}</div>${sh(x('Notes are written by','Notatki pisze'))}`;
+const speechRows=()=>`<div class="card" style="margin-top:12px">${R(x('Speech model','Model mowy'),x('Parakeet Ultra · installed','Parakeet Ultra · zainstalowany'),sel('Parakeet Ultra'))}${R(x('Keep meetings for','Przechowuj spotkania przez'),'',sel(x('90 days','90 dni')))}</div>`;
+const meetWin=(inner)=>setWin('meetings',`<h3>${MEET()}</h3>${inner}`);
+const tag=(t)=>`<span class="tagbar">${t}</span>`;
+/* screens ------------------------------------------------------ */
+const sLocal=()=>fig('A-local','Settings · Meetings · default: Local (today)','default',
+ meetWin(`${banLocal()}${basics()}<div class="card">${provRow('local')}${modelRow2('local')}</div>${localNote()}${speechRows()}`));
+const sMenuToday=()=>fig('A-menu','Provider menu open · TODAY: one external provider','menu',
+ meetWin(`${banLocal()}${basics()}<div class="card" style="min-height:270px">${provRow('local',provMenuToday(true))}${modelRow2('local')}</div>${localNote()}`));
+const sModels=()=>fig('A-models','Model menus: Claude Code (left) · Local (right)','models',
+ `<div class="win" style="height:auto"><div class="pane"><div class="in" style="max-width:none"><h3>${MEET()}</h3><div class="board"><div class="cell"><div class="sh">Claude Code</div><div class="card" style="min-height:300px">${provRow('cli')}${modelRow2('cli',modelMenu())}</div></div>
+ <div class="cell"><div class="sh">${x('Local','Lokalnie')}</div><div class="card" style="min-height:300px">${provRow('local')}${modelRow2('local',localModelMenu())}</div></div></div></div></div></div>`);
+const sClaude=()=>fig('A2-claude-on','Settings · Meetings · Claude Code selected (no consent window)','ready',
+ meetWin(`${banClaude()}${basics()}<div class="card">${provRow('cli')}${modelRow2('cli')}${statusRow()}${tryRow()}</div>${notice('Anthropic')}<div class="ft">${x('Switch back to Local here at any time: no question asked. It stops further sending; it can’t recall what was sent.','Wrócić do Lokalnie możesz tu w każdej chwili, bez pytania. To zatrzymuje dalsze wysyłanie, ale nie cofa tego, co już poszło.')}</div>`));
+const sDetails=()=>fig('B-details','“Details” opened in place (not a window): the full list','details',
+ meetWin(`${banClaude()}${basics()}<div class="card">${provRow('cli')}${modelRow2('cli')}${statusRow()}</div>${notice('Anthropic',{open:true})}`));
+const cellT=(t,body,foot)=>`<div class="cell"><div class="sh">${t}</div>${body}${foot?`<div class="ft">${foot}</div>`:''}</div>`;
+const sTomorrow=()=>fig('E-tomorrow','TOMORROW: several providers and connection kinds · EXAMPLE OF THE LAYOUT, NOT A PROMISE','tomorrow',
+ `<div class="win" style="height:auto"><div class="pane"><div class="in" style="max-width:none"><h3>${MEET()} · ${x('layout with several providers','układ z kilkoma dostawcami')} ${FUT()}</h3><div class="board">
+ ${cellT(x('Menu, variant A: unavailable entries greyed with the reason','Menu, wariant A: niedostępne pozycje wyszarzone z powodem'),`<div class="card" style="min-height:340px"><div class="menuwrap">${provMenuTomorrow('grey')}</div></div>`,x('Names of future providers are examples of the layout. Lintel has no descriptor for them.','Nazwy przyszłych dostawców to przykład układu. Lintel nie ma dla nich deskryptorów.'))}
+ ${cellT(x('Menu, variant C: only what works + “Add provider…”','Menu, wariant C: tylko to, co działa + „Dodaj dostawcę…”'),`<div class="card" style="min-height:340px"><div class="menuwrap">${provMenuTomorrow('add')}</div></div>`,x('Same menu once the user has set up two providers.','To samo menu po skonfigurowaniu przez użytkownika dwóch dostawców.'))}
+ ${cellT(x('A CLI tool selected (example)','Wybrane narzędzie CLI (przykład)'),`<div class="card">${R(x('Notes are written by','Notatki pisze'),'',`<span class="sel-c">${ic('term')} Codex ⌃</span>`)}${R(x('Model','Model'),x('Models come from the provider’s own list.','Modele z listy samego dostawcy.'),`<span class="sel-c">${x('(provider’s models)','(modele dostawcy)')} ⌃</span>`)}</div>${notice(x('the provider’s company','firmę dostawcy'))}`,x('Same short notice, with the company of the chosen provider named.','Ta sama krótka informacja z nazwą firmy wybranego dostawcy.'))}
+ ${cellT(x('An API key selected (example, phase 2)','Wybrany klucz API (przykład, faza 2)'),`<div class="card">${R(x('Notes are written by','Notatki pisze'),'',`<span class="sel-c">${ic('key')} Anthropic API ⌃</span>`)}${R(x('Model','Model'),'',`<span class="sel-c">${x('(provider’s models)','(modele dostawcy)')} ⌃</span>`)}${R(x('API key','Klucz API'),'',`<span class="ok-t">✓ ${x('In Keychain','W Pęku kluczy')}</span>${btn(x('Change…','Zmień…'),'sm')}`)}</div>${notice('Anthropic',{api:true})}`,x('A key means other terms than a subscription; the Details list says so.','Klucz to inne warunki niż subskrypcja; lista „Szczegóły” to mówi.'))}
+ </div></div></div></div>`);
+/* states */
+const prCl=(st)=>`<div class="card">${provRow('cli')}${R(x('Status','Stan'),'',st)}</div>`;
+const lastRun=(t)=>R(x('Last meeting','Ostatnie spotkanie'),`${x('Orchard weekly sync','Cotygodniowy sync Orchard')} · ${x('3 Nov','3 lis')}`,t);
+const cell=(t,bn,rows,foot)=>`<div class="cell"><div class="sh">${t}</div>${bn}${rows?`<div class="card">${rows}</div>`:''}${foot?`<div class="ft">${foot}</div>`:''}</div>`;
+const sStates=()=>fig('C-states','Provider states (banner + rows), as in v1 plus the fallback pair (D7)','states',
+ `<div class="win" style="height:auto"><div class="pane"><div class="in" style="max-width:none"><h3>${MEET()} · ${x('Claude Code states','stany Claude Code')}</h3><div class="board">
+ ${cell('1 · '+x('Claude Code not installed','Claude Code niezainstalowany'),banner('att',x('Claude Code not found','Nie znaleziono Claude Code'),x('Lintel uses the Claude Code installed on your Mac. New notes won’t be written until it is found.','Lintel używa Claude Code zainstalowanego na Twoim Macu. Nowe notatki nie powstaną, dopóki go nie znajdzie.'),btn(x('How to Install','Jak zainstalować'),'sm pri')+btn(x('Choose File…','Wskaż plik…'),'sm')),provRow('cli')+R(x('Status','Stan'),'',`<span class="att-t">${x('Not installed','Niezainstalowany')}</span>`),x('Nothing is sent. Use Local to get notes now.','Nic nie jest wysyłane. Użyj Lokalnie, aby mieć notatki od razu.'))}
+ ${cell('2 · '+x('Not signed in','Niezalogowany'),banner('att',x('Sign in to Claude Code','Zaloguj się w Claude Code'),x('Open Terminal and run the command below, then check again.','Otwórz Terminal i uruchom poniższe polecenie, potem sprawdź ponownie.'),btn(x('Check Again','Sprawdź ponownie'),'sm pri')),`<div class="fr"><div class="lb"><code style="font:12px ui-monospace,monospace">claude auth login</code></div><div class="v">${btn(x('Copy Command','Kopiuj polecenie'),'sm','copy')}</div></div>`,x('Lintel never sees your login.','Lintel nie widzi Twojego logowania.'))}
+ ${cell('3 · '+x('Incompatible version','Niezgodna wersja'),banner('att',x('This Claude Code is too old','Ta wersja Claude Code jest za stara'),x('Update it, then check again.','Zaktualizuj ją, potem sprawdź ponownie.'),btn(x('Update Claude Code','Zaktualizuj Claude Code'),'sm pri')),R(x('If it were newer than Lintel knows','Gdyby była nowsza, niż zna Lintel'),x('“This Claude Code is newer than this Lintel supports.”','„Ta wersja Claude Code jest nowsza, niż obsługuje ten Lintel.”'),btn(x('Update Lintel','Zaktualizuj Lintela'),'sm')),'')}
+ ${cell('4 · '+x('Model not available for the account','Model niedostępny dla konta'),banner('er',x('Haiku isn’t available on your Claude plan','Haiku nie jest dostępny w Twoim planie Claude'),x('Choose another model. Nothing was written for the last meeting.','Wybierz inny model. Notatki ostatniego spotkania nie powstały.'),btn(x('Choose Model','Wybierz model'),'sm pri')),modelRow2('cli')+lastRun(`<span class="er-t">${x('Failed','Nie udało się')}</span>`),x('Example wording. The CLI reports this as an error; Lintel can’t know a plan’s models beforehand (see README).','Przykładowy tekst. CLI zgłasza to jako błąd; Lintel nie zna z góry modeli planu (patrz README).'))}
+ ${cell('5a · '+x('Error or timeout · no fallback (owner’s earlier choice)','Błąd lub timeout · brak fallbacku (wcześniejszy wybór właściciela)'),banner('er',x('Notes weren’t written','Notatki nie powstały'),x('Claude didn’t answer in time. Retrying sends the transcript again.','Claude nie odpowiedział w czasie. Ponowienie wyśle transkrypt jeszcze raz.'),btn(x('Try Again','Spróbuj ponownie'),'sm pri')),lastRun(`<span class="er-t">${x('Failed','Nie udało się')}</span>`),x('Same pattern for network and subscription-limit errors, with the reason named. No notes until the user acts.','Ten sam wzór dla błędu sieci i limitu subskrypcji, z nazwanym powodem. Notatek nie ma, dopóki użytkownik czegoś nie zrobi.'))}
+ ${cell('5b · '+x('Error or timeout · ask after failure (D7 option C)','Błąd lub timeout · pytanie po awarii (D7 opcja C)'),banner('er',x('Notes weren’t written','Notatki nie powstały'),x('Claude didn’t answer in time. Write them on this Mac instead? Nothing more is sent.','Claude nie odpowiedział w czasie. Napisać je na tym Macu? Nic więcej nie zostanie wysłane.'),btn(x('Write on This Mac','Napisz na tym Macu'),'sm pri')+btn(x('Try Again','Spróbuj ponownie'),'sm')),lastRun(`<span class="er-t">${x('Failed','Nie udało się')}</span>`),x('One click, one meeting, no silent switch. Needs the built-in model installed; otherwise the button leads to Models.','Jedno kliknięcie, jedno spotkanie, bez cichej zmiany. Wymaga zainstalowanego modelu wbudowanego; inaczej przycisk prowadzi do Modeli.'))}
+ ${cell('6 · '+x('Transcript too long','Transkrypt za długi'),banner('er',x('This meeting is too long for Claude','To spotkanie jest za długie dla Claude'),x('Nothing was sent. The transcript is longer than Lintel can split safely.','Nic nie wysłano. Transkrypt jest dłuższy, niż Lintel potrafi bezpiecznie podzielić.'),btn(x('Write on This Mac','Napisz na tym Macu'),'sm')),lastRun(`<span class="er-t">${x('Failed','Nie udało się')}</span>`),'')}
+ ${cell('7 · '+x('Back on Local (D6)','Powrót na Lokalnie (D6)'),banLocal(),R(x('Orchard weekly sync','Cotygodniowy sync Orchard'),x('Notes written earlier by Claude Code stay.','Notatki napisane wcześniej przez Claude Code zostają.'),mkr()),x('The marker stays: it describes what is in the notes. Option B would change it to “Sent earlier to…”.','Znacznik zostaje: opisuje to, co jest w notatkach. Opcja B zmieniłaby go na „Wysłano wcześniej do…”.'))}
+ ${cell('8 · '+x('Model changed (no question)','Zmiana modelu (bez pytania)'),'',modelRow2('cli')+R(x('Applies','Zaczyna działać'),'',`<span>${x('from the next notes job','od następnego zadania notatek')}</span>`),x('Just a menu choice. A job already running restarts on the new model and sends the transcript again (spec: notes are never stitched from two models).','Zwykły wybór z menu. Zadanie w toku startuje od nowa na nowym modelu i wysyła transkrypt jeszcze raz (spec: notatki nigdy nie są sklejane z dwóch modeli).'))}
+ ${cell('9 · '+x('“Use Local” while a job is running (D12)','„Użyj Lokalnie” podczas zadania (D12)'),banner('acc',x('Writing notes with Claude Code…','Claude Code pisze notatki…'),x('Transcripts leave this Mac.','Transkrypty opuszczają tego Maca.'),btn(x('Use Local','Użyj Lokalnie'),'sm')),`<div class="fr"><div class="lb"><b>${x('Option B only: confirmation','Tylko opcja B: potwierdzenie')}</b><div class="hp">${x('“A job is running. What was already sent stays with the provider.”','„Zadanie trwa. To, co już wysłano, zostaje u dostawcy.”')}</div></div><div class="v">${btn(x('Cancel','Anuluj'),'sm')}${btn(x('Use Local','Użyj Lokalnie'),'sm pri')}</div></div>`,'')}
+ </div></div></div></div>`);
+const mkr=()=>`<span class="mk">${ic('send')} ${x('Sent to: Claude · '+MODEL,'Wysłano do: Claude · '+MODEL)}</span>`;
+const detCl=(on)=>`${inspTabs('details')}<div class="ip"><div class="ish">${x('Note','Notatka')}</div>${kv(x('Source','Źródło'),'Zoom')}${kv(x('Language','Język'),'PL, EN')}${kv(x('Speech','Mowa'),'Parakeet Ultra')}${on?kv(x('Sent to','Wysłano do'),`Claude · ${MODEL}`):kv(x('Notes model','Model notatek'),'Qwen3 4B · v3')}${kv(x('Audio','Dźwięk'),x('deleted','usunięty'))}
+ <div class="ish">${x('Actions','Akcje')}</div><div class="acl"><span>${ic('copy')} ${x('Copy Markdown','Kopiuj Markdown')}<kbd>⌘⇧C</kbd></span><span>${ic('refresh')} ${x('Regenerate notes…','Napisz notatki od nowa…')}</span></div>
+ ${on?`<div class="hp2" style="margin-top:10px">${x('The provider wrote these notes from the transcript sent. Exports never contain this line. No marker does not mean nothing was sent (a failed run may have sent it).','Dostawca napisał te notatki z wysłanego transkryptu. Eksporty nigdy nie zawierają tej informacji. Brak znacznika nie znaczy „nie wysłano” (nieudane zadanie mogło wysłać transkrypt).')}</div>`:''}</div>`;
+const sMarker=()=>fig('D-marker','Notes · Details with “Sent to” (and the library row)','marker',
+ ntWin({left:explorer(),center:centerOf(notesDoc({cm:false,hideAuth:true}),{mode:'read'}),right:insp(detCl(true))})+
+ `<div class="libwrap"><div class="card" style="padding:6px 8px"><div class="rw sel" style="padding:8px"><span class="kind">${ic('people')}</span><div class="b1"><div class="t">${x('Orchard weekly sync','Cotygodniowy sync Orchard')}</div><div class="m">${x('3 Nov, 14:05','3 lis, 14:05')} · 42 min · Zoom ${mkr()}</div></div></div></div><div class="note">${x('Library row (launcher panel list mode). Without the marker (local notes, or after a failed run) nothing is claimed about what was sent.','Wiersz biblioteki (panel launchera). Bez znacznika (notatki lokalne albo po nieudanym zadaniu) nic nie jest obiecane o tym, co wysłano.')}</div></div>`);
+function render(){
+ document.body.className=S.theme;document.documentElement.style.setProperty('--ts',S.size);document.documentElement.lang=S.lang;
+ const e=document.getElementById('screens');e.innerHTML=[sLocal(),sMenuToday(),sModels(),sClaude(),sDetails(),sTomorrow(),sStates(),sMarker()].join('');e.className=S.theme;e.style.setProperty('--ts',S.size);
+ document.querySelectorAll('#s-theme button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.theme));
+ document.querySelectorAll('#s-lang button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.lang));
+}
+document.getElementById('s-theme').onclick=e=>{if(e.target.dataset.v){S.theme=e.target.dataset.v;render()}};
+document.getElementById('s-lang').onclick=e=>{if(e.target.dataset.v){S.lang=e.target.dataset.v;render()}};
+const qq=new URLSearchParams(location.search);if(qq.get('theme'))S.theme=qq.get('theme');if(qq.get('lang'))S.lang=qq.get('lang');
+render();
+</script></body></html>
