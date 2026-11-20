@@ -6,7 +6,7 @@ import Testing
 
 /// Manual notes (spec step 4.4): ⌘N, the explorer's "+", `notes:<uuid>` keys, the title and the editor.
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct ManualNoteTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct ManualNoteTests {
     private func model(_ r: ReconRig, writing: Bool = true) -> NotesWorkspaceModel {
         var environment = NotesWorkspaceModel.Environment(library: r.library, pasteboard: RecordingPasteboard())
         environment.registry = r.registry

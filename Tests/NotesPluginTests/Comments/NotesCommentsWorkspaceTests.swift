@@ -8,7 +8,7 @@ import Testing
 /// Spec steps 5.2 and 5.3: the open note's comments in the workspace model (threads, reply, resolve, filter), the
 /// highlights, `plugins.notes.readOnly`, and the count behind "Revise with N comments".
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct NotesCommentsWorkspaceTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct NotesCommentsWorkspaceTests {
     private let notes = "## Decisions\n\n- Ship onboarding on 12 Nov.\n- Pricing page moves to the next sprint."
 
     private struct Setup {

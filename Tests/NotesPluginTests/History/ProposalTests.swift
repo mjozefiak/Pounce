@@ -8,7 +8,7 @@ import Testing
 /// revision through compare-and-set, Discard keeps the history, a proposal stays pending until the user decides,
 /// and the tab and the History tab say so.
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct ProposalTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct ProposalTests {
     private func model(_ r: ReconRig) -> NotesWorkspaceModel {
         var environment = NotesWorkspaceModel.Environment(library: r.library, pasteboard: RecordingPasteboard())
         environment.registry = r.registry

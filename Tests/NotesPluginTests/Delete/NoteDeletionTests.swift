@@ -7,7 +7,7 @@ import Testing
 
 /// Delete (spec step 4.6): the owner first, the overlays only after it succeeded, never without a confirmation.
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct NoteDeletionTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct NoteDeletionTests {
     private func model(_ r: ReconRig, writing: Bool = true) -> NotesWorkspaceModel {
         var environment = NotesWorkspaceModel.Environment(library: r.library, pasteboard: RecordingPasteboard())
         environment.registry = r.registry

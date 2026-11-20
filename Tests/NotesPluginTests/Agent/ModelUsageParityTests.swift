@@ -9,7 +9,7 @@ import Testing
 /// `runActive || lease.isInUse(modelID: path)`, with the same lease and the same path Meetings asks, and a removal
 /// reserves the model so no run starts while the file goes.
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct NotesModelUsageParityTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct NotesModelUsageParityTests {
     @Test func theRowIsTheOptionalNotesModel() throws {
         let plugin = NotesPlugin(context: makeContext())
         let usage = try #require(plugin.modelUsage.first)

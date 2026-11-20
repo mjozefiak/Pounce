@@ -6,7 +6,7 @@ import Testing
 @testable import NotesPlugin
 
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct OverlayDetachTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct OverlayDetachTests {
     private func startedMs(_ r: ReconRig) -> Int64 { NoteTime.milliseconds(r.rig.started) }
 
     @Test func aCommentWithoutEditingThenTheSourceDeletedIsListedAsRecordingRemovedAndDeleteRemovesIt() async throws {

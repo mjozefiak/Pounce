@@ -7,7 +7,7 @@ import Testing
 
 /// Spec step 5.1: the `note_comment` store and the writes around it, with an injected clock and a temporary store.
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct CommentStoreTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct CommentStoreTests {
     private let notes = "## Decisions\n\n- Ship onboarding on 12 Nov.\n- Pricing page moves to the next sprint."
 
     private func range(of quote: String, in text: String) -> NSRange { (text as NSString).range(of: quote) }
@@ -228,7 +228,7 @@ import Testing
 
 /// Review fix (M1): a long comment is refused, never cut; Escape writes nothing.
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct CommentLimitTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct CommentLimitTests {
     private let notes = "## Decisions\n\n- Ship onboarding on 12 Nov.\n- Pricing page moves to the next sprint."
 
     private func rig() throws -> (DocRig, RevisionWriter, CommentService) {
@@ -280,7 +280,7 @@ import Testing
 
 /// Review fix: a comment never points at a revision that is gone (pruned between reading the head and writing).
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct CommentAnchorRevisionTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct CommentAnchorRevisionTests {
     private let notes = "## Decisions\n\n- Ship onboarding on 12 Nov."
 
     @Test func aGoneOrForeignRevisionIsRefusedInTheSameTransactionAndNothingIsWritten() async throws {

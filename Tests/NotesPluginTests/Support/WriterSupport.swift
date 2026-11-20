@@ -1,9 +1,45 @@
 import Foundation
 import GRDB
 import LintelKit
+import Synchronization
 import Testing
 
 @testable import NotesPlugin
+
+/// The rigs one test built, so the `.finishesRigs` trait can end them in the test's context. It holds them strongly: a
+/// rig a writer's callback keeps alive (a reference cycle through the test body) is still finished.
+final class RigCollector: Sendable {
+    @TaskLocal static var current: RigCollector?
+    private let rigs = Mutex<[DocRig]>([])
+
+    func add(_ rig: DocRig) { rigs.withLock { $0.append(rig) } }
+    func take() -> [DocRig] {
+        rigs.withLock {
+            defer { $0 = [] }
+            return $0
+        }
+    }
+}
+
+/// Ends the rigs a test built once its body returns or throws: writers discarded, clock finished, and a test that left
+/// a timer asleep fails at the line that built its rig. Put it on every suite that builds a `DocRig`.
+struct FinishesRigs: TestTrait, SuiteTrait, TestScoping {
+    var isRecursive: Bool { true }
+
+    func provideScope(
+        for test: Test, testCase: Test.Case?, performing function: @Sendable () async throws -> Void
+    ) async throws {
+        guard testCase != nil else { return try await function() }
+        let collector = RigCollector()
+        let result = await Result { try await RigCollector.$current.withValue(collector) { try await function() } }
+        await MainActor.run { for rig in collector.take().reversed() { rig.finish() } }
+        try result.get()
+    }
+}
+
+extension Trait where Self == FinishesRigs {
+    static var finishesRigs: Self { FinishesRigs() }
+}
 
 /// A temporary store, an injected clock and the counters a writer test waits on (no sleeping, no yielding).
 @MainActor
@@ -18,6 +54,7 @@ final class DocRig {
     let meeting = NoteKey(pluginID: "meetings", id: "m1")
     let started = Date(timeIntervalSince1970: 1_800_000_000)
     private var writers: [RevisionWriter] = []
+    private var cleanups: [() -> Void] = []
     private let origin: SourceLocation
 
     init(readOnly: Bool = false, sourceLocation: SourceLocation = #_sourceLocation) throws {
@@ -25,22 +62,37 @@ final class DocRig {
         harness = try NotesHarness()
         if readOnly { harness.settingsStore.setValue(.bool(true), forKey: "plugins.notes.readOnly") }
         store = try harness.openStore()
+        if let collector = RigCollector.current {
+            collector.add(self)
+        } else {
+            Issue.record(
+                "A DocRig needs the .finishesRigs trait on its suite, which ends its clock.",
+                sourceLocation: sourceLocation)
+        }
     }
 
     var log: RecordingNotesLog { harness.log }
 
-    /// The end of the test. Every writer this rig made is discarded (its debounce, idle and retry tasks are
-    /// cancelled), then the clock ends. A sleeper still on the clock after that belongs to a timer nobody stopped, so
-    /// the test fails here, at the line that built the rig, instead of leaving a task asleep until the process exits.
-    isolated deinit {
+    /// The end of the test, called by the `.finishesRigs` trait inside the test's own context (a `deinit` has none, so
+    /// an issue recorded there is lost or filed under no test). Every writer this rig made is discarded (its debounce,
+    /// idle and retry tasks are cancelled), then the clock ends. A sleeper still on the clock after that belongs to a
+    /// timer nobody stopped: the test fails at the line that built the rig instead of leaving a task asleep until the
+    /// process exits.
+    func finish() {
         for writer in writers { writer.discardPending() }
+        for cleanup in cleanups { cleanup() }
         let left = clock.finish()
+        writers = []
+        cleanups = []
         if left > 0 {
             Issue.record(
-                "\(left) timer task(s) were still asleep on the ManualClock when the test ended: close the writer's session, discard it or retire its owner",
+                "\(left) timer task(s) were still sleeping on the ManualClock when the test ended. Stop the writer with closeSession() or discardPending() before the test ends.",
                 sourceLocation: origin)
         }
     }
+
+    /// Work `finish()` runs before it ends the clock, for writers the rig does not make itself (a registry's).
+    func onFinish(_ cleanup: @escaping () -> Void) { cleanups.append(cleanup) }
 
     func writer(
         _ target: RevisionWriter.Target, timing: RevisionWriter.Timing = .init(), registry: NoteDocumentRegistry? = nil,
@@ -173,10 +225,9 @@ final class ReconRig {
             store: rig.store, library: library, detacher: detacher, registry: registry, clock: rig.clock, log: rig.log)
         let store = rig.store
         registry.cleanup = { open in _ = try? store.deleteUnkeptDetached(excluding: open) }
+        // The registry's writers are discarded before the rig's clock ends.
+        rig.onFinish { [registry] in registry.discardAll() }
     }
-
-    /// The registry's writers are discarded before the rig's clock ends (see `DocRig.deinit`).
-    isolated deinit { registry.discardAll() }
 
     /// What the source returns for the note from now on.
     func publish(

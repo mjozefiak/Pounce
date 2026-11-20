@@ -9,7 +9,7 @@ import Testing
 /// `notes.sqlite` appear at the first real write (the first typed character, a comment or a save), and from then
 /// on the writer behaves exactly as with an eager store.
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct LazyEditStoreTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct LazyEditStoreTests {
     private let key = NoteKey(pluginID: "meetings", id: "lazy-1")
     private let started = Date(timeIntervalSince1970: 1_800_000_000)
 
