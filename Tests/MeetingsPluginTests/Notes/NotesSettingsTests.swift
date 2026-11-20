@@ -60,7 +60,8 @@ struct NotesSettingsRig {
 
         rig.model.enabled = true
         #expect(rig.service.harness.settings.value(forKey: "plugins.meetings.notesEnabled") == .bool(true))
-        #expect(await waitFor { rig.service.service.board.snapshot.enabled })
+        #expect(
+            await rig.service.wait("the board to show the switch on") { rig.service.service.board.snapshot.enabled })
         rig.model.enabled = false
         #expect(rig.service.harness.settings.value(forKey: "plugins.meetings.notesEnabled") == .bool(false))
     }
@@ -120,9 +121,9 @@ struct NotesSettingsRig {
         })
         let file = try rig.install(LLMModelCatalog.defaultModel)
         await rig.service.start()
-        let id = try rig.service.addMeeting()
+        let id = try await rig.service.addMeeting()
         rig.service.service.regenerate(id)
-        #expect(await waitFor { started.isSet })
+        #expect(await started.wait())
         await rig.model.refresh()
         #expect(rig.model.isInUse)
 

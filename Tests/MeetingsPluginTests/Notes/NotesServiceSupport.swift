@@ -1,20 +1,20 @@
 import Foundation
 import LintelKit
 import LintelSpeech
+import LintelTestSupport
 import Synchronization
 import Testing
 
 @testable import MeetingsPlugin
 
-/// Polls a condition on the main actor; the notes jobs run in the background.
+/// For a condition with no event to hang on (a model's own state, a fake's flag): polls on the main actor with the
+/// shared 60 s guard and an `Issue` at the caller's line. A rig's service state has events: use `NotesServiceRig.wait`.
 @MainActor
-func waitFor(timeout: Duration = .seconds(20), _ condition: @MainActor () -> Bool) async -> Bool {
-    let deadline = ContinuousClock.now + timeout
-    while ContinuousClock.now < deadline {
-        if condition() { return true }
-        try? await Task.sleep(for: .milliseconds(5))
-    }
-    return condition()
+func waitFor(
+    _ what: String = "the condition to hold", sourceLocation: SourceLocation = #_sourceLocation,
+    _ condition: @MainActor () -> Bool
+) async -> Bool {
+    await pollUntil(what, sourceLocation: sourceLocation) { condition() }
 }
 
 /// The meeting ids a library reports through `onMeetingReady`, as events instead of a polled list.
@@ -70,6 +70,8 @@ final class NotesServiceRig {
     /// The packages `openModels` was called with.
     let modelsOpened = Shared<[String?]>([])
     let changes = Shared(0)
+    /// Rung whenever the service reports a change (`Dependencies.changed`): a phase, a finished job, the switch.
+    let bell = ChangeBell()
     let fixedNow = Date(timeIntervalSince1970: 1_800_000_000)
     private(set) var service: NotesService!
 
@@ -91,6 +93,7 @@ final class NotesServiceRig {
         let file = file
         let opened = modelsOpened
         let changes = changes
+        let bell = bell
         let now = fixedNow
         service = NotesService(
             NotesService.Dependencies(
@@ -100,15 +103,27 @@ final class NotesServiceRig {
                     configuration.busyPoll = .milliseconds(10)
                     configure(&configuration)
                 }, now: { now }, shutdownLimit: shutdownLimit,
-                openModels: { id in opened.update { $0.append(id) } }, changed: { changes.update { $0 += 1 } }))
+                openModels: { id in opened.update { $0.append(id) } },
+                changed: {
+                    changes.update { $0 += 1 }
+                    bell.ring()
+                }))
         library.onMeetingReady = { [service] id in service?.meetingBecameReady(id) }
         library.onWillClose = { [service] in service?.cancelJobs() }
     }
 
-    /// A `ready` meeting with this transcript (one speaker per name).
+    /// A `ready` meeting with this transcript (one speaker per name). Written off the main actor: every commit is
+    /// durable, and on the one main thread that all `@MainActor` tests share those waits starve the service's own
+    /// main-actor work (#165, #178).
     @discardableResult
-    func addMeeting(_ utterances: [NotesUtterance] = NotesFixtures.meeting(), status: MeetingStatus = .ready) throws
-        -> Int64
+    func addMeeting(_ utterances: [NotesUtterance] = NotesFixtures.meeting(), status: MeetingStatus = .ready)
+        async throws -> Int64
+    {
+        try await Self.seed(store, utterances: utterances, status: status)
+    }
+
+    private nonisolated static func seed(_ store: MeetingsStore, utterances: [NotesUtterance], status: MeetingStatus)
+        async throws -> Int64
     {
         let id = try store.insertMeeting(
             uuid: UUID().uuidString, startedAt: Date(timeIntervalSince1970: 1_700_000_000), speechModelID: "m",
@@ -126,6 +141,17 @@ final class NotesServiceRig {
         return id
     }
 
+    /// A write to the store (a rename, notes text) off the main actor, for the same reason as `addMeeting`.
+    func perform<T: Sendable>(_ body: @escaping @Sendable (MeetingsStore) throws -> T) async throws -> T {
+        try await Self.run(store, body)
+    }
+
+    private nonisolated static func run<T: Sendable>(
+        _ store: MeetingsStore, _ body: @Sendable (MeetingsStore) throws -> T
+    ) async throws -> T {
+        try body(store)
+    }
+
     func speakerID(of meetingID: Int64, named name: String) throws -> Int64 {
         let document = try #require(try store.loadDocument(id: meetingID))
         return try #require(document.speakers.first { $0.label == name }).id
@@ -133,9 +159,17 @@ final class NotesServiceRig {
 
     func start() async { await service.start() }
 
+    /// Until `condition` holds, looked at again after every change the service reports; 60 s guard, the `Issue`
+    /// lands on the caller's line.
+    func wait(
+        _ what: String, sourceLocation: SourceLocation = #_sourceLocation, until condition: @MainActor () -> Bool
+    ) async -> Bool {
+        await bell.wait(guard: .seconds(60), what, sourceLocation: sourceLocation) { condition() }
+    }
+
     /// Until no job is queued or running.
-    func settle() async -> Bool {
-        await waitFor { !self.service.isBusy }
+    func settle(sourceLocation: SourceLocation = #_sourceLocation) async -> Bool {
+        await wait("the notes jobs to finish", sourceLocation: sourceLocation) { !self.service.isBusy }
     }
 
     func record(_ id: Int64) throws -> NotesRecord { try #require(try store.notesRecord(of: id)) }
