@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HUD autopoprawek · makieta v2 (wariant B)</title>
+<style>
+:root{--ts:1}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:var(--win);color:var(--ink)}
+.light{--win:#F6F4F0;--card:#fff;--ink:#191610;--sec:#6B645A;--hair:rgba(25,22,16,.11);--accent:#267C6C;--atext:#036152;--tint:rgba(38,124,108,.14);--ok:#1E8E3E;--att:#B25E00;--er:#D70015;--fill:rgba(25,22,16,.06);--glass:rgba(250,250,248,.82);--glassb:rgba(25,22,16,.14);--cutbg:rgba(215,0,21,.10);--field:#EDEAE4;--shadow:0 8px 24px rgba(40,30,20,.18)}
+.dark{--win:#1C1915;--card:#26221E;--ink:#F1EEE9;--sec:#A39B8F;--hair:rgba(255,255,255,.11);--accent:#6BBDAB;--atext:#6BBDAB;--tint:rgba(107,189,171,.20);--ok:#32D74B;--att:#FF9F0A;--er:#FF6961;--fill:rgba(255,255,255,.08);--glass:rgba(16,16,16,.92);--glassb:rgba(255,255,255,.14);--cutbg:rgba(255,105,97,.18);--field:#14120F;--shadow:0 8px 24px rgba(0,0,0,.45)}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 40px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.bar button{font:inherit;border:1px solid var(--hair);background:var(--card);color:var(--ink);border-radius:8px;padding:4px 12px;cursor:pointer}
+.bar button.on{background:var(--tint);border-color:var(--accent);color:var(--atext)}
+h1{font-size:22px;margin:4px 0 6px}h2{font-size:17px;margin:0 0 4px}
+.sec{color:var(--sec)}
+section.v{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:16px;margin:18px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;margin-top:12px}
+.st{border:1px solid var(--hair);border-radius:12px;padding:10px 10px 12px;background:var(--win)}
+.st .cap{font-size:12px;font-weight:600;color:var(--sec);margin-bottom:8px}
+.stage{display:flex;flex-direction:column;gap:10px;align-items:center}
+.field{width:100%;background:var(--field);border:1px solid var(--hair);border-radius:8px;padding:8px 10px;font-size:13px;min-height:38px}
+.field small{display:block;color:var(--sec);font-size:11px;margin-bottom:2px}
+.note{font-size:12px;color:var(--sec);margin-top:8px}
+/* HUD: top row identical with DictationHUDView (capsule 248x40, callout medium 13px/500, 20pt icon, padding 14/12, gap 10). The line below is NEW. */
+.hud{width:calc(248px*var(--ts));min-height:calc(40px*var(--ts));border-radius:20px;background:var(--glass);border:1px solid var(--glassb);backdrop-filter:blur(24px) saturate(1.4);-webkit-backdrop-filter:blur(24px) saturate(1.4);box-shadow:var(--shadow);padding:0 12px 0 14px;display:flex;align-items:center;gap:10px;font-size:calc(13px*var(--ts));font-weight:500;overflow:hidden}
+.hud.card{width:calc(336px*var(--ts));flex-direction:column;align-items:stretch;gap:0;padding:0;border-radius:calc(20px*var(--ts))}
+.hud.hc{border:1px solid var(--ink)}
+.row1{display:flex;align-items:center;gap:10px;min-height:calc(40px*var(--ts));padding:0 12px 0 14px}
+.row1 .sp{flex:1}
+.row2{border-top:1px solid var(--hair);padding:7px 14px 9px;font-weight:400;font-size:calc(12.5px*var(--ts))}
+.row2 .l{display:flex;gap:6px;align-items:baseline;line-height:1.35}
+.row2 .l+.l{margin-top:3px}
+.ic{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.chk{color:var(--ok);font-size:17px}.att{color:var(--att);font-size:17px}
+.cut{text-decoration:line-through;text-decoration-thickness:1.5px;background:var(--cutbg);border-radius:3px;padding:0 2px;color:var(--sec)}
+.prop{border-bottom:1.5px dashed var(--att);background:var(--fill);border-radius:3px;padding:0 2px}
+.lbl{font-weight:600;color:var(--sec);white-space:nowrap}
+kbd{font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid var(--hair);background:var(--fill);border-radius:5px;padding:2px 5px;color:var(--ink);white-space:nowrap}
+.btn{display:inline-flex;gap:6px;align-items:center;color:var(--atext);font-weight:500;font-size:calc(12px*var(--ts));white-space:nowrap;border:1px solid var(--hair);border-radius:999px;padding:2px 9px 2px 9px;background:var(--fill)}
+.life{height:2px;background:var(--fill);overflow:hidden}.life i{display:block;height:100%;background:var(--accent);width:62%}
+.more{color:var(--sec);font-size:calc(12px*var(--ts))}
+.x{color:var(--sec);font-size:16px}
+.badge{font-size:10.5px;font-weight:600;border-radius:999px;padding:0 7px;background:var(--fill);color:var(--sec);white-space:nowrap}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start}
+.pair figure{margin:0;border:1px solid var(--hair);border-radius:10px;padding:8px;background:var(--win)}
+.pair figcaption{font-size:12px;color:var(--sec);margin-top:6px}
+.pair img{display:block;max-width:100%;height:auto;border-radius:8px}
+.hudimgs{display:flex;gap:14px;flex-wrap:wrap}.hudimgs figure{margin:0}.hudimgs img{display:block;width:280px;height:56px;background:#888;border-radius:6px}
+.hudimgs figcaption{font-size:11.5px;color:var(--sec);margin-top:3px}
+/* history window replica, 760x480 like the real one */
+.hw{width:760px;max-width:100%;height:480px;border:1px solid var(--hair);border-radius:16px;background:var(--card);overflow:hidden;display:flex;flex-direction:column;font-size:13px}
+.hw .s{display:flex;gap:10px;align-items:center;padding:0 18px;height:56px;border-bottom:1px solid var(--hair);font-size:17px;color:var(--sec)}
+.hw .f{display:flex;gap:8px;padding:8px 14px;border-bottom:1px solid var(--hair)}
+.hw .f span{font-size:11px;background:var(--fill);border-radius:999px;padding:3px 10px;color:var(--ink)}
+.hw .m{flex:1;display:flex;min-height:0}
+.hw .li{width:320px;border-right:1px solid var(--hair);padding:8px}
+.hw .r{display:flex;gap:8px;align-items:flex-start;padding:5px 8px;border-radius:8px;position:relative}
+.hw .r.sel{background:var(--tint)}
+.hw .r.sel:before{content:"";position:absolute;left:-8px;top:4px;bottom:4px;width:3px;border-radius:2px;background:var(--accent)}
+.hw .r .w{width:20px;font-size:16px;margin-top:2px;opacity:.85}
+.hw .r b{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.hw .r small{color:var(--sec);font-size:11.5px}
+.hw .r .badge{margin-left:6px}
+.hw .pv{flex:1;padding:12px 14px;display:flex;flex-direction:column}
+.seg{display:inline-flex;background:var(--fill);border-radius:8px;padding:2px;font-size:12px;margin-bottom:10px;align-self:flex-start}
+.seg span{padding:3px 14px;border-radius:6px;color:var(--sec)}.seg span.on{background:var(--hair);color:var(--ink)}
+.hw .ft{border-top:1px solid var(--hair);padding:8px 14px;font-size:11.5px;color:var(--sec);display:flex;gap:16px;justify-content:flex-end;align-items:center}
+.hw .meta{margin-top:auto;border-top:1px solid var(--hair);padding-top:8px;color:var(--sec);font-size:12px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--hair);vertical-align:top}
+.tl{display:flex;height:34px;border-radius:8px;overflow:hidden;font-size:11.5px;margin:6px 0;border:1px solid var(--hair)}
+.tl div{display:flex;align-items:center;justify-content:center;padding:0 6px;white-space:nowrap}
+.tl .a{background:var(--fill)}.tl .b{background:var(--tint);color:var(--atext)}.tl .c{background:var(--cutbg);color:var(--er)}
+.warn{border-left:3px solid var(--att);padding:4px 10px;background:var(--fill);border-radius:4px;margin:8px 0;font-size:12.5px}
+body.shot .bar,body.shot .intro,body.shot .hide-shot{display:none}
+body.shot section.v{margin-top:0}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const Q=new URLSearchParams(location.search);
+let theme=Q.get('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+let lang=Q.get('lang')||'pl';
+const shot=Q.get('shot');
+const x=(p,e)=>lang==='pl'?p:e;
+const UNDO='⌃Z',ALL='⇧⌃Z';
+
+// invented sentences only
+const E1={raw:x('Wyślij raport w piątek, nie, czekaj, w poniedziałek rano.','Send the report on Friday, no, wait, on Monday morning.'),
+ pre:x('Wyślij raport ','Send the report '),cut:x('w piątek, nie, czekaj,','on Friday, no, wait,'),post:x(' w poniedziałek rano.',' on Monday morning.')};
+const M=[
+ {pre:x('Zamów ','Order '),cut:x('trzy serwery, to znaczy','three servers, I mean'),post:x(' cztery serwery na demo',' four servers for the demo')},
+ {pre:x(' i zarezerwuj salę ',' and book the room '),cut:x('na dziesięć osób, a właściwie','for ten people, actually'),post:x(' na dwanaście osób',' for twelve people')},
+ {pre:x(' ',' '),cut:x('w środę, albo jednak','on Wednesday, or rather'),post:x(' w czwartek.',' on Thursday.')}];
+const U={pre:x('Spotkajmy się ','Let’s meet '),prop:x('w południe, w sumie to','at noon, actually'),post:x(' pasuje wszystkim.',' that works for everyone.')};
+
+const Q1=lang==='pl'?'„':'“',Q2=lang==='pl'?'”':'”';
+const T={
+ pasted:x('Wklejono','Pasted'),undo:x('Cofnij','Undo'),cutLbl:x('Wycięto:','Cut:'),
+ restored:x('Cięcie cofnięte','Cut undone'),restoredAll:x('Cięcia cofnięte','Cuts undone'),
+ propose:x('Propozycja cięcia','Cut suggested'),notCut:x('Nie wycięto (niepewne):','Not cut (unsure):'),
+ cutBtn:x('Wytnij','Cut'),all:x('wszystkie','all'),last:x('ostatnie','last')
+};
+const pl=(n)=>lang==='pl'?(n===1?'1 cięcie':(n%10>=2&&n%10<=4&&!(n%100>=12&&n%100<=14))?n+' cięcia':n+' cięć'):(n===1?'1 cut':n+' cuts');
+const field=(inner,label)=>`<div class="field"><small>${label||x('Aplikacja docelowa (wymyślona)','Target app (invented)')}</small>${inner}</div>`;
+const life=()=>`<div class="life" aria-hidden="true"><i></i></div>`;
+const card=(row1,row2,extra='')=>`<div class="hud card" role="status"><div class="row1">${row1}</div><div class="row2">${row2}</div>${extra}</div>`;
+const ICchk='<span class="ic"><span class="chk">●</span></span>';
+const okRow=(t,right)=>`${ICchk}<span>${t}</span><span class="sp"></span>${right||''}`;
+const undoBtn=(label)=>`<span class="btn" role="button" tabindex="0" aria-label="${label||T.undo}"><span>${label||T.undo}</span><kbd>${UNDO}</kbd></span>`;
+const L=(c)=>`<div class="l"><span class="lbl">${T.cutLbl}</span><span><span class="cut">${c}</span></span></div>`;
+const st=(cap,inner,note)=>`<div class="st"><div class="cap">${cap}</div><div class="stage">${inner}</div>${note?`<div class="note">${note}</div>`:''}</div>`;
+const sec=(id,title,sub,body)=>`<section class="v" id="${id}"><h2>${title}</h2><div class="sec">${sub}</div>${body}</section>`;
+
+function REF(){
+ const t=theme;
+ const img=(n,c)=>`<figure><img src="wzorzec-hud-${t}-${n}.png" alt="${c}"><figcaption>${c}</figcaption></figure>`;
+ const hud=`<div class="hudimgs">${img('recording',x('Nagrywanie','Recording'))}${img('finishing',x('Kończenie','Finishing'))}${img('pasted',x('Wklejono','Pasted'))}${img('unformatted',x('Wklejono – częściowo oczyszczone','Pasted – partly cleaned up'))}</div>`;
+ return sec('ref',x('Wzorzec: prawdziwy HUD i prawdziwa historia dyktowania','Reference: the real dictation HUD and the real dictation history'),
+  x('Zrzuty z debug appki zbudowanej z origin/main (1dcc8c96), uruchomionej z --qa (izolowane dane). Stany HUD i wiersze historii wywołano lokalnym, niezacommitowanym patchem DEBUG tylko w moim worktree (w --qa nie ma takiej flagi); widoki są prawdziwe, dane wymyślone. Zrzuty okien przechwycone bez tła pulpitu: szkło wygląda ciemniej/szarzej niż nad prawdziwym oknem. Teksty na zrzutach są po angielsku (język systemu).',
+    'Screenshots of the debug app built from origin/main (1dcc8c96) and run with --qa (isolated data). HUD states and history rows were triggered by a local uncommitted DEBUG patch in my worktree only (--qa has no such flag); the views are real, the data invented. Window captures have no desktop behind them, so the glass looks darker/greyer than over a real window. Text on the screenshots is English (system language).')+
+  `<h2 style="margin-top:14px;font-size:14px">HUD ${t==='dark'?x('ciemny','dark'):x('jasny','light')}</h2>${hud}
+   <h2 style="margin-top:16px;font-size:14px">${x('Historia dyktowania (prawdziwy widok)','Dictation history (real view)')}</h2>
+   <figure style="margin:8px 0 0"><img src="wzorzec-history-${t}.png" alt="history" style="max-width:100%;border-radius:10px;border:1px solid var(--hair)"><figcaption class="sec">${x('Prawdziwy panel: pole szukania, filtry Wszystkie/Sformatowane/Surowe, lista (ikona, tytuł, „wiek · czas trwania”), podgląd z przełącznikiem Sformatowany/Surowy, data i język, stopka „Wklej”, „Wklej surowy ⌘↩”.','Real panel: search field, All/Formatted/Raw filters, list (icon, title, “age · duration”), preview with a Formatted/Raw switch, date and language, footer “Paste”, “Paste Raw ⌘↩”.')}</figcaption></figure>
+   <div class="warn">${x('Z tych zrzutów wynika, że w prawdziwym HUD kapsuła ma 248×40 pt, ikona 20 pt, tekst callout (13 pt, średnia waga), krótki tytuł jednowierszowy, a licznik, poziom i ✕ tylko przy nagrywaniu. Zielone „✓” i bursztynowa tarcza to ikony stanów. Nowy wiersz pod kapsułą jest propozycją.','From these shots: the real capsule is 248×40 pt, 20 pt icon, callout text (13 pt, medium), a short one-line title; timer, level and ✕ only while recording. The green check and the amber shield are state icons. The new line under the capsule is a proposal.')}</div>
+  `);
+}
+
+function B(){
+ const o=E1;
+ const plain=`${o.pre}${o.post}`.replace('  ',' ');
+ const one=st(x('B1 · cięcie wykonane (1 cięcie)','B1 · cut done (1 cut)'),
+  field(plain.trim())+card(okRow(T.pasted,undoBtn()),L(o.cut),life()),
+  x('Przycisk „Cofnij” jest też w HUD (klawisz globalny nie jest jedyną drogą). Linia pojawia się w chwili wklejenia. Pasek u dołu to odliczanie 6 s.','The “Undo” button is in the HUD too (the global key is not the only way). The line appears when the text is pasted. The bar at the bottom is the 6 s countdown.'));
+ const undone=st(x('B2 · po cofnięciu','B2 · after undo'),
+  field(`${o.pre}<span class="cut">${o.cut}</span>${o.post}`)+card(okRow(T.restored,''),`<div class="l"><span>${x('Przywrócono dokładnie to, co podyktowano. Wycięty fragment jest znów w tekście.','Restored exactly what was dictated. The cut fragment is back in the text.')}</span></div>`),
+  x('Fragment przekreślony tylko na rysunku, żeby pokazać, co wróciło; w prawdziwym polu jest zwykłym tekstem. NIE rozstrzygnięto, czy drugi ⌃Z tnie ponownie (nie ma tego w decyzjach); wróć do wiersza historii („Wklej bez cięcia”).','Struck out only in the drawing, to show what came back; in the real field it is plain text. NOT decided whether a second ⌃Z cuts again (not in the decisions); the history row covers “paste without the cut”.'));
+ const three=st(x('B3 · 3 cięcia na liście','B3 · 3 cuts in a list'),
+  field(`${M[0].pre}${M[0].post.trim()}${M[1].pre}${M[1].post.trim()} ${M[2].post.trim()}`.replace('  ',' '))+
+  card(okRow(T.pasted,`<span class="badge">${pl(3)}</span>${undoBtn()}`),M.map(m=>L(m.cut)).join('')+`<div class="more" style="margin-top:5px"><kbd>${UNDO}</kbd> ${x('cofa ostatnie (na dole)','undoes the last (bottom)')} · <kbd>${ALL}</kbd> ${T.all}</div>`,life()),
+  x('Lista najwyżej 3 wiersze, od najstarszego do najnowszego; ⌃Z cofa ostatni z listy.','At most 3 rows, oldest to newest; ⌃Z undoes the last in the list.'));
+ const five=st(x('B4 · 5 cięć: 3 + „+2”','B4 · 5 cuts: 3 + “+2”'),
+  field(x('(tekst po 5 cięciach)','(text after 5 cuts)'))+
+  card(okRow(T.pasted,`<span class="badge">${pl(5)}</span>${undoBtn()}`),M.map(m=>L(m.cut)).join('')+`<div class="l more"><span>+2 ${x('więcej (w historii)','more (in history)')}</span></div><div class="more" style="margin-top:5px"><kbd>${UNDO}</kbd> ${T.last} · <kbd>${ALL}</kbd> ${T.all} (5)</div>`,life()),
+  x('„+2” obejmuje cięcia ukryte na liście; ⇧⌃Z cofa wszystkie 5, nie tylko widoczne. Którym cięciem jest „ostatnie” przy ukrytych: najnowsze z 5 (do potwierdzenia przy implementacji).','“+2” covers cuts hidden from the list; ⇧⌃Z undoes all 5, not only the visible ones. “Last” = the newest of the 5 (to confirm at implementation).'));
+ const none=st(x('B5 · brak cięcia','B5 · no cut'),
+  field(x('Kup chleb w sobotę.','Buy bread on Saturday.'))+`<div class="hud" role="status"><span class="ic"><span class="chk">●</span></span><span>${T.pasted}</span></div>`,
+  x('Identyczny z dzisiejszym HUD (zrzut wzorca „Wklejono”). Bez linii, bez opóźnienia.','Identical to today’s HUD (reference shot “Pasted”). No line, no delay.'));
+ const prop=st(x('B6 · stan „propozycja cięcia” (niepewne)','B6 · “cut suggested” state (unsure)'),
+  field(`${U.pre}${x('w południe, w sumie to','at noon, actually')}${U.post}`)+
+  card(`<span class="ic"><span class="att">●</span></span><span>${T.propose}</span><span class="sp"></span>${undoBtn(T.cutBtn)}`,
+   `<div class="l"><span class="lbl">${T.notCut}</span><span><span class="prop">${U.prop}</span></span></div><div class="more" style="margin-top:3px">${x('Tekst wklejony w całości, nic nie wycięto. ','Text pasted whole, nothing cut. ')}<kbd>${UNDO}</kbd> ${x('wycina to, co zaznaczono przerywaną linią','cuts what the dashed line marks')}</div>`,life()),
+  x('Ten sam klawisz ⌃Z, ale przeciwne znaczenie niż w B1: tu WYCINA. Dlatego etykieta przycisku („Wytnij”), nagłówek i ikona (bursztynowa) różnią się od B1, a kolor nie jest jedynym nośnikiem. Przerywane podkreślenie zamiast przekreślenia, bo nic nie jest wycięte.','The same ⌃Z key, opposite meaning compared with B1: here it CUTS. So the button label (“Cut”), the title and the amber icon differ from B1, and colour is not the only carrier. Dashed underline instead of strikethrough, because nothing is cut.'));
+ return sec('b',x('Wariant B · Linia w HUD, przekreślony fragment, cofnięcie ⌃Z (decyzje 1–5)','Variant B · Line in the HUD, struck-out fragment, ⌃Z to undo (decisions 1–5)'),
+  x('Tylko wariant B. Górny wiersz karty to kapsuła z prawdziwego HUD, rozszerzona w dół o wiersz cięć.','Variant B only. The top row of the card is the real HUD capsule, extended downward with the cuts row.'),
+  `<div class="grid">${one}${undone}${three}${five}${none}${prop}</div>`)+LIFE()+TEXTSIZE();
+}
+
+function LIFE(){
+ return sec('life',x('Czas życia linii (decyzja 3)','Lifetime of the line (decision 3)'),x('6 s od wklejenia; znika wcześniej, gdy cofnięcie przestaje dotyczyć świeżo wklejonego tekstu.','6 s from the paste; disappears earlier when undo no longer applies to the freshly pasted text.'),
+ `<div class="tl"><div class="a" style="flex:0 0 12%">0 s ${x('wklejono','pasted')}</div><div class="b" style="flex:1">${x('linia widoczna, ⌃Z i przycisk aktywne','line visible, ⌃Z and the button active')}</div><div class="c" style="flex:0 0 14%">6 s ${x('znika','gone')}</div></div>
+  <table><tr><th>${x('Zdarzenie','Event')}</th><th>${x('Skutek','Effect')}</th></tr>
+  <tr><td>${x('Dalsze pisanie lub dyktowanie w tym polu','Typing or dictating further in the same field')}</td><td>${x('linia znika od razu, ⌃Z zwolniony (wraca do aplikacji)','line disappears at once, ⌃Z released (goes back to the app)')}</td></tr>
+  <tr><td>${x('Zmiana pola lub aplikacji','Switching field or app')}</td><td>${x('linia znika od razu','line disappears at once')}</td></tr>
+  <tr><td>${x('Ruch kursora w polu (strzałki, kliknięcie)','Cursor move in the field (arrows, click)')}</td><td>${x('linia znika od razu: cofnięcie w miejscu przestaje być pewne','line disappears at once: in-place undo is no longer reliable')}</td></tr>
+  <tr><td>${x('Upłynęło 6 s','6 s elapsed')}</td><td>${x('linia znika; wpis zostaje w historii (E)','line disappears; the entry stays in history')}</td></tr></table>
+  <div class="note">${x('Klawisz ⌃Z jest przechwytywany tylko, gdy linia jest widoczna (jak tymczasowy claim Esc).','⌃Z is captured only while the line is visible (like the temporary Esc claim).')} <b>${x('NIE SPRAWDZONE na działającej aplikacji: terminal traktuje ⌃Z jako suspend (SIGTSTP).','NOT verified on a running app: a terminal treats ⌃Z as suspend (SIGTSTP).')}</b></div>`);
+}
+
+function TEXTSIZE(){
+ const o=E1;
+ const big=(s)=>`<div style="--ts:${s}"><div class="hud card" role="status" style="width:min(100%,calc(336px*${s}))"><div class="row1">${okRow(T.pasted,undoBtn())}</div><div class="row2">${L(o.cut)}${`<div class="more" style="margin-top:4px"><kbd>${UNDO}</kbd> ${T.undo.toLowerCase()} · <kbd>${ALL}</kbd> ${T.all}</div>`}</div></div></div>`;
+ const wrap=`<div style="--ts:1.3"><div class="hud card" style="width:min(100%,380px)" role="status"><div class="row1">${okRow(T.pasted,`<span class="badge" style="font-size:calc(10.5px*1.3)">${pl(3)}</span>${undoBtn()}`)}</div><div class="row2">${M.map(m=>L(m.cut)).join('')}<div class="more" style="margin-top:4px"><kbd>${UNDO}</kbd> ${T.last} · <kbd>${ALL}</kbd> ${T.all}</div></div></div></div>`;
+ const hc=`<div class="hud card hc" role="status"><div class="row1">${okRow(T.pasted,undoBtn())}</div><div class="row2">${L(o.cut)}</div><div class="life"><i style="width:62%;background:var(--ink)"></i></div></div>`;
+ return sec('big',x('Duży rozmiar tekstu i dostępność (decyzja 7)','Large text size and accessibility (decision 7)'),x('Stały HUD 248×40 pt nie urośnie z tekstem; karta rośnie i zawija wiersze.','The fixed 248×40 pt HUD cannot grow with the text; the card grows and wraps its rows.'),
+ `<div class="grid">
+  ${st(x('Rozmiar XL (×1,3), jedno cięcie','Size XL (×1.3), one cut'),big(1.3),x('XL to największy rozmiar w ustawieniach (TextSize.scale = 1,3, odczytane z kodu); karta rośnie z 336 do ok. 437 pt. Wymiary karty narysowane, nie zmierzone w aplikacji.','XL is the largest size in Settings (TextSize.scale = 1.3, read from the code); the card grows from 336 to about 437 pt. Card dimensions are drawn, not measured in the app.'))}
+  ${st(x('Rozmiar XL, 3 cięcia, wąska karta (zawijanie)','Size XL, 3 cuts, narrow card (wrapping)'),wrap,x('Wiersze zawijają się, przycisk Cofnij nie znika. Szerokość karty ograniczona do 380 pt, żeby pokazać zawijanie; w aplikacji ograniczeniem byłby ekran.','Rows wrap, the Undo button stays. Card width capped at 380 pt to show the wrapping; in the app the limit would be the screen.'))}
+  ${st(x('Zwiększony kontrast','Increase Contrast'),hc,x('Obrys 1 pt w kolorze tekstu jak w obecnym HUD (`contrast == .increased`); pasek odliczania w kolorze tekstu.','1 pt outline in the text colour like today’s HUD (`contrast == .increased`); countdown bar in text colour.'))}
+  ${st(x('Redukcja ruchu','Reduce Motion'),`<div class="hud card" role="status"><div class="row1">${okRow(T.pasted,undoBtn())}</div><div class="row2">${L(o.cut)}</div><div class="life"><i style="width:100%"></i></div></div>`,x('Pasek odliczania statyczny (pełny, bez animacji); linia znika bez przejścia po 6 s.','Countdown bar static (full, no animation); the line disappears without a transition after 6 s.'))}
+ </div>
+ <h2 style="font-size:14px;margin-top:16px">VoiceOver</h2>
+ <table><tr><th>${x('Moment','Moment')}</th><th>${x('Co słychać / etykieta','What is heard / label')}</th></tr>
+ <tr><td>${x('Po wklejeniu z 1 cięciem','After a paste with 1 cut')}</td><td>${Q1}${x('Wklejono, 1 cięcie','Pasted, 1 cut')}${Q2} (${x('jedno ogłoszenie, wysoki priorytet, przez AnnouncementGate','one announcement, high priority, via AnnouncementGate')})</td></tr>
+ <tr><td>${x('Kilka cięć','Several cuts')}</td><td>${Q1}${x('Wklejono, ','Pasted, ')}${pl(3)}${Q2}; ${x('polskie liczby: 1 cięcie, 2–4 cięcia, 5+ cięć','Polish plurals: 1 cięcie, 2–4 cięcia, 5+ cięć')}</td></tr>
+ <tr><td>${x('Brak cięcia','No cut')}</td><td>${Q1}${x('Wklejono','Pasted')}${Q2} (${x('jak dziś','as today')})</td></tr>
+ <tr><td>${x('Propozycja cięcia','Cut suggested')}</td><td>${Q1}${x('Wklejono, propozycja cięcia','Pasted, cut suggested')}${Q2}</td></tr>
+ <tr><td>${x('Przycisk','Button')}</td><td>${Q1}${x('Cofnij cięcie, ⌃Z','Undo cut, Control Z')}${Q2} / ${Q1}${x('Wytnij, ⌃Z','Cut, Control Z')}${Q2}</td></tr>
+ <tr><td>${x('Wiersz z cięciem','Cut row')}</td><td>${x('Tekst ${Q1}Wycięto:${Q2} jest czytany przed fragmentem; przekreślenie nie jest jedynym nośnikiem.','The text “Cut:${Q2} is read before the fragment; the strikethrough is not the only carrier.')}</td></tr></table>`);
+}
+
+function HIST(){
+ const rows=[
+  {t:x('Kup chleb <s class="cutline">w piątek, nie,</s> w sobotę.','Buy bread <s class="cutline">on Friday, no,</s> on Saturday.'),a:x('1 godz. temu · 4 s','1 hr. ago · 4 s'),b:pl(1),sel:true},
+  {t:x('Dodaj punkt do agendy.','Add an item to the agenda.'),a:x('2 godz. temu · 3 s','2 hr. ago · 3 s')},
+  {t:x('Zamów <s class="cutline">trzy serwery, to znaczy</s> cztery…','Order <s class="cutline">three servers, I mean</s> four…'),a:x('3 godz. temu · 9 s','3 hr. ago · 9 s'),b:pl(2)},
+  {t:x('Zarezerwuj salę na dziesięć osób.','Book the room for ten people.'),a:x('wczoraj · 4 s','yesterday · 4 s')}];
+ const row=r=>`<div class="r${r.sel?' sel':''}"><span class="w">✦</span><div><b>${r.t}</b><small>${r.a}${r.b?` <span class="badge">${r.b}</span>`:''}</small></div></div>`;
+ const prevText=x('Kup chleb <span class="cut">w piątek, nie,</span> w sobotę.','Buy bread <span class="cut">on Friday, no,</span> on Saturday.');
+ const win=`<div class="hw"><div class="s">⌕ <span>${x('Szukaj','Search')}</span></div>
+ <div class="f"><span>${x('Wszystkie','All')} ⌘1</span><span>${x('Sformatowane','Formatted')} ⌘2</span><span>${x('Surowe','Raw')} ⌘3</span></div>
+ <div class="m"><div class="li">${rows.map(row).join('')}</div>
+ <div class="pv"><div class="seg"><span class="on">${x('Sformatowany','Formatted')}</span><span>${x('Surowy','Raw')}</span></div>
+ <div>${prevText}</div>
+ <div class="more" style="margin-top:10px;display:flex;gap:6px;align-items:baseline"><span class="lbl">${T.cutLbl}</span><span class="cut">${x('w piątek, nie,','on Friday, no,')}</span></div>
+ <div class="meta">${x('20 lis 2026 16:05 · 4 s · pl','20 Nov 2026 16:05 · 4 s · pl')}</div></div></div>
+ <div class="ft"><span>${x('Wklej','Paste')}</span><span>${x('Wklej bez cięcia','Paste without the cut')} <kbd>⌥↩</kbd></span><span>${x('Wklej surowy','Paste Raw')} <kbd>⌘↩</kbd></span></div></div>`;
+ return sec('hist',x('Wiersz historii (decyzja 6)','History row (decision 6)'),x('Zbudowany na układzie prawdziwego widoku (zrzut wyżej): ikona, tytuł, „wiek · czas”, podgląd z przełącznikiem, stopka. Nowe: przekreślony fragment, plakietka „N cięć”, akcja „Wklej bez cięcia”.','Built on the real view’s layout (shot above): icon, title, “age · duration”, preview with a switch, footer. New: struck fragment, “N cuts” badge, “Paste without the cut” action.'),
+ `<div class="pair"><figure><img src="wzorzec-history-${theme}.png" alt=""><figcaption>${x('Prawdziwy widok (wzorzec)','Real view (reference)')}</figcaption></figure><figure>${win}<figcaption>${x('Makieta: wiersze z cięciem, plakietka, akcja „Wklej bez cięcia”. Klawisz ⌥↩ to placeholder: ⌘↩ jest już „Wklej surowy”.','Mock-up: rows with a cut, badge, “Paste without the cut” action. ⌥↩ is a placeholder: ⌘↩ is already “Paste Raw”.')}</figcaption></figure></div>
+ <div class="note">${x('Tytuł wiersza to jedna linia z wielokropkiem (jak w prawdziwym widoku), więc przekreślenie widać w wierszu tylko, gdy cięcie mieści się w ok. 240 pt; zawsze widać je w podglądzie. Wymaga addytywnej migracji dictation.sqlite (zapis cięć). Wiersz bez cięcia wygląda jak dziś.','The row title is one line with an ellipsis (as in the real view), so the strikethrough is visible in the row only when the cut fits in about 240 pt; the preview always shows it. Needs an additive migration of dictation.sqlite (store the cuts). A row without a cut looks as today.')}</div>
+ <div class="note"><b>VoiceOver:</b> ${x('wiersz: „Kup chleb w sobotę, 1 cięcie, wycięto: w piątek, nie,”.','row: “Buy bread on Saturday, 1 cut, cut: on Friday, no,”.')}</div>`);
+}
+
+const style=document.createElement('style');
+style.textContent='s.cutline{text-decoration:line-through;text-decoration-thickness:1.5px;opacity:.65;color:var(--sec)}';
+document.head.appendChild(style);
+
+function render(){
+ document.documentElement.lang=lang;
+ document.body.className=(theme==='dark'?'dark':'light')+(shot?' shot':'');
+ const parts={ref:REF(),b:B(),hist:HIST()};
+ const bar=`<div class="bar"><button data-t="light" class="${theme==='light'?'on':''}">${x('Jasny','Light')}</button><button data-t="dark" class="${theme==='dark'?'on':''}">${x('Ciemny','Dark')}</button><span style="width:12px"></span><button data-l="pl" class="${lang==='pl'?'on':''}">PL</button><button data-l="en" class="${lang==='en'?'on':''}">EN</button></div>`;
+ const intro=`<div class="intro"><h1>${x('HUD dyktowania: pokazanie cięcia samopoprawki (wariant B, makieta v2)','Dictation HUD: showing a self-correction cut (variant B, mock-up v2)')}</h1><div class="sec">${x('Statyczny HTML. Wszystkie zdania wymyślone. Tylko wariant B z decyzjami 1–7; styl porównany z działającym HUD (zrzuty). Co NIE sprawdzono: README.md.','Static HTML. All sentences invented. Variant B only with decisions 1–7; style compared with the running HUD (screenshots). What was NOT verified: README.md.')}</div></div>`;
+ let html;
+ if(shot){
+  const m={ref:parts.ref,b:parts.b.split('<section class="v" id="life">')[0],life:'<section class="v" id="life">'+parts.b.split('<section class="v" id="life">')[1].split('<section class="v" id="big">')[0],big:'<section class="v" id="big">'+parts.b.split('<section class="v" id="big">')[1],hist:parts.hist};
+  html=m[shot]||'';
+ } else html=bar+intro+parts.ref+parts.b+parts.hist;
+ document.getElementById('app').innerHTML=html;
+ document.getElementById('app').setAttribute('data-h','');
+ document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{theme=b.dataset.t;render()});
+ document.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>{lang=b.dataset.l;render()});
+}
+render();
+</script>
+</body>
+</html>
