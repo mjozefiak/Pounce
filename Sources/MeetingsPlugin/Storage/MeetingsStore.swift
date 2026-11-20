@@ -250,6 +250,13 @@ final class MeetingsStore: Sendable {
         migrator.registerMigration("v2-consent") { db in
             try db.execute(sql: "ALTER TABLE meeting ADD COLUMN consent_text_copied_at INTEGER")
         }
+        // External AI providers (spec `2026-11-10-external-ai-providers`, Data Model): which provider and model
+        // wrote the notes now in `notes_markdown`. NULL = the built-in model or no notes. Additive only; an older
+        // build never names the columns and loses nothing.
+        migrator.registerMigration("v3-notes-provider") { db in
+            try db.execute(sql: "ALTER TABLE meeting ADD COLUMN notes_provider TEXT")
+            try db.execute(sql: "ALTER TABLE meeting ADD COLUMN notes_provider_model TEXT")
+        }
         return migrator
     }
 }

@@ -92,7 +92,10 @@ import Testing
         }
         let row = try #require(value)
         #expect((row["c"] as Int64?) == nil)
-        #expect(try queue.read { try migrator.appliedIdentifiers($0) } == ["v1-meetings", "v2-consent"])
+        #expect(
+            try queue.read { try migrator.appliedIdentifiers($0) } == [
+                "v1-meetings", "v2-consent", "v3-notes-provider",
+            ])
     }
 
     /// `BACKWARD_COMPATIBILITY.md` section 2: a build from before `v2-consent` opens a database that has it,

@@ -34,7 +34,7 @@ import Testing
         _ = try await makeRunner(cli, caches: caches).run(makeRequest(), authorization: allowed)
         let argv = cli.lines("argv")
         #expect(ProviderDescriptor.claudeCode.isolationProblems(arguments: argv).isEmpty)
-        for flag in ["--no-session-persistence", "--strict-mcp-config", "--disable-slash-commands"] {
+        for flag in ["--no-session-persistence", "--strict-mcp-config", "--disable-slash-commands", "--safe-mode"] {
             #expect(argv.contains(flag))
         }
         #expect(argv[argv.firstIndex(of: "--setting-sources")! + 1] == "")
@@ -184,6 +184,7 @@ import Testing
 
     @Test(arguments: [
         ("login", ProviderFailure.notSignedIn), ("rate", .rateLimited), ("badflag", .incompatibleVersion),
+        ("nosafemode", .incompatibleVersion),
         ("exit3", .other), ("empty", .other),
     ])
     func errorsAreSortedIntoTheClosedSet(mode: String, expected: ProviderFailure) async throws {

@@ -109,6 +109,8 @@ struct FakeCLI {
           rate) echo '{"type":"result","is_error":true,"result":"Claude usage limit reached"}'; exit 1;;
           trunc) echo '{"type":"result","subtype":"success","is_error":true,"result":"API Error: Claude'"'"'s response exceeded the 32000 output token maximum."}'; exit 1;;
           badflag) echo "error: unknown option '--zzz' $stdin" >&2; exit 1;;
+          nosafemode) case " $* " in *" --safe-mode "*) echo "error: unknown option '--safe-mode'" >&2; exit 1;; esac
+            echo '{"type":"result","is_error":false,"result":"Fake answer."}';;
           exit3) echo "boom $stdin" >&2; exit 3;;
           empty) echo '{"type":"result","is_error":false,"result":""}';;
         esac
@@ -133,25 +135,6 @@ func eventuallyAsync(timeout: Double = 30, _ condition: () async -> Bool) async 
         try? await Task.sleep(for: .milliseconds(5))
     }
     return await condition()
-}
-
-/// A one-shot signal: `wait()` returns once `fire()` was called, before or after. Tests order work with it instead
-/// of with sleeps.
-actor Latch {
-    private var fired = false
-    private var waiters: [CheckedContinuation<Void, Never>] = []
-
-    func fire() {
-        fired = true
-        let pending = waiters
-        waiters = []
-        for waiter in pending { waiter.resume() }
-    }
-
-    func wait() async {
-        if fired { return }
-        await withCheckedContinuation { waiters.append($0) }
-    }
 }
 
 /// A runner over the fake binary and the real process runner, with a descriptor that passed the (fake) canary.
