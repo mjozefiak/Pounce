@@ -41,7 +41,7 @@ private let day: TimeInterval = 86_400
         micTrack.silence(1)
         micTrack.say(11, seconds: 2)
         micTrack.silence(14)
-        let meeting = try rig.seed(.incomplete, mic: micTrack)
+        let meeting = try await rig.seed(.incomplete, mic: micTrack)
         let library = rig.library(resumer: rig.resumerFactory(mic: micTrack, keepAudio: true))
         library.open()
         let store = try #require(library.store)
@@ -53,11 +53,11 @@ private let day: TimeInterval = 86_400
         library.close()
     }
 
-    @Test func recoveryKeepsALeftoverSpoolOnlyWhileKeepAudioIsOn() throws {
+    @Test func recoveryKeepsALeftoverSpoolOnlyWhileKeepAudioIsOn() async throws {
         for keep in [false, true] {
             let rig = try RecoveryRig(texts: [:])
             let micTrack = TrackScript()
-            let meeting = try rig.seed(.ready, mic: micTrack)
+            let meeting = try await rig.seed(.ready, mic: micTrack)
             rig.harness.meetingsSettings.setKeepAudio(keep)
             let library = rig.library()
             library.open()
@@ -68,9 +68,9 @@ private let day: TimeInterval = 86_400
         }
     }
 
-    @Test func recoveryDoesNotCountALeftoverWhoseFolderIsGoneAsKept() throws {
+    @Test func recoveryDoesNotCountALeftoverWhoseFolderIsGoneAsKept() async throws {
         let rig = try RecoveryRig(texts: [:])
-        let meeting = try rig.seed(.ready, mic: TrackScript())
+        let meeting = try await rig.seed(.ready, mic: TrackScript())
         try FileManager.default.removeItem(at: rig.spool.directory(for: meeting.uuid))
         rig.harness.meetingsSettings.setKeepAudio(true)
         let library = rig.library()
