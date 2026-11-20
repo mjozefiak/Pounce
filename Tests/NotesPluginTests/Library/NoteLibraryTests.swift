@@ -290,6 +290,8 @@ struct NoteLibrarySourceSetTests {
             }, overlays: store, detacher: store, clock: ManualClock())
         let (seen, report) = AsyncStream.makeStream(of: Int.self)
         let (never, hold) = AsyncStream.makeStream(of: Void.self)
+        // A failed `#require` must not leave the library waiting on this stream.
+        defer { hold.finish() }
         // The library asks for the next set change only after it restarted: count the live subscriptions then.
         let setChanges = AsyncStream<Void>(unfolding: {
             report.yield(meetings.changeStreams)
