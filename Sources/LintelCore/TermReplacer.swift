@@ -82,6 +82,13 @@ public struct TermReplacer: Sendable {
     }
 
     public func apply(to text: String) -> String {
+        var steps = 0
+        return apply(to: text, steps: &steps)
+    }
+
+    /// `apply(to:)` that also counts the trie steps taken (one per token compared against the trie), so a
+    /// test can check the cost without a clock.
+    func apply(to text: String, steps: inout Int) -> String {
         guard !isEmpty else { return text }
         let tokens = Self.tokens(of: text)
         guard !tokens.isEmpty else { return text }
@@ -90,7 +97,7 @@ public struct TermReplacer: Sendable {
         var index = 0
         while index < tokens.count {
             guard Self.startIsClean(tokens[index], in: text),
-                let (replacement, last) = longestMatch(tokens, from: index, text: text)
+                let (replacement, last) = longestMatch(tokens, from: index, text: text, steps: &steps)
             else {
                 index += 1
                 continue
@@ -106,7 +113,7 @@ public struct TermReplacer: Sendable {
 
     /// The deepest node with a replacement on the path of the tokens from `start`, with the index of its
     /// last token. At most `maximumAliasWords` steps.
-    private func longestMatch(_ tokens: [Token], from start: Int, text: String) -> (String, Int)? {
+    private func longestMatch(_ tokens: [Token], from start: Int, text: String, steps: inout Int) -> (String, Int)? {
         var node = 0
         var best: (String, Int)?
         let limit = min(tokens.count, start + Self.maximumAliasWords)
@@ -114,6 +121,7 @@ public struct TermReplacer: Sendable {
         while position < limit {
             let token = tokens[position]
             let gap = position == start ? "" : token.gapKey(inAlias: false)
+            steps += 1
             guard let next = nodes[node].children[Key(gap: gap, token: token.normalized)] else { break }
             node = next
             if let replacement = nodes[node].replacement, Self.endIsClean(token, in: text) {
