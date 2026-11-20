@@ -137,25 +137,6 @@ func eventuallyAsync(timeout: Double = 30, _ condition: () async -> Bool) async 
     return await condition()
 }
 
-/// A one-shot signal: `wait()` returns once `fire()` was called, before or after. Tests order work with it instead
-/// of with sleeps.
-actor Latch {
-    private var fired = false
-    private var waiters: [CheckedContinuation<Void, Never>] = []
-
-    func fire() {
-        fired = true
-        let pending = waiters
-        waiters = []
-        for waiter in pending { waiter.resume() }
-    }
-
-    func wait() async {
-        if fired { return }
-        await withCheckedContinuation { waiters.append($0) }
-    }
-}
-
 /// A runner over the fake binary and the real process runner, with a descriptor that passed the (fake) canary.
 func makeRunner(_ cli: FakeCLI, caches: URL, gate: ProviderGate = ProviderGate()) -> ProviderRunner {
     ProviderRunner(

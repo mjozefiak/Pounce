@@ -25651,20 +25651,20 @@
         }
       }
     },
-    "An older copy stays in Applications; an administrator can remove it." : {
+    "Another copy stays in Applications; an administrator can remove it." : {
       "comment" : "Move to Applications alert: added when an existing copy in the system Applications folder stays",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "An older copy stays in Applications; an administrator can remove it."
+            "value" : "Another copy stays in Applications; an administrator can remove it."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Starsza kopia pozostaje w folderze Aplikacje; usunąć ją może administrator."
+            "value" : "Inna kopia pozostaje w folderze Aplikacje; usunąć ją może administrator."
           }
         }
       }

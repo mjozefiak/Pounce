@@ -77,8 +77,9 @@ nonisolated enum BuildNumber {
 /// Opens the moved copy and quits this one.
 protocol AppRelaunching {
     /// `newInstance`: start a second instance of the same bundle identifier (needed when the running one is this
-    /// copy); `false` activates the copy when it already runs.
-    func open(_ url: URL, newInstance: Bool) async throws
+    /// copy); `false` activates the copy when it already runs. `files` are opened by the copy once it runs (files
+    /// that arrived while the alert was up); empty means a plain launch.
+    func open(_ url: URL, newInstance: Bool, files: [URL]) async throws
     func quit()
 }
 
@@ -117,6 +118,8 @@ struct MoveToApplications {
     let relauncher: any AppRelaunching
     let versions: any BundleVersionReading
     var destination: URL = ApplicationLocation.destination
+    /// The files waiting to be opened (opened with Lintel while the alert was up), read when the copy is opened.
+    var pendingFiles: () -> [URL] = { [] }
     /// The home folder, for deciding whether the original may go to the Trash.
     var home: URL = FileManager.default.homeDirectoryForCurrentUser
     /// The staging copy's name; unique per attempt.
@@ -146,7 +149,8 @@ struct MoveToApplications {
     /// Opens the installed copy and quits this one; changes nothing on disk.
     func openInstalledCopy() async throws(Failure) {
         do {
-            try await relauncher.open(destination, newInstance: !processes.isRunning(bundleAt: destination))
+            try await relauncher.open(
+                destination, newInstance: !processes.isRunning(bundleAt: destination), files: pendingFiles())
         } catch {
             log("Cannot open the installed copy", error)
             throw .openFailed
@@ -206,7 +210,7 @@ struct MoveToApplications {
         // the Trash, then quit. A failed open leaves the original where it is and this launch goes on.
         let verified = newCopyIsVerified(source)
         do {
-            try await relauncher.open(destination, newInstance: true)
+            try await relauncher.open(destination, newInstance: true, files: pendingFiles())
         } catch {
             log("Cannot open the moved copy", error)
             throw .openFailed
@@ -435,10 +439,14 @@ struct SystemQuarantineRemover: QuarantineRemoving {
 
 /// Opens the moved copy as a new instance (the running one has the same bundle identifier) and quits.
 struct SystemAppRelauncher: AppRelaunching {
-    func open(_ url: URL, newInstance: Bool) async throws {
+    func open(_ url: URL, newInstance: Bool, files: [URL]) async throws {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.createsNewApplicationInstance = newInstance
-        _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
+        if files.isEmpty {
+            _ = try await NSWorkspace.shared.openApplication(at: url, configuration: configuration)
+        } else {
+            _ = try await NSWorkspace.shared.open(files, withApplicationAt: url, configuration: configuration)
+        }
     }
 
     /// Quits from the run loop, not from the calling task: `terminate` waits for the shell's stop task on the main
