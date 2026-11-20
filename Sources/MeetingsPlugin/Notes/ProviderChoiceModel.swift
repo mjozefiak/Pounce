@@ -209,9 +209,7 @@ final class ProviderChoiceModel {
     /// from two models).
     func chooseModel(_ id: String) {
         guard let selection, selection.model != id, models.contains(where: { $0.id == id }) else { return }
-        settings.setNotesProvider(
-            NotesProviderSelection(provider: selection.provider, model: id),
-            infoVersion: settings.notesProviderInfoVersion ?? NotesProviderInfo.currentVersion)
+        settings.setNotesProvider(NotesProviderSelection(provider: selection.provider, model: id))
         testState = .idle
         didChange()
     }

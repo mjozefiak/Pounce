@@ -20,7 +20,6 @@ struct MeetingsSettings: Sendable {
         static let builtInLLMModel = "builtInLLMModel"
         static let notesProvider = "notesProvider"
         static let notesProviderModel = "notesProviderModel"
-        static let notesProviderInfoVersion = "notesProviderInfoVersion"
         static let notesProviderBinary = "notesProviderBinary"
         static let qaProviderStatus = "qaProviderStatus"
         static let qaProviderScenario = "qaProviderScenario"
@@ -258,29 +257,16 @@ struct MeetingsSettings: Sendable {
     func setConsentReminder(_ value: Bool) { settings.set(value, for: Key.consentReminder) }
     func setNotesEnabled(_ value: Bool) { settings.set(value, for: Key.notesEnabled) }
     func setBuiltInLLMModel(_ model: LLMModel) { settings.set(model.id, for: Key.builtInLLMModel) }
-    /// The choice in Settings → Meetings → "Notes are written by". The keys go together, so a half-written choice
-    /// never reads as one. `infoVersion` is the version of the notice the user saw when choosing (the
-    /// "Transcripts … leave this Mac" text and its Details). Nothing reads it yet; it is the slot a later change of
-    /// the data scope can compare against to hold the sending until the user looks again (owner decision, 2026-11-20:
-    /// not part of the first release of the picker).
-    func setNotesProvider(
-        _ selection: NotesProviderSelection, infoVersion: Int = NotesProviderInfo.currentVersion
-    ) {
+    /// The choice in Settings → Meetings → "Notes are written by": two keys that go together, so a half-written
+    /// choice never reads as one. Choosing is the consent (owner decision, 2026-11-20); nothing else is stored.
+    func setNotesProvider(_ selection: NotesProviderSelection) {
         settings.set(selection.provider.rawValue, for: Key.notesProvider)
         settings.set(selection.model, for: Key.notesProviderModel)
-        settings.set(infoVersion, for: Key.notesProviderInfoVersion)
     }
-    /// Back to the built-in model: removes the keys. A changed model of the same provider goes through
-    /// `setNotesProvider` again and keeps the version the user saw (`notesProviderInfoVersion`).
+    /// Back to the built-in model: removes both keys.
     func clearNotesProvider() {
         settings.removeValue(for: Key.notesProvider)
         settings.removeValue(for: Key.notesProviderModel)
-        settings.removeValue(for: Key.notesProviderInfoVersion)
-    }
-    /// The notice version stored with the choice; `nil` for a choice made without one (set by hand or by an older build).
-    var notesProviderInfoVersion: Int? {
-        let value = settings.integer(Key.notesProviderInfoVersion, default: -1)
-        return value >= 0 ? value : nil
     }
 
     /// The CLI the user chose with "Choose File…"; `nil` searches the fixed directories.
@@ -322,11 +308,6 @@ struct MeetingsSettings: Sendable {
     func setRetentionDays(_ days: Int) { settings.set(max(0, days), for: Key.retentionDays) }
     func setKeepAudio(_ value: Bool) { settings.set(value, for: Key.keepAudio) }
     func setOrphanAudioDays(_ days: Int) { settings.set(days, for: Key.orphanAudioDays) }
-}
-
-/// The version of the notice shown next to the provider choice. Raise it when the data that leaves the Mac changes.
-enum NotesProviderInfo {
-    static let currentVersion = 1
 }
 
 /// The external provider and model that write the notes: the user's choice in settings, which is the consent.

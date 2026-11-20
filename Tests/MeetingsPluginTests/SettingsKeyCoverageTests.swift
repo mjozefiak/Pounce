@@ -25,7 +25,6 @@ import Testing
         "selfName": "setSelfName",
         "notesProvider": "setNotesProvider(",
         "notesProviderModel": "setNotesProvider(",
-        "notesProviderInfoVersion": "setNotesProvider(",
         "notesProviderBinary": "setNotesProviderBinary(",
     ]
 
@@ -84,7 +83,6 @@ import Testing
                 "selfName": "model.saveSelfName(",
                 "notesProvider": "provider.choose(",
                 "notesProviderModel": "provider.chooseModel(",
-                "notesProviderInfoVersion": "infoVersion:",
                 "notesProviderBinary": "settings.setNotesProviderBinary(",
             ]
         )

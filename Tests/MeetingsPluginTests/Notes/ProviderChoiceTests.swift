@@ -40,21 +40,19 @@ import Testing
 
     // MARK: Choosing (consent = the choice, no window)
 
-    @Test func choosingAProviderWritesTheChoiceWithTheNoticeVersionAndNothingElse() throws {
+    @Test func choosingAProviderWritesTheTwoKeys() throws {
         let (notes, choice) = try rig()
         choice.model.choose(.claudeCode)
         #expect(notes.settings.notesProviderSelection == NotesProviderSelection(provider: .claudeCode, model: "sonnet"))
-        #expect(notes.settings.notesProviderInfoVersion == NotesProviderInfo.currentVersion)
         #expect(choice.model.chosen?.id == .claudeCode)
     }
 
-    @Test func changingTheModelAsksNothingAndKeepsTheVersionTheUserSaw() throws {
+    @Test func changingTheModelAsksNothing() throws {
         let (notes, choice) = try rig()
-        notes.settings.setNotesProvider(NotesProviderSelection(provider: .claudeCode, model: "sonnet"), infoVersion: 0)
+        notes.settings.setNotesProvider(NotesProviderSelection(provider: .claudeCode, model: "sonnet"))
         choice.model.reload()
         choice.model.chooseModel("opus")
         #expect(notes.settings.notesProviderSelection?.model == "opus")
-        #expect(notes.settings.notesProviderInfoVersion == 0)
         #expect(choice.model.showsHeavierNote)
         choice.model.chooseModel("not-offered")
         #expect(notes.settings.notesProviderSelection?.model == "opus")
@@ -65,7 +63,6 @@ import Testing
         choice.model.choose(.claudeCode)
         choice.model.useLocal()
         #expect(notes.settings.notesProviderSelection == nil)
-        #expect(notes.settings.notesProviderInfoVersion == nil)
         #expect(choice.model.isLocal)
     }
 
