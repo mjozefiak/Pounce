@@ -1,94 +1,100 @@
-# ADR 0010, proposed amendment: learning vocabulary terms from corrections (auto-learn)
+# ADR 0010, amendment (accepted): learning vocabulary terms from corrections (auto-learn) and context on by default
 
-- Status: **Proposed** (until the owner accepts the text). Two of its inputs are decided: on 2026-11-20 the owner chose
-  **P1 = D as A+B** (watching the field after the paste, plus the explicit command "Add correction to vocabulary"
-  on a selection) and **P2 = D** (until the field loses focus, at most 60 s, also ending at the next dictation) with
-  **(i) two reads**, no listening to every change. Every other decision is open. ADR 0010 (`0010-dictation-context.md`) stays **Accepted and
-  unchanged**: its status, its rules and its frozen contract are exactly as they were. This file is a separate
-  proposal so that the accepted text is not edited before the owner decides.
-- Date: 2026-11-20
-- Spec: `.ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md` (P1 and P2 decided on 2026-11-20; the open decisions U1–U14 and P3–P13, with
-  variants and recommendations). Backlog: story DICT-2.8 in
-  `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md`.
-- Why a file and not a new number: the amendment changes rules of ADR 0010 and has no decision of its own; it
-  is merged into ADR 0010 when accepted, and this file is then removed or marked as applied.
+- Status: **Accepted** (owner's decision, 2026-11-20); **applied to `0010-dictation-context.md`**. Nothing here is implemented yet. The owner's decisions of 2026-11-20 on auto-learn
+  (P1–P13, U1–U14, K1–K4, threshold 2) and the owner's answers of the same day to **Z1–Z10** (what dictation
+  context reads by default, and the nine points that waited for a confirmation) are applied below. Three answers
+  (CTX-2 = A, CTX-3 = A, CTX-4 = A) go against the author's recommendation and are recorded as owner decisions,
+  risk accepted; the recommendation stays visible as noted. The nine points the answers left open (O1–O9) were
+  decided by the owner on the same day and are applied below ("The owner's decisions on O1–O9"); the nine
+  points those decisions did not cover (DP1–DP9) were answered by the owner on the same day and are applied
+  below ("The owner's answers to DP1–DP9"). Where a later answer narrows an earlier one (Z6 and O6 by DP1–DP4
+  and DP8; CTX-5 by DP5; O2 by DP6), the later, narrower answer is in force and the earlier one stays visible.
+  **Applied (2026-11-20):** the accepted changes are written into `0010-dictation-context.md` (section
+  "Amendment of 2026-11-20 (applied)" and the rules, tables and sections it points to), in a documents pull
+  request before the DICT-2.1 pull request. `0010-dictation-context.md` is now the text in force; this file stays
+  unchanged below as the historical record of how the decisions were reached.
+- Date: 2026-11-20 (revised the same day after the owner's three sets of decisions, after the answers to
+  Z1–Z10, after the decisions on O1–O9, and after the answers to DP1–DP9 and the acceptance)
+- Spec: `.ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md` (decision tables, the owner's answers to
+  Z1–Z10, the decisions on O1–O9, the answers to DP1–DP9, the threat model). Backlog: story DICT-2.8 in
+  `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md`. Providers:
+  `.ai/specs/2026-11-10-external-ai-providers.md` (approved vocabulary terms as a new kind of data).
+- Why a file and not a new number: the amendment changes rules of ADR 0010; it is merged into ADR 0010 now
+  that it is accepted, and this file is then removed or marked as applied. One exception has its own number: rule 4
+  says "Changing this rule needs a new ADR", and the owner confirmed that (Z6). That ADR is
+  `0013-approved-vocabulary-terms-to-providers.md` (status Accepted, 2026-11-20). This file changes rule 4 only by pointing
+  to it (change 9).
 - Every example is invented. No text comes from a real dictation.
 
-## How to read this file
+## What changed since the first version of this amendment
 
-Each of the 12 changes below names the text of ADR 0010 it touches, what would change, and **which owner
-decision it depends on**. A change is applied only in the form its decisions select, and only after the owner
-accepts this file's text. The section "Settled by P1 and P2" below says which changes are now required and in
-what form; their remaining parameters still wait for the other decisions.
+The first version (PR #176) assumed the model of ADR 0010: off by default, an in-app consent sheet, a read by
+range, nothing from the field on disk except a pair. The owner decided otherwise on 2026-11-20. The decisions
+that go against the author's recommendation are recorded as **owner decisions, risk accepted (fields are read
+without an indicator and without a per-feature consent)**:
 
-Decisions referred to: **P1** how Lintel learns about a correction (A: watching the field after the paste, B:
-explicit command, C: only inside Lintel's own windows; **decided: D = A+B**), **P2** how long the watch lasts (A:
-until the field loses focus with a time limit, B: one read after a fixed time, C: only at the next dictation, D:
-A plus the next dictation; **decided: D, 60 s, two reads**). Still open: **P3** which applications, **P4** how much of the field is read, **P5** default
-value and relation to `contextEnabled`, **P6** what is stored, **P7** where, **P8** for how long, **P9**
-rejected pairs as a keyed digest or readable, **P10** switching off and erasing, **P11** what the user sees,
-**P12** models and what never leaves the Mac, **P13** tests, QA and diagnostics. **U11** is the consent
-sheet, **U12** the skip filters, **U13** the threshold.
+| Decision | What the owner chose | ADR 0010 text it reverses |
+|---|---|---|
+| P5.1 | Auto-learn is **on by default for everyone, also after an update**; no consent sheet, no one-time window; the information is in the Permissions description and in Settings only | Consent: "an in-app consent sheet, shown every time the user turns the switch on, also on existing installs. Nothing appears by itself (D-Q1, D-Q2)" |
+| P5.2 | **Dictation context is on by default too** | Rule 1: `contextEnabled = false` (the default); D-Q1 |
+| P3 | **All applications** except an editable exclusion list (pre-filled: terminals, remote desktops, password managers); browsers work | — (ADR 0010 has one denied list, password managers only) |
+| P4 | The **whole value of the field** is read | Trust table, `field`: "read by range, never the whole value" |
+| P6 | The pair, a counter, two dates **and a fragment of the sentence** are stored; the fragment only for ready suggestions; candidates below the threshold as a keyed digest | Rule 2: nothing from the snapshot is written |
+| P11.3 | **No sign** while a field is being watched | — (new) |
+| P12 | A local model may review suggestions; **approved vocabulary terms may go to an external provider** the user turned on (scope narrowed to the minimum by DP1–DP4 and DP8: row Z6) | Rule 3 (Swift rules only); rule 4 (the user dictionary never leaves the process) |
+| Z1, CTX-2 = A | The **selection** (up to 2000 characters) is read **at every dictation**. Author's recommendation, noted: C (read only on the command "Add correction to vocabulary") | Trust table, `selection`: "the source stays out of the default list until a rule needs it"; D-Q1 |
+| Z1, CTX-3 = A | The **clipboard reference is on by default**, with a confirmation in the HUD for the first 5 uses. Author's recommendation, noted: B (off until the DICT-3.1 measurement). **The DICT-3.1 measurement must be done before the release.** Narrowed by decision O5: on by default only after a clean measurement. | Consent: "the clipboard and file references each have their own switch, all off by default (D-Q6)" |
+| Z1, CTX-4 = A | The **window title and the document address** are read at every dictation. Author's recommendation, noted: C (off until a rule uses them). Narrowed by decision O2 and the answer to DP6: in terminals neither the window title nor the document address is read. | D-Q1 |
+| Z6 | Approved terms go to the provider with **meeting notes (Claude)** and to **"My server"**. **Narrowed the same day to the minimum (answers to DP1–DP4 and DP8), which is in force:** only the correct spelling of approved terms, only with meeting notes written through Claude Code; not through an API key, not to other providers, not with dictation, not to the built-in model, **not to "My server"**; nothing while Dictation is off; every extension is a separate decision of the owner | Rule 4, through the new ADR 0013 that rule 4 demands |
 
-## Why ADR 0010 has to change at all
+The other answers to Z1 follow the author's recommendation or are not against it: CTX-1 = B (the field read for
+context is 2 characters before the caret and 1 after), CTX-5/6 = the foreground process name only; the working
+directory and files after the probes (decision O1: after successful probes they switch on by themselves).
+The answer to DP5 narrows this: the process name waits for the probes too, and "successful probes" has a hard
+criterion (below). Z2 and Z3: separate exclusion lists and separate switches. Z4, Z5, Z7,
+Z8, Z9 and Z10: as the author recommended.
 
-Auto-learn by watching the field needs two things ADR 0010 forbids today:
+The full threat model, with the residual risks stated plainly, is in the spec (section "Model zagrożeń").
 
-1. a read of the text field **after the paste**, when the user is no longer dictating (ADR 0010 reads once,
-   at the shortcut press);
-2. a **write to disk** of something that comes from the field: the corrected word was typed by the user in
-   another application (rule 2 says nothing from the snapshot is written).
+## The other decisions this amendment relies on
 
-With P1 = C (corrections inside Lintel's own windows only) neither would have been needed. The owner chose P1 =
-A+B, so both are needed and this amendment is required.
+P1 = A+B (watching the field after the paste, plus the command "Add correction to vocabulary" on a selection).
+P2 = D (until the field loses focus, at most 60 s, also ending at the next dictation) with two reads, no
+listening. P7 = B (new tables in the encrypted `dictation.sqlite`). P8: candidates 30 days, suggestions until
+the user decides, silence is not a rejection. P9 = A (rejected pairs as a keyed digest, for ever, exactly that
+pair). P10: switching off deletes the candidates and stops a running watch at once, without a final read;
+"Erase Learning Data…" deletes candidates, suggestions and rejected pairs; "Clear History" does not touch them.
+P11.1, .2, .4: a fourth purpose in the Accessibility row, a `corrections` row in the trust table, "learning
+data" rows with numbers. P13: synthetic data only, QA on a fake reader, numbers only in diagnostics. Threshold
+2 (U13.1). K2: history does not record that a dictation was watched. K3: the variant "only inside Lintel's own
+windows" is removed. K4: the digest key is a sub-key of the shared dictation key. The hard refusals are
+confirmed: secure fields, Secure Event Input, Lintel's own windows, the exclusion list, no Accessibility grant,
+nothing in logs.
 
-## Settled by P1 and P2 (owner decisions of 2026-11-20)
+## The 13 changes
 
-P1 = A+B and P2 = D make these changes **required**, in the form below. They must be accepted **before the
-DICT-2.1 pull request**, because change 7 is part of the contract that pull request freezes; a later acceptance
-would cost a second contract pull request in the one `LintelKit` queue (with DICT-3.3 and the MEET contract
-stories). Open question K1 of the spec is closed for this reason.
-
-| # | Now required? | Form fixed by P1/P2 | Still open |
+| # | ADR 0010 text | Change (form fixed by the owner's decisions) | Still to confirm |
 |---|---|---|---|
-| 1 | yes | a second read after the paste (baseline with a field handle, final read on focus loss, after 60 s or at the next dictation), two reads only; a selection read on the user's command; the write exception for the pair | what is written and where (P6, P7), read size (P4) |
-| 2 | depends | — | P5.2 (no change with P5.2 = a) |
-| 3 | yes | new `corrections` row; the `field` row's "when" is no longer only "at the shortcut press"; the `selection` row gains "on the user's command" | limit, place, lifetime (P3, P4, P6–P8) |
-| 4 | yes | a switch exists | default and relation to `contextEnabled` (P5), sheet form (U11) |
-| 5 | yes | four purposes for the Accessibility row (the fourth covers both the watch and the command) | wording (P11.1, U14) |
-| 6 | yes | the denied list must say whether it applies to auto-learn | categories and a separate list (P3) |
-| 7 | **yes, before DICT-2.1** | the additive shape in "Change 7 in detail" (field handle, re-read of the same field, focus-loss notification), every member with a default; plus the statement that `snapshot` may be called on the user's command for the selection | exact signatures, frozen by the accepted text |
-| 8 | yes | rows for the watch length (60 s) and the port's own handle limit | read size (P4), longest pasted text, retention (P8), rejected cap (P9), U12, U13 |
-| 9 | yes (worth adding in every variant) | — | P12.1 confirms the wording, P12.2 decides the model exception |
-| 10 | no | — | K2 |
-| 11 | yes | probe criteria 7 to 12 are needed | thresholds, confirmed with this text |
-| 12 | yes | the listed documents follow | every decision that adds a surface |
+| 1 | Rule 2 (the snapshot lives in memory for one dictation; nothing from it is written) | A second, separate read after the paste: a baseline read with a field handle, and a final read when the field loses focus, after 60 s or at the next dictation; two reads only. A selection read on the user's command. Both texts live in memory until the comparison ends and are cleared on every exit path. **The exceptions to the no-write rule:** (a) a candidate below the threshold as a keyed digest (HMAC) with a counter and two dates; (b) a ready suggestion in readable form: the heard forms, the corrected word, a counter, two dates and a fragment of the sentence around the correction; (c) a rejected pair as a keyed digest. All in tables of the encrypted `dictation.sqlite`. The whole value of the field, text outside the fragment, the window title and the application identifier stay unwritten. The fragment is at most 80 characters and comes only from the pasted text, after the correction, one per suggestion (Z4). | — |
+| 2 | Rule 1 (off means nothing is read; `contextEnabled = false` is the default) | The default of `contextEnabled` becomes `true` (P5.2). The sentence "off means nothing is read" must be rewritten so that it stays true: each switch stops its own reads. The switches are separate (Z3): `contextEnabled = false` stops the reads at the shortcut press and does not stop auto-learn; the auto-learn switch stops the reads after a paste and does not stop context. The default list of sources is in change 13 (Z1). | Wording of the rewritten rule 1 |
+| 3 | Trust table | New row `corrections`: read after every pasted dictation while the switch is on (it is on by default) and on the user's command; limit: the whole value of the field up to a cap, two reads, at most 60 s; goes to an in-memory comparison, then the pair (and for a ready suggestion the fragment) to the suggestions tables, never to a request that leaves the Mac; lives in memory for the watch, on disk as in change 1; hard refusals as today plus the exclusion list. The `field` row: "never the whole value" holds for the snapshot at the shortcut press only. The `selection` row gains "on the user's command". The `vocabulary` row gains "the correct spelling only, to Claude with meeting notes written through Claude Code, after its consent window, while Dictation is on" (change 9). The table feeds the Context pane and the website, so both change. Caps: 12 000 characters of pasted text, 100 000 characters of the field value (Z5). The `field` row for the snapshot: 2 characters before the caret and 1 after by default (CTX-1 = B). The `selection`, `window`, `terminal` and `clipboard` rows change as in change 13. The `vocabulary` row points to ADR 0013 for the scope (Z6). | Probe criterion 8 still measures the 100 000 cap |
+| 4 | Consent | Reversed for auto-learn: **no in-app consent sheet**, no one-time window, no onboarding step. The switch `plugins.dictation.suggestFromCorrections` defaults to `true`, also on existing installs after an update, so a user who granted Accessibility for pasting gets the field read without being asked. The information is the Accessibility row in Settings → Permissions, the switch with its description in the Vocabulary section, and the trust table. For context: on by default (P5.2), with the sources of change 13. The owner's approval of each weaker default is a comment of the owner in the pull request that adds the key (Z10; `BACKWARD_COMPATIBILITY.md` section 3). For the terminal sources (the process name, the working directory, the file references) the approval is given in advance by the answer to DP5, recorded in this ADR. | — (decision O3: no consent sheet, also when the user turns context on again; instead a fixed table in Settings → Dictation → Context says what is read, when, and that nothing is stored, with a row for the selection. The table is shown whether context is on or off. Answer to DP9: the sentence under the table, which says that history keeps the names of the sources used and never their text, is enough. Once the terminal sources switch on after successful probes, the table needs rows for the process name, the working directory and the files; DICT-2.4 must say so.) |
+| 5 | Consent, the Accessibility row in Settings → Permissions (three purposes) | Four purposes. The fourth says in plain words that Lintel reads the text field after it pasted a dictation, to notice the user's corrections, and where to switch it off. DICT-2.4 criterion 4 names three and must follow. A change of a permission's purpose text needs a release note (`BACKWARD_COMPATIBILITY.md` sections 4 and 5). | — (mock-up v3 accepted by the owner, 2026-11-20; the third purpose also names the document address and says that in terminals the title and the address are not read) |
+| 6 | Default denied applications (`contextDeniedApps`) | Auto-learn has an exclusion list the user edits, pre-filled with three categories: terminals, remote desktops, password managers. Browsers are **not** excluded. Each category is a closed list of bundle identifiers, each checked on an installed copy; an identifier that cannot be confirmed is dropped, as today. The list is **separate** from `contextDeniedApps` (Z2) and the category "remote desktops" includes virtual machines (Z2, Z9). `contextDeniedApps` keeps its ADR 0010 default (password managers), so context reads in terminals, remote desktops and virtual machines. | — |
+| 7 | Decision 3 (the frozen contract) | The additive shape in "Change 7 in detail" (field handle, re-read of the same field, focus-loss notification), every member with a default, **written into ADR 0010 before the DICT-2.1 pull request**; plus the statement that `snapshot` may be called on the user's command for the selection. Reading the whole value (P4 = B) does not change the shape. | Exact signatures, frozen by the accepted text |
+| 8 | Limits table | New rows: watch length 60 s; two reads per watch; threshold 2; longest candidate 64 characters and 3 words; candidates kept 30 days; the port's own limit for holding a field handle. Values: longest pasted text that is watched 12 000 characters; cap of the field value 100 000 characters (**[0.2]**, probe criterion 8); fragment at most 80 characters; 200 candidates, 50 suggestions, 5000 rejected digests. These are the owner's answers (Z4, Z5, Z9), no longer working values. The rows "Text before the caret" and "Text after the caret" get the default of the context snapshot: 2 and 1 (CTX-1 = B); 500 and 200 stay the largest values a request may ask for. | — |
+| 9 | Rules 3 and 4 (Swift rules only; nothing to an external provider) | Rule 3 gains one exception: the built-in local model may review a suggestion (P12.2 = B); it sees the pair alone, without the sentence fragment, and its verdict may only hold a suggestion back (Z7). Rule 4 is **not edited here**: as it demands, the change is a new ADR, `0013-approved-vocabulary-terms-to-providers.md` (Accepted). By the owner's answer to Z6, narrowed by the answers to DP1–DP4 and DP8, the correct spelling of approved vocabulary terms goes to Claude with meeting notes written through Claude Code, and by no other route: not through an API key, not to other providers, not with dictation, not to the built-in model, not to "My server", and not while Dictation is off; unapproved suggestions, candidates, rejected pairs and sentence fragments are in no request that leaves the process, sync included. The snapshot, the clipboard content and file names stay under rule 4 unchanged. Rule 4 gets a pointer to ADR 0013. | — (ADR 0013 accepted; DP1–DP4 and DP8 answered) |
+| 10 | Rule 5 (`context_sources` in history, a closed list) | **No change** (K2: history does not record that a dictation was watched). | — |
+| 11 | Open points and the **[0.2]** marks | New probe criteria 7 to 12 (below) and their rows in the "Open points" table; they block the watch (spec steps B1 and B2), not DICT-2.2. | — (decision O9: the proposed thresholds stand) |
+| 12 | Outside this ADR | `BACKWARD_COMPATIBILITY.md` (section 1 for the contract members; section 2 for the new tables; section 3 for the keys and the weaker defaults; sections 4 and 5 for the purpose text, the release note and the list shortcuts), the Dictation row of `AGENTS.md`, the backlog (DICT-2.3 and DICT-2.4 rewritten for the new defaults, DICT-0.2 criteria, story DICT-2.8), `docs/perf.md`, `docs/qa.md`, the providers spec. The sidebar count (U9 = B) is a member of the main window contract (ADR 0008), not of this ADR. | — |
+| 13 | D-Q1, and depending on Z1 also D-Q6 and D-Q14 ("each has its own switch, all off by default") | Context is on by default (P5.2). **What it reads by default (the owner's answer to Z1, narrowed by O1, O2, O5 and the answers to DP5 and DP6):** `field`: 2 characters before the caret and 1 after (CTX-1 = B); `selection`: at every dictation, up to 2000 characters (CTX-2 = A); the clipboard reference: on, with a confirmation in the HUD for the first 5 uses (CTX-3 = A; reverses D-Q6), **on by default only after a clean DICT-3.1 measurement; any false paste in the measurement keeps it off by default (decision O5; DICT-3.6 criterion 3 stays)**; `window`: the title and the document address (CTX-4 = A), **except that in terminals neither the window title nor the document address is read (decision O2; answer to DP6)**. "Terminals" is the same closed list of bundle identifiers as the category "terminals" of the auto-learn exclusion list. **`terminal`: nothing until the probes.** The answer to Z1 named the foreground process name as read by default; the answer to DP5 narrows it: **the process name waits for the probes too**. `TerminalContext` keeps both fields of the frozen contract (the process name and the working directory); until the probes the implementation reads neither (decision O1 for the directory: reading it and dropping it does not meet the decision). **After successful probes the process name, the working directory and the file references switch on by default by themselves, without another decision of the owner (decision O1: owner decision, risk accepted)**; D-Q14 is then reversed in full. **"Successful probes" (answer to DP5, a hard criterion): the right terminal tab in all test cases and zero wrong directories. On any error nothing switches on and the decision returns to the owner.** **Approval in advance (answer to DP5):** the owner's decision of 2026-11-20, recorded here, is the approval that Z10 demands for the pull request that switches these three defaults on, provided the probe results in that pull request meet the criterion; no further comment of the owner is needed then. CTX-2, CTX-3 and CTX-4 are owner decisions, risk accepted, against the author's recommendation (C, B and C), which stays noted in the spec. **The DICT-3.1 measurement (0 false substitutions in the 60 phrases) must be done before the release.** `smartInsertion = true` and `appProfiles = false` are confirmed by the owner (answer to DP7). The "Consent" sentence "each has its own switch, all off by default" is rewritten: the switches stay, the defaults change as above. | — (DP5, DP6 and DP7 answered) |
 
-## The 12 changes
-
-| # | ADR 0010 text | Proposed change | Depends on | Not needed when |
-|---|---|---|---|---|
-| 1 | Rule 2 (the snapshot lives in memory for one dictation; nothing from it is written) | Add a second, separate read after the paste with its own lifetime, and the **only exception to the no-write rule**: the pair "heard → corrected", a counter and, if chosen, two dates, stored in the place P7 selects. The text of the field, the sentence around the correction and the window title stay unwritten. | P1, P2, P4, P6, P7 | P1 = C. With P1 = A and P2 = C there is no second read, but the write exception is still needed. With P1 = B the read is the selection, on the user's command, and only the write exception and change 3 apply. |
-| 2 | Rule 1 (off means nothing is read) | With P5.2 = a (auto-learn obeys `contextEnabled`): no change. With P5.2 = b (independent switch): the rule is rewritten, because "context off" no longer means "nothing is read". | P5 | P5.2 = a; P1 = C |
-| 3 | Trust table | New row `corrections`: when it is read, the limit, where it goes (the suggestions store, never a prompt), how long it lives, hard refusals. In the `field` row the "when" column is no longer only "at the shortcut press" (unless P2 = C). The table feeds the consent sheet, the Context pane and the website, so all three change. | P1, P2, P3, P4, P6, P7, P8 | P1 = C |
-| 4 | Consent | A new switch (working name `plugins.dictation.suggestFromCorrections`, default from P5.1), a sheet when it is turned on (form and frequency from U11), and its relation to `contextEnabled`. | P5, U11 | P1 = C (a switch may still exist, without a consent to read other applications) |
-| 5 | Consent, the Accessibility row in Settings → Permissions (three purposes) | Four purposes: the fourth is "checks the field after a paste for your corrections (when suggestions are on)". DICT-2.4 criterion 4 names three and must follow. A change of a permission's purpose text (`BACKWARD_COMPATIBILITY.md` sections 4 and 5, release note). | P1, P11.1 | P1 = C |
-| 6 | Default denied applications (`contextDeniedApps`) | State whether the list applies to auto-learn, and add the categories P3 selects (terminals, browsers, remote desktops and virtual machines) as closed lists of bundle identifiers, each checked on an installed copy; an identifier that cannot be confirmed is dropped, as today. State whether auto-learn has its own list. | P3 | P1 = C |
-| 7 | Decision 3 (the frozen contract) | With P2 = A or D: a new, additive shape (below), written here **before** the DICT-2.1 pull request, or a second contract pull request in the `LintelKit` queue. With P2 = B, or P1 = B: no new shape, but the ADR states that `snapshot` may be called outside the shortcut press and for which purpose. With P2 = C: no change. | P1, P2 | P1 = C; P2 = C |
-| 8 | Limits table | New rows: length of the watch, longest pasted text that is watched, read size of the watch, longest candidate, suggestions per watch, the retention values of P8, the cap of rejected pairs (P9), and the port's own limit for holding a field handle. | P2, P4, P8, P9, U12, U13 | P1 = C (only the retention rows remain) |
-| 9 | Rules 3 and 4 (Swift rules only; nothing to an external provider) | State in so many words that pairs, candidates and rejected pairs are in no prompt and never leave the process, sync included. With P12.2 = B (a built-in local model reviews a pair) rule 3 gains that one exception instead. | P12 | P12.1 = no (recommendation: add the sentence in every variant) |
-| 10 | Rule 5 (`context_sources` in history, a closed list) | Decide whether history records that a dictation was watched (a new value on the closed list). Recommendation: no. Open question K2 in the spec. | owner (K2) | recommendation accepted |
-| 11 | Open points and the **[0.2]** marks | New probe criteria 7 to 12 (below) and their rows in the "Open points" table; they block the watch (spec step B1 and B2), not DICT-2.2. | P1, P2, P4 | P1 = C |
-| 12 | Outside this ADR | `BACKWARD_COMPATIBILITY.md` (section 1 with P2 = A/D; section 2 for the new file or tables; section 3 for the keys; sections 4 and 5 for the purpose text and the release note), the Dictation row of `AGENTS.md`, the backlog (DICT-2.4 criterion 4, DICT-0.2 criteria, story DICT-2.8), `docs/perf.md`, `docs/qa.md`. | every decision that adds a surface | — |
-
-## Change 7 in detail: the contract shape for "until the field loses focus" (P2 = A or D)
+## Change 7 in detail: the contract shape for "until the field loses focus" (P2 = D)
 
 The frozen shape has one call, `snapshot`, and no identity of the field. A watch that ends when the field
 loses focus needs three things the shape lacks: the identity of the field (the final read must be of the same
-element, also after focus has left it), a re-read of the **same absolute range** (after a correction the caret
-is elsewhere, so "500 characters before the caret" no longer covers the pasted text; the port remembers the
-range, the plugin never handles offsets in another application's field), and a notification that focus left,
-with a time limit.
+element, also after focus has left it), a re-read of the same field, and a notification that focus left, with a
+time limit.
 
 Proposed shape. Additive only; every new member has a default, so `NoFocusContextReader` and every existing
 implementation compile unchanged and answer `unsupported`.
@@ -135,6 +141,12 @@ Notes on the shape:
 
 - It follows the rule ADR 0010 already uses for probe-dependent members: each is optional and may stay
   unsupported, so a negative probe result changes behaviour, not the shape.
+- **The whole value (P4 = B) fits this shape.** The baseline read is `snapshot` with the `field` source,
+  `keepsFieldHandle = true` and both caret limits set to the cap of the watch, so it covers the whole field
+  when the field is within the cap. `reread` then returns the whole value, at most `maxCharacters`. A field
+  longer than the cap is not watched. The implementation reads the value in one call instead of by range;
+  DICT-2.2 criterion 4 ("not by fetching the whole value") is about the context snapshot and gets an exception
+  for the watch.
 - Whether a focus notification is reliable, and whether an element can be read after it lost focus, is
   **[0.2]** (criteria 9 and 10 below). The numbers `slackCharacters` and the handle's own time limit are
   working values.
@@ -142,9 +154,8 @@ Notes on the shape:
   answers `secureField`.
 - The implementation keeps the DICT-2.2 rules: `AXIsProcessTrusted()`, one serial queue per pid, a time limit
   per call, no attribute written to another application, invisible Unicode characters removed.
-- **Timing.** The owner chose P2 = D on 2026-11-20, before DICT-2.1 started, so this shape goes into the DICT-2.1
-  contract pull request once this text is accepted (K1 closed). A negative probe result leaves the members in
-  the contract answering `unsupported`; it changes behaviour, not the shape.
+- **Timing.** The owner chose P2 = D on 2026-11-20, before DICT-2.1 started, so this shape goes into the
+  DICT-2.1 contract pull request once this text is accepted (K1 closed).
 
 ## Change 11 in detail: probe criteria added to DICT-0.2
 
@@ -152,41 +163,154 @@ The probe script prints types, lengths and times, never content, and the test fi
 
 | # | Criterion | Fills in |
 |---|---|---|
-| 7 | For the 12 applications of criterion 1: after a paste of synthetic text, read the field again after 0.2 s, 1 s and 5 s. Table "application × the pasted text is in the read", and the time after which the value is current (20 runs). | delay of the first read; the list of applications where learning works |
-| 8 | Same field with the caret moved elsewhere: read the remembered absolute range through the range attribute. Table "application × range read works / empty / error". | whether P4 = A is possible |
-| 9 | An observer of focused-element changes: move focus to another field, another window and another application. Table "application × notification arrived", its delay, and false notifications in 20 runs. | whether P2 = A or D is possible |
-| 10 | An element that lost focus: read its range through the kept reference; also after the window was closed (an error is expected, a hang is not). | the `reread` shape |
-| 11 | Repeat 7 to 10 in a terminal, in a browser (plain field, `contenteditable`, a password field built from a plain field) and in an Electron application; record how much text a terminal read returns (whole buffer or the range). | decisions P3.1 and P3.2 |
+| 7 | For the 12 applications of criterion 1: after a paste of synthetic text, read the field again after 0.2 s, 1 s and 5 s. Table "application × the pasted text is in the read", and the time after which the value is current (20 runs). Also the focus race: move focus to another field 0, 50 and 200 ms after the paste and record whether the baseline read comes from the pasted field and whether the anchor check notices. | delay of the first read; the list of applications where learning works |
+| 8 | Fields with 1 000, 10 000 and 100 000 characters of synthetic text: read the **whole value** after the paste and again through the kept reference with the caret moved elsewhere. Table "application × length × read time × the value is complete and current" (20 runs). | the cap of the field value and of the pasted text (Z5); the budget |
+| 9 | An observer of focused-element changes: move focus to another field, another window and another application. Table "application × notification arrived", its delay, and false notifications in 20 runs. | whether the chosen P2 = D works |
+| 10 | An element that lost focus: read its value through the kept reference; also after the window was closed (an error is expected, a hang is not); also a field that became secure, and Secure Event Input switched on, between the two reads: `reread` answers `secureField`. | the `reread` shape |
+| 11 | Repeat 7 to 10 in a terminal, in a browser (plain field, `contenteditable`, a password field built from a plain field) and in an Electron application; record how much text a terminal read returns, and whether any window attribute tells a private browser window from a normal one. | private windows and Electron (the choice of applications is decided in P3) |
 | 12 | An application with a stopped main thread during a watch: the return time of the re-read, and that the pid queue does not block other processes. | the per-call limit and the budget |
 
-Proposed thresholds (to confirm with this amendment): an application counts as supported when criteria 7 and 8
-pass in 20 of 20 runs; the watch in the P2 = A or D form is built when criteria 9 and 10 pass in at least 8 of
-the 12 applications. Otherwise the new members stay `unsupported` and the owner chooses again between P2 = B
-and C.
+Thresholds (confirmed by decision O9): an application counts as supported when criteria 7 and 8
+pass in 20 of 20 runs for a field at the working cap; the watch is built when criteria 9 and 10 pass in at
+least 8 of the 12 applications. Otherwise the new members stay `unsupported` and the owner decides again (P2 =
+D and P4 = B were chosen before the probes).
+
+## Residual risks the owner accepted
+
+Stated here so that the accepted ADR carries them; the spec's threat model has the detail.
+
+1. In every application outside the exclusion list, browsers included, the whole value of the field the user
+   dictated into is in Lintel's memory for up to 60 s after each dictation. That value often holds text the
+   user did not dictate and text written by other people. A password field a web page builds from an ordinary
+   field cannot be detected.
+2. A user who updates, and who granted Accessibility for pasting only, gets these reads without a question and
+   without a message. They can learn of it from the Permissions description, the Vocabulary section and the
+   release note.
+3. There is no sign while a field is being watched.
+4. A word corrected twice becomes a readable suggestion with a fragment of the sentence, stored until the user
+   decides. Names of people are suggested on purpose.
+5. The whole vocabulary of approved terms (the correct spelling of every entry, no heard forms) reaches Claude
+   with meeting notes written through Claude Code once the user turns that provider on (ADR 0013; decision
+   O6, narrowed by DP1–DP4 and DP8). Every such request carries the whole vocabulary, not only the terms that
+   match the meeting. Nothing goes by any other route, and nothing while Dictation is off.
+6. Erasing the learning data is not cryptographic (the key is shared with history) and does not reach backups.
+
+From the answer to Z1 (context read by default, without an in-app consent). Points 7 to 9 go against the
+author's recommendation:
+
+7. At every press of the dictation shortcut the selected text (up to 2000 characters) is read into memory,
+   although no rule in Phases 0 to 3 uses it. It can be text other people wrote, or a secret selected in a
+   terminal.
+8. At every press the window title and the document address are read into memory, although no rule in Phases
+   0 to 3 uses them. A title often holds a message subject, a file name or a correspondent; in a terminal often
+   the working directory or the running command, which is why in terminals neither the title nor the document
+   address is read (decision O2; answer to DP6). Known limitation: a terminal built into a code editor or a
+   browser is not on the list of terminals, so there the title and the address are read.
+9. The clipboard reference is on by default only after a clean DICT-3.1 measurement; any false paste in the
+   measurement keeps it off by default (decision O5). After a clean measurement the risk remains: a wrongly
+   recognised phrase pastes the clipboard content (up to 20 000 characters) into the target application, which
+   cannot be undone; after the first 5 uses there is no delay to cancel. A clean measurement on 60 phrases does
+   not rule out a false recognition for a user with another voice, microphone or noise.
+10. A user who updates, and who granted Accessibility for pasting only, gets all of these reads at every
+    dictation without a question.
+11. The foreground process name in a terminal is not read until the probes (answer to DP5). After successful
+    probes it is read by default, on the tab-matching rule the probes tested.
+12. The exclusion list for auto-learn (terminals, remote desktops and virtual machines, password managers) does
+    not apply to context: context reads in terminals, remote desktops and virtual machines.
+
+From the decisions on O1–O9, risk accepted:
+
+13. After successful probes the working directory of the terminal and the file references switch on by default
+    by themselves, for everyone, also after an update, without another decision of the owner and without a
+    question to the user (decision O1). From that release on, every press of the shortcut in a terminal reads
+    the path of the working directory (paths often hold client and project names), and a spoken file trigger
+    lists file names under it from disk; the process name switches on with them (answer to DP5). The only
+    gate is the probes. Their pass criterion is hard: the right terminal tab in all test cases and zero wrong
+    directories; on any error the decision returns to the owner. The owner's approval is given in advance (it
+    meets Z10), so no further comment of the owner precedes the switch. A tab matched wrongly outside the test
+    cases gives the process name and the directory of another tab.
+14. There is no consent sheet when context is turned on again either (decision O3). The information is the
+    fixed table in Settings, which only a user who opens the pane sees.
+
+What bounds them: the hard refusals (secure fields, Secure Event Input, Lintel's own windows), which cannot be
+switched off; the exclusion list; the switch in the Vocabulary section, which deletes the candidates and stops
+a running watch at once; two reads and 60 s; the threshold of 2 with keyed digests below it; the 30-day
+retention of candidates; approval by the user before anything enters the vocabulary; the encrypted store. For
+context: its own switch and per-source switches; `contextDeniedApps`; the field read cut to 3 characters; the
+snapshot in memory for one dictation only, never in a log, on disk or in a request that leaves the process; the
+HUD confirmation for the first 5 clipboard uses; the clipboard reference on by default only after a clean
+measurement (O5); no window title and no document address in terminals (O2, DP6); no process name, no working
+directory and no file listing until the probes (after probes that meet the hard criterion they switch on by
+themselves, O1 and DP5); the fixed table in Settings (O3). For the vocabulary: one recipient and one route
+(Claude, meeting notes through Claude Code), correct spellings only, nothing while Dictation is off (ADR 0013).
 
 ## What this amendment does not change
 
 - Rule 6 (a failed read is "no context", never a failed dictation): a failed watch is "no learning".
+- Rule 5 and the history format.
 - Decision 2 (what the cleanup model may do) and the reference phrases.
 - The denial of secure fields, of Secure Event Input and of Lintel's own windows, and the rule that Lintel
-  never writes an attribute to another application.
+  never writes an attribute to another application or sets `AXManualAccessibility` (D-Q9).
 - The vocabulary itself: `vocabulary.json`, `TermReplacer` and the panel rules of DICT-1.2. An approved
   suggestion is saved through the same rules and the same store.
+- Rule 4 for the snapshot, the clipboard content and file names. Rule 4 for the user dictionary is changed by
+  ADR 0013, not by this file.
 
-## Which decision unlocks which change
+## The owner's answers to Z1–Z10 (2026-11-20)
 
-| Decision | Changes it selects |
-|---|---|
-| P1 (decided: A+B) | 1, 3, 4, 5, 6, 7, 8 and 11 are needed |
-| P2 (decided: D, 60 s, two reads) | 1 (second read), 3 ("when" column), 7 (contract shape, before DICT-2.1), 8, 11 |
-| P3 | 3, 6 |
-| P4 | 1, 3, 8, 11 |
-| P5 | 2, 4 |
-| P6, P7 | 1 (what the write exception covers and where), 3, 12 |
-| P8, P9 | 3, 8 |
-| P10 | 3 ("how long it lives"), the consent text (4) |
-| P11 | 3, 5 |
-| P12 | 9 |
-| P13 | none in the ADR; the QA and diagnostics rules live in the spec |
-| U11, U12, U13 | 4, 8 |
-| K1 (closed), K2 (spec) | timing of 7 (fixed: DICT-2.1); 10 |
+| # | Point | The owner's answer |
+|---|---|---|
+| Z1 | What context reads by default, per source (change 13) | CTX-1 field = B (2 characters before, 1 after). CTX-2 selection = A (at every dictation). CTX-3 clipboard = A (on, a confirmation in the HUD for the first 5 uses). CTX-4 window = A (title and document address). CTX-5/6 terminal and files = the process name only; the working directory and files after the probes (narrowed by DP5: the process name waits for the probes too). CTX-2, CTX-3 and CTX-4: owner decisions, risk accepted, against the author's recommendation. |
+| Z2 | One exclusion list or two (change 6) | Separate lists. Auto-learn: terminals, remote desktops and virtual machines, password managers. |
+| Z3 | Whether switching context off switches auto-learn off (change 2) | Separate switches. |
+| Z4 | The sentence fragment (change 1) | As recommended: at most 80 characters, from the pasted text. |
+| Z5 | The caps (changes 3 and 8) | As recommended: 12 000 / 100 000 characters. |
+| Z6 | Approved terms to a provider (change 9) | Approved terms go to the provider with meeting notes (Claude) and to "My server". Needs a new ADR (rule 4): 0013, Accepted. **Narrowed the same day (DP1–DP4, DP8): only notes through Claude Code, correct spellings only, not "My server".** |
+| Z7 | The local model (change 9) | As recommended: it sees the pair alone and may only hold a suggestion back. |
+| Z8 | The sidebar count member (outside this ADR) | As recommended: a separate contract pull request. |
+| Z9 | Small gaps | As recommended: 200 / 50 / 5000; heard forms grouped; virtual machines included. |
+| Z10 | Approval of the weaker defaults | As recommended: a comment of the owner in the pull requests that add the keys. For the terminal sources the answer to DP5 is that approval, given in advance. |
+
+## The owner's decisions on O1–O9 (2026-11-20)
+
+Recorded as given. O1, O2, O3, O5 and O6 are the owner's decisions. O4, O7, O8 and O9 are **technical decisions
+accepted as the spec author recommended** (the owner deferred to the author).
+
+| # | Point | Decision |
+|---|---|---|
+| O1 | "The process name only": the contract, and what "after the probes" means | `TerminalContext` keeps **both fields** (the process name and the working directory); the request gets no new member. The working directory is **empty until the probes**: the implementation does not read it (reading it and dropping it does not meet the decision). **After successful probes the working directory and the file references switch on by default by themselves, without another decision.** Owner decision, risk accepted. Completed by the answer to DP5: the process name waits for the probes too; the hard criterion of "successful probes"; approval in advance. |
+| O2 | The window title of a terminal | **In terminals the window title is not read.** Narrows CTX-4 = A. Completed by the answer to DP6: the document address is not read there either. |
+| O3 | A consent sheet for context | **No consent sheet, also when context is turned on again.** A **fixed table in Settings** says what is read, when, and that nothing is stored, **with a row for the selection** (this meets the trust table's demand for `selection`). |
+| O4 | Defaults of `appProfiles` and `smartInsertion` | Technical decision, as the author recommended: the backlog values stay (`appProfiles = false`, D-Q5; `smartInsertion = true`, active only while context is on). **Confirmed by the owner (answer to DP7, 2026-11-20): `smartInsertion` on, `appProfiles` off.** |
+| O5 | The clipboard default if the DICT-3.1 measurement fails | **Any false paste in the measurement: the clipboard reference is off by default** (DICT-3.6 criterion 3 stays). **On by default only after a clean measurement.** |
+| O6 | The scope of sending approved terms | **The whole vocabulary of approved terms (the correct spelling) goes to Claude with notes; "My server" the same in notes tasks; quality gate G is repeated after the prompt change.** Heard forms: a proposal with variants. **Narrowed by the answers to DP1–DP4 and DP8: no heard forms; "My server" gets no terms; only notes through Claude Code.** Details in ADR 0013. |
+| O7 | How terms get from dictation to meeting notes | Technical decision, as the author recommended: an **additive port in `LintelKit`**, one item in the contract queue. |
+| O8 | The meetings vocabulary (MEET-5.2) | Technical decision, as the author recommended: **unchanged**; it stays on the "Never" list of the providers spec. The difference is intended. |
+| O9 | Probe thresholds | Technical decision, as the author recommended: the proposed thresholds stand (supported: 20 of 20; start of step B1: 8 of 12 applications). |
+
+## The owner's answers to DP1–DP9 (2026-11-20)
+
+Recorded as given. With these answers the amendment and ADR 0013 were accepted.
+
+| # | Point | The owner's answer |
+|---|---|---|
+| DP1 | Whether heard forms go to the provider | No. The correct spelling only. |
+| DP2 | "My server" | No. "My server" writes no notes and gets no vocabulary term in any request. |
+| DP3 | An API key, later providers, dictation through a provider | No. Only meeting notes written through Claude Code. |
+| DP4 | Whether the built-in model gets the terms | No. |
+| DP5 | The terminal probes | **Approval in advance, with a hard criterion.** "Successful probes" means: the right terminal tab in all test cases and zero wrong directories. On any error the decision returns to the owner. The process name waits for the probes too. This decision is the approval Z10 demands, and it is recorded in this ADR (change 13). |
+| DP6 | What "terminal" covers in O2 | As proposed: the document address is not read in terminals either; "terminals" is the same closed list of bundle identifiers as the auto-learn exclusion category; a terminal built into a code editor (or a browser) is a **known limitation**: the title and the address are read there. |
+| DP7 | The defaults of O4 | **Confirmed:** `smartInsertion` on, `appProfiles` off. |
+| DP8 | Terms while Dictation is off | They are not sent. |
+| DP9 | The wording of the fixed table | As proposed: the sentence under the table is enough (history keeps the names of the sources used, never their text). The table is in Dictation → Context. |
+
+DP1–DP4 and DP8 together are "the minimum"; every extension of it is a separate decision of the owner
+(ADR 0013).
+
+## Gates (2026-11-20)
+
+All three are closed by the owner: this amendment is accepted, ADR 0013 is accepted, and mock-up v3 is accepted
+as the prototype. The mock-up was accepted in its version before three text changes that follow from the
+answers above (the document address and the terminal rule in the Permissions row and in the fixed table, and
+an invented name replaced by a plainly invented one); the spec lists them, before and after, for the owner to
+confirm.

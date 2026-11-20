@@ -217,6 +217,7 @@ import Testing
     @Test func theClockStopsWhileTheRequestWaitsAndResumesWithWhatIsLeft() async throws {
         let log = WaitLog()
         let limit = Duration.seconds(600)
+        let started = ContinuousClock.now
         let value: Int? = try await NotesDeadline.run(
             limit: limit,
             sleep: { duration in
@@ -237,7 +238,10 @@ import Testing
         let waits = log.all
         #expect(waits.count == 2)
         #expect(waits.contains(limit))
-        #expect(waits.contains { $0 < limit && $0 > limit - .seconds(5) })
+        // What was left is the limit minus the time spent running, which cannot be more than the time the whole
+        // call took: a bound from the measured wall time, not a fixed 5 s that a starved machine can exceed.
+        let wall = ContinuousClock.now - started
+        #expect(waits.contains { $0 < limit && $0 >= limit - wall })
     }
 
     @Test func theLimitStillEndsARequestThatKeepsRunning() async throws {

@@ -34,6 +34,7 @@ import Testing
         (SettingsKeys.onboardingShortcutCompleted, .exempt("internal flag: the welcome Shortcut step was finished")),
         (SettingsKeys.onboardingCompletedSteps, .exempt("internal flag list: finished plugin onboarding steps")),
         (SettingsKeys.panelLevel, .exempt("fallback switch for the launcher panel level, set with defaults only")),
+        (SettingsKeys.moveDeclined, .exempt("answer to the launch-time Move to Applications alert, set only there")),
     ]
 
     private var root: URL {

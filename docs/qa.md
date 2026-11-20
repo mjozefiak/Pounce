@@ -97,6 +97,8 @@ If that domain did not exist before a QA session, remove it afterwards with
 | `--qa-meeting-mic-wav <path>` | Meeting notes 1.5 | A 16 kHz mono WAV (16-bit PCM or 32-bit float) played back as the meeting's microphone track instead of the real microphone. Options parsing only until the plugin is registered (step 1.10). |
 | `--qa-meeting-system-wav <path>` | Meeting notes 1.5 | The same for the system-audio track; real Core Audio capture is never started in QA mode. |
 | `--qa-meeting-spool-dir <path>` | Meeting notes 1.5 | Folder for the encrypted spool of QA meetings instead of `<data root>/Plugins/meetings/Spool`. The Keychain is the in-memory one in QA mode, so the spool key never reaches the real Keychain. |
+| `--qa-move-prompt` | Updates and open-source hygiene, step 4.2 | Show the launch-time "Move Lintel to Applications?" alert (Move, Don't Move, "Don't ask again") as if Lintel ran from a disk image (`/Volumes/Lintel/Lintel.app`), before the plugins start. Full QA mode still applies. The alert never appears in DEBUG builds otherwise, QA or not; release builds show it once per launch when the app is outside `/Applications` and `~/Applications`. The Move flow runs over fakes (`QAInstallFakes`): it only logs what it would copy, trash, rename and open, never touches `/Applications`, the Trash or other apps, and never quits. "Don't ask again" writes the in-memory settings; `--qa-setting app.install.moveDeclined=true` checks that the alert then stays hidden. With `--qa-quit-after` and `--qa-snapshot <path>` the alert (not the main window) is written as a PNG before quitting. |
+| `--qa-move-scenario standard\|user-applications\|unwritable\|newer` | Updates and open-source hygiene, step 4.2 | With `--qa-move-prompt`: which variant the fake file manager produces. `standard` (default): the alert names `/Applications`. `user-applications`: `~/Applications` exists and holds an app, so the alert names `~/Applications`. `unwritable`: `/Applications` cannot be written, so the alert offers the Applications folder in the home folder (Lintel never asks for an administrator). `newer`: a copy with a higher build number is installed, so the alert offers to open it. All over fakes: nothing is created, trashed or copied. |
 
 Unknown `--qa…` arguments stop the launch with an error, so a typo never silently falls back to real
 data.
@@ -722,6 +724,7 @@ picker are scripted by the verbs above (`plugins.windows.qaScriptedFiles`, on in
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.
 - No toggling Launch at Login (`SMAppService`).
 - No signing with the Developer ID release identity on a developer machine (see `docs/signing.md`).
+- No installing: never copy a build into `/Applications` or `~/Applications`. Run the debug app from its build folder; only the owner installs, from the DMG of a release or of a manual signed run (`AGENTS.md`, "Installing and releasing").
 - Quit every Lintel process you started.
 
 Checks that need TCC grants (Accessibility for paste, a real Full Disk Access grant, the privacy prompt

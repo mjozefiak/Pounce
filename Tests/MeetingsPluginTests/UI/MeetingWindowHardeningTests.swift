@@ -13,13 +13,13 @@ import Testing
     }
 
     @Test func markingSelfMarksNotesStaleOnlyWhenThereAreNotes() async throws {
-        let withNotes = try WindowRig(notes: "notes")
+        let withNotes = try await WindowRig.make(notes: "notes")
         let harness = WindowHarness(withNotes)
         await harness.model.load()
         await harness.model.markSelf(withNotes.anna)
         #expect(harness.model.document?.notesStatus == .stale)
 
-        let without = try WindowRig()
+        let without = try await WindowRig.make()
         let other = WindowHarness(without)
         await other.model.load()
         await other.model.markSelf(without.anna)
@@ -28,7 +28,7 @@ import Testing
     }
 
     @Test func twoConcurrentEditsBothLandAndTheScreenShowsBoth() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let harness = WindowHarness(rig)
         await harness.model.load()
         async let first: Void = harness.model.renameSpeaker(rig.me, to: "Ola")
@@ -40,7 +40,7 @@ import Testing
     }
 
     @Test func overlappingLoadsNeverLetAnOlderSnapshotWin() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let harness = WindowHarness(rig)
         await harness.model.load()
         async let a: Void = harness.model.load()
@@ -52,7 +52,7 @@ import Testing
     }
 
     @Test func deleteIsDisabledWhileFinishing() async throws {
-        let rig = try WindowRig(status: .incomplete)
+        let rig = try await WindowRig.make(status: .incomplete)
         let gate = Box<CheckedContinuation<Void, Never>?>(nil)
         let harness = WindowHarness(rig) { id, _ in
             try? rig.store.setStatus(id, status: .ready)
@@ -79,7 +79,7 @@ import Testing
     }
 
     @Test func aMeetingThatBecameActiveBehindTheWindowIsNotDeleted() async throws {
-        let rig = try WindowRig(status: .incomplete)
+        let rig = try await WindowRig.make(status: .incomplete)
         let harness = WindowHarness(rig)
         await harness.model.load()
         harness.model.requestDelete()
@@ -92,7 +92,7 @@ import Testing
     }
 
     @Test func aSpoolThatCannotBeRemovedKeepsTheMeetingAndSaysSo() async throws {
-        let rig = try WindowRig(status: .incomplete)
+        let rig = try await WindowRig.make(status: .incomplete)
         let failing = FailingSpool(existing: ["meeting-uuid"])
         let pasteboard = RecordingPasteboard()
         let model = MeetingWindowModel(
@@ -106,7 +106,7 @@ import Testing
     }
 
     @Test func anUnreadableSpoolOffersFinishingWithAGapAndAcceptsIt() async throws {
-        let rig = try WindowRig(status: .incomplete)
+        let rig = try await WindowRig.make(status: .incomplete)
         let asked = Box<[Bool]>([])
         let harness = WindowHarness(rig) { id, acceptGap in
             asked.withLock { $0.append(acceptGap) }
@@ -126,7 +126,7 @@ import Testing
     }
 
     @Test func unfinishedSegmentsOfferAGapAndOtherOutcomesSayItCannotBeFinished() async throws {
-        let rig = try WindowRig(status: .incomplete)
+        let rig = try await WindowRig.make(status: .incomplete)
         let outcome = Box(ResumeOutcome.incomplete(.unfinished(3)))
         let harness = WindowHarness(rig) { _, _ in self.handle(outcome.withLock { $0 }) }
         await harness.model.load()
@@ -139,7 +139,7 @@ import Testing
     }
 
     @Test func aTitleOfInvisibleCharactersClearsTheTitleAndKeepsTheFallback() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let harness = WindowHarness(rig)
         await harness.model.load()
         await harness.model.renameTitle("Retro")
@@ -151,7 +151,7 @@ import Testing
     }
 
     @Test func aSpeakerLabelOfInvisibleCharactersShowsAsUnknown() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         try rig.store.write { db in
             try db.execute(sql: "UPDATE meeting_speaker SET label = ? WHERE id = ?", arguments: ["\u{3164}", rig.anna])
         }
@@ -162,7 +162,7 @@ import Testing
     }
 
     @Test func aHostileTitleBecomesASafeFileName() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let harness = WindowHarness(rig)
         await harness.model.load()
         await harness.model.renameTitle("\u{202E}../../.ssh/id:rsa\u{0}\n*?\"<>|" + String(repeating: "x", count: 300))
@@ -178,7 +178,7 @@ import Testing
     }
 
     @Test func aTypedButNotSubmittedTitleIsSavedOnClose() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let harness = WindowHarness(rig)
         await harness.model.load()
         harness.model.pendingTitle = "Typed on the way out"

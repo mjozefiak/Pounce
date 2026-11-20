@@ -46,13 +46,22 @@ final class Box<Value: Sendable>: Sendable {
     func withLock<R: Sendable>(_ body: (inout Value) -> R) -> R { storage.withLock { body(&$0) } }
 }
 
-struct WindowRig {
+struct WindowRig: Sendable {
     let store: MeetingsStore
     let directory: TemporaryDirectory
     let meetingID: Int64
     let me: Int64
     let anna: Int64
     let spool = RecordingSpool(existing: ["meeting-uuid"])
+
+    /// Built off the main actor: opening the store and every insert is a durable commit, and on the one main
+    /// thread all `@MainActor` tests share those waits starve the others past their guards (#148, #165).
+    nonisolated static func make(
+        status: MeetingStatus = .ready, mode: SpeakerMode = .diarized, notes: String? = nil,
+        segments: Bool = true
+    ) async throws -> WindowRig {
+        try WindowRig(status: status, mode: mode, notes: notes, segments: segments)
+    }
 
     init(
         status: MeetingStatus = .ready, mode: SpeakerMode = .diarized, notes: String? = nil,
@@ -107,8 +116,8 @@ struct WindowHarness {
 // MARK: Store operations
 
 @Suite struct MeetingWindowStoreTests {
-    @Test func loadDocumentReturnsTheMeetingInTranscriptOrder() throws {
-        let rig = try WindowRig(notes: "n")
+    @Test func loadDocumentReturnsTheMeetingInTranscriptOrder() async throws {
+        let rig = try await WindowRig.make(notes: "n")
         let document = try #require(try rig.store.loadDocument(id: rig.meetingID))
         #expect(document.speakers.map(\.label) == ["Mówca 1", "Mówca 2"])
         #expect(document.segments.map(\.text) == ["Dzień dobry", "Hello"])
@@ -116,19 +125,19 @@ struct WindowHarness {
         #expect(try rig.store.loadDocument(id: 999) == nil)
     }
 
-    @Test func renamingASpeakerMarksNotesStaleOnlyWhenThereAreNotes() throws {
-        let with = try WindowRig(notes: "notes")
+    @Test func renamingASpeakerMarksNotesStaleOnlyWhenThereAreNotes() async throws {
+        let with = try await WindowRig.make(notes: "notes")
         try with.store.renameSpeaker(with.anna, label: "Anna")
         #expect(try with.store.notesStatus(of: with.meetingID) == .stale)
         #expect(try with.store.loadDocument(id: with.meetingID)?.speakers.last?.label == "Anna")
 
-        let without = try WindowRig()
+        let without = try await WindowRig.make()
         try without.store.renameSpeaker(without.anna, label: "Anna")
         #expect(try without.store.notesStatus(of: without.meetingID) == NotesStatus.none)
     }
 
-    @Test func renamingTheMeetingKeepsNotesCurrentAndABlankTitleClearsIt() throws {
-        let rig = try WindowRig(notes: "notes")
+    @Test func renamingTheMeetingKeepsNotesCurrentAndABlankTitleClearsIt() async throws {
+        let rig = try await WindowRig.make(notes: "notes")
         try rig.store.renameMeeting(rig.meetingID, title: "  Planning  ")
         #expect(try rig.store.loadDocument(id: rig.meetingID)?.title == "Planning")
         #expect(try rig.store.notesStatus(of: rig.meetingID) == .ok)
@@ -136,8 +145,8 @@ struct WindowHarness {
         #expect(try rig.store.loadDocument(id: rig.meetingID)?.title == nil)
     }
 
-    @Test func deletingCascadesAndRemovesTheSpool() throws {
-        let rig = try WindowRig()
+    @Test func deletingCascadesAndRemovesTheSpool() async throws {
+        let rig = try await WindowRig.make()
         let other = try rig.store.insertMeeting(uuid: "other", startedAt: Date(), speechModelID: "m", status: .ready)
         try rig.store.insertSegment(meetingID: other, channel: .mic, startMs: 0, endMs: 1, text: "keep")
 
@@ -151,8 +160,8 @@ struct WindowHarness {
         #expect(try !rig.store.deleteMeeting(rig.meetingID, spool: rig.spool), "already gone")
     }
 
-    @Test func deletingRemovesARealSpoolFolder() throws {
-        let rig = try WindowRig(status: .incomplete)
+    @Test func deletingRemovesARealSpoolFolder() async throws {
+        let rig = try await WindowRig.make(status: .incomplete)
         let uuid = UUID()
         try rig.store.write { db in
             try db.execute(
@@ -167,9 +176,9 @@ struct WindowHarness {
         #expect(!FileManager.default.fileExists(atPath: folder.path))
     }
 
-    @Test func aMeetingBeingRecordedOrProcessedCannotBeDeleted() throws {
+    @Test func aMeetingBeingRecordedOrProcessedCannotBeDeleted() async throws {
         for status in [MeetingStatus.recording, .processing] {
-            let rig = try WindowRig(status: status)
+            let rig = try await WindowRig.make(status: status)
             #expect(throws: MeetingActionError.active) { try rig.store.deleteMeeting(rig.meetingID, spool: rig.spool) }
             #expect(try rig.store.loadDocument(id: rig.meetingID) != nil)
             #expect(rig.spool.state.withLock { $0.removedForMeetings }.isEmpty)
@@ -181,7 +190,7 @@ struct WindowHarness {
 
 @MainActor @Suite struct MeetingWindowModelTests {
     @Test func startsLoadingThenShowsTheMeeting() async throws {
-        let harness = WindowHarness(try WindowRig())
+        let harness = WindowHarness(try await WindowRig.make())
         #expect(harness.model.phase == .loading)
         await harness.model.load()
         #expect(harness.model.phase == .loaded)
@@ -191,7 +200,7 @@ struct WindowHarness {
     }
 
     @Test func aMissingMeetingAndAnEmptyTranscriptAreTheirOwnStates() async throws {
-        let rig = try WindowRig(segments: false)
+        let rig = try await WindowRig.make(segments: false)
         let empty = WindowHarness(rig)
         await empty.model.load()
         #expect(empty.model.isEmpty)
@@ -203,7 +212,7 @@ struct WindowHarness {
     }
 
     @Test func aLongTranscriptLoads() async throws {
-        let rig = try WindowRig(segments: false)
+        let rig = try await WindowRig.make(segments: false)
         try rig.store.write { db in
             for index in 0..<5_000 {
                 try db.execute(
@@ -224,25 +233,25 @@ struct WindowHarness {
             await harness.model.load()
             return harness.model.banners
         }
-        #expect(try await banners(WindowRig(mode: .channels)) == [.speakersUnavailable])
-        #expect(try await banners(WindowRig(status: .incomplete)) == [.incomplete(canFinish: true)])
-        #expect(try await banners(WindowRig(status: .failed)) == [.failed])
-        #expect(try await banners(WindowRig(status: .processing)) == [.processing])
+        #expect(try await banners(await WindowRig.make(mode: .channels)) == [.speakersUnavailable])
+        #expect(try await banners(await WindowRig.make(status: .incomplete)) == [.incomplete(canFinish: true)])
+        #expect(try await banners(await WindowRig.make(status: .failed)) == [.failed])
+        #expect(try await banners(await WindowRig.make(status: .processing)) == [.processing])
         #expect(
-            try await banners(WindowRig(status: .incomplete, mode: .channels)) == [
+            try await banners(await WindowRig.make(status: .incomplete, mode: .channels)) == [
                 .incomplete(canFinish: true), .speakersUnavailable,
             ])
-        let stale = try WindowRig(notes: "n")
+        let stale = try await WindowRig.make(notes: "n")
         try stale.store.renameSpeaker(stale.anna, label: "Anna")
         #expect(await banners(stale) == [.notesStale])
 
-        let gone = try WindowRig(status: .incomplete)
+        let gone = try await WindowRig.make(status: .incomplete)
         try gone.store.setAudioState(gone.meetingID, state: .deleted)
         #expect(await banners(gone) == [.incomplete(canFinish: false)])
     }
 
     @Test func renamingASpeakerWritesThroughAndMarksNotesStale() async throws {
-        let rig = try WindowRig(notes: "notes")
+        let rig = try await WindowRig.make(notes: "notes")
         let harness = WindowHarness(rig)
         await harness.model.load()
         await harness.model.renameSpeaker(rig.anna, to: "  Anna  ")
@@ -254,7 +263,7 @@ struct WindowHarness {
     }
 
     @Test func markSelfCallsTheStoreAndIsHiddenInChannelsMode() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let harness = WindowHarness(rig)
         await harness.model.load()
         let anna = try #require(harness.model.speakers.last)
@@ -264,7 +273,7 @@ struct WindowHarness {
         #expect(harness.model.document?.speakers.last?.label == "Ja")
         #expect(!harness.model.canMarkSelf(try #require(harness.model.speakers.last)), "already the user")
 
-        let channels = try WindowRig(mode: .channels)
+        let channels = try await WindowRig.make(mode: .channels)
         let other = WindowHarness(channels)
         await other.model.load()
         #expect(other.model.speakers.allSatisfy { !other.model.canMarkSelf($0) })
@@ -275,7 +284,7 @@ struct WindowHarness {
     @Test func theWindowKeepsItsEarlierEditSemanticsWhereNotesEditingIsStricter() async throws {
         // A meeting that started recording after the button was drawn: the window still marks the speaker
         // (it guards in the model), and nothing fails.
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let harness = WindowHarness(rig)
         await harness.model.load()
         try rig.store.write { db in
@@ -289,7 +298,7 @@ struct WindowHarness {
         #expect(marked?.isSelf == true)
 
         // A speaker that disappeared after the screen loaded: renaming it changes nothing and fails nothing.
-        let other = try WindowRig()
+        let other = try await WindowRig.make()
         let second = WindowHarness(other)
         await second.model.load()
         try other.store.write { db in
@@ -301,7 +310,7 @@ struct WindowHarness {
     }
 
     @Test func renamingTheTitleUpdatesTheWindowTitle() async throws {
-        let harness = WindowHarness(try WindowRig())
+        let harness = WindowHarness(try await WindowRig.make())
         await harness.model.load()
         #expect(harness.model.title.hasPrefix("Meeting") || harness.model.title.contains("2026"))
         await harness.model.renameTitle("Retro")
@@ -311,7 +320,7 @@ struct WindowHarness {
     }
 
     @Test func copyUsesThePasteboardPortOnlyOnTheExplicitAction() async throws {
-        let harness = WindowHarness(try WindowRig(notes: "Notes body"))
+        let harness = WindowHarness(try await WindowRig.make(notes: "Notes body"))
         await harness.model.load()
         #expect(harness.pasteboard.strings.isEmpty, "loading never copies")
         harness.model.copyMarkdown()
@@ -327,7 +336,7 @@ struct WindowHarness {
     }
 
     @Test func saveGoesThroughTheFileSaver() async throws {
-        let harness = WindowHarness(try WindowRig())
+        let harness = WindowHarness(try await WindowRig.make())
         await harness.model.load()
         await harness.model.renameTitle("Plan: Q1/Q2")
         await harness.model.saveMarkdown()
@@ -346,14 +355,14 @@ struct WindowHarness {
     }
 
     @Test func regenerateIsDisabledWithAnExplanationUntilItIsWired() async throws {
-        let harness = WindowHarness(try WindowRig())
+        let harness = WindowHarness(try await WindowRig.make())
         await harness.model.load()
         #expect(!harness.model.canRegenerate)
         #expect(harness.model.regenerateExplanation != nil)
         harness.model.regenerateNotes()
 
         let calls = Box<[Int64]>([])
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let wired = WindowHarness(rig, regenerate: { id in calls.withLock { $0.append(id) } })
         await wired.model.load()
         #expect(wired.model.canRegenerate)
@@ -363,7 +372,7 @@ struct WindowHarness {
     }
 
     @Test func finishRunsTheInjectedActionAndReloads() async throws {
-        let rig = try WindowRig(status: .incomplete)
+        let rig = try await WindowRig.make(status: .incomplete)
         let asked = Box<[Int64]>([])
         let harness = WindowHarness(rig) { id, _ in
             asked.withLock { $0.append(id) }
@@ -383,7 +392,7 @@ struct WindowHarness {
     }
 
     @Test func finishThatIsRefusedSaysSo() async throws {
-        let harness = WindowHarness(try WindowRig(status: .incomplete))
+        let harness = WindowHarness(try await WindowRig.make(status: .incomplete))
         await harness.model.load()
         await harness.model.finish()
         #expect(harness.model.feedback == .finishUnavailable)
@@ -391,7 +400,7 @@ struct WindowHarness {
     }
 
     @Test func deleteNeedsConfirmationAndRemovesTheMeetingAndItsSpool() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let harness = WindowHarness(rig)
         await harness.model.load()
         harness.model.requestDelete()
@@ -407,7 +416,7 @@ struct WindowHarness {
     }
 
     @Test func aMeetingBeingRecordedCannotBeDeletedFromTheWindow() async throws {
-        let harness = WindowHarness(try WindowRig(status: .recording))
+        let harness = WindowHarness(try await WindowRig.make(status: .recording))
         await harness.model.load()
         #expect(!harness.model.canDelete)
         harness.model.requestDelete()

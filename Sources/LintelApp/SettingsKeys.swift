@@ -49,4 +49,8 @@ enum SettingsKeys {
 
     /// `String`: the id of the Settings pane the main window showed last (a shell pane or a plugin id).
     static let mainWindowSettingsPane = "app.mainWindow.settingsPane"
+
+    /// `Bool`, default `false`: the user chose "Don't ask again" in the launch-time "Move Lintel to Applications?"
+    /// alert (spec `2026-11-19-updates-and-open-source-hygiene`, step 4.2).
+    static let moveDeclined = "app.install.moveDeclined"
 }
