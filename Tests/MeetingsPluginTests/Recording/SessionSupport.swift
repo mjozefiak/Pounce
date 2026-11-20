@@ -118,7 +118,9 @@ final class Signal: Sendable {
         waiter?.continuation.resume(returning: false)
     }
 
-    func wait(timeout: Duration = .seconds(20), until predicate: @escaping @Sendable () -> Bool) async -> Bool {
+    /// `timeout` is only a guard that turns a hang into a failed wait at the caller's line. A loaded runner has
+    /// stretched single tests past 30 s (issue #209), so it is 60 s like every other guard here; no test asserts on it.
+    func wait(timeout: Duration = .seconds(60), until predicate: @escaping @Sendable () -> Bool) async -> Bool {
         if predicate() { return true }
         let id = state.withLock { state -> Int in
             state.next += 1

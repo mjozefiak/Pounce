@@ -53,7 +53,7 @@ struct MeetingsRuntime: Sendable {
         let settings = settings
         return SwitchingEngine(
             engines: [
-                ModelCatalog.parakeetUltra.id: ParakeetEngine(),
+                ModelCatalog.parakeetUltra.id: ParakeetEngine(language: { settings.speechLanguage }),
                 ModelCatalog.whisperLargeV3Turbo.id: WhisperKitEngine(language: { settings.speechLanguage }),
             ],
             selected: { modelID })
