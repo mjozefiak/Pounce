@@ -34,7 +34,7 @@ Informacja przy wyborze (PL): „Transkrypty spotkań, imiona mówców i zatwier
 **Założenia (niesprawdzone, bo nie wolno było uruchomić wywołania):**
 1. Lista modeli musi być **wkompilowana** w deskryptor (jak dziś `sonnet`, `haiku`) albo użytkownik wpisuje identyfikator; z CLI nie da się jej odczytać bez wywołania. Makieta pokazuje wersję wkompilowaną: Sonnet, Haiku.
 2. Czy `--model default` jest przyjmowane jako „model konta”: **nie wiadomo**. W menu go nie ma; D15.
-3. Czy wynik `--output-format json` mówi, który konkretny model odpowiedział (potrzebne, żeby znacznik pokazał „Sonnet 5.5” zamiast samego aliasu). Makieta pokazuje alias („Sonnet”), bo to jedyne, co Lintel wie na pewno.
+3. Czy wynik `--output-format json` mówi, który konkretny model odpowiedział (potrzebne, żeby znacznik pokazał „Sonnet 5.5” zamiast samego aliasu). Makieta pokazuje alias („Sonnet”), bo to jedyne, co Lintel wie na pewno. (Decyzja właściciela 2026-11-20: w bazie dokładny model z wyniku CLI, chip z nazwą krótką, w „Szczegółach” dokładny identyfikator.)
 4. Które modele dopuszcza plan użytkownika: Lintel tego nie wie z góry, więc pokazuje stan 4 (błąd po fakcie). Czy `--setting-sources ""` wyłącza też `availableModels`: nie sprawdzono.
 5. Opus i Fable w menu wymagają zmiany deskryptora i powtórzenia kanarka oraz bramki G dla każdego (spec: kanarek „powtarzany dla każdego nowego zakresu”). Dziś w deskryptorze ich nie ma.
 6. Zużycie limitu subskrypcji różni się między modelami; Lintel go nie zna (D8).

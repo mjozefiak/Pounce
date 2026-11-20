@@ -7,7 +7,8 @@ Wybory właściciela (opcje opisane niżej, poza D15, gdzie wybór ma własne br
 - **D13:** ton neutralny; zdanie „Wybór tego dostawcy oznacza Twoją zgodę” zostaje; nazwa firmy pogrubiona.
 - **D14 = C** (tylko działający + „Dodaj dostawcę…”).
 - **D15 = B w brzmieniu właściciela: „Sonnet, Haiku, Opus, Fable; każdy po kanarku/pomiarze”.** Poprawka względem poprzedniej wersji tego pliku: opcja B była tu opisana jako „A + Opus i Fable (każdy po kanarku i bramce G)” z rekomendacją A. Obowiązuje wybór właściciela: cztery aliasy, **każdy widoczny i wybieralny w menu dopiero po przejściu kanarka izolacji/pomiaru; model niezmierzony nie jest w menu, dopóki nie przejdzie.** Niejasność: czy „pomiar” dla Opusa i Fable obejmuje bramkę G (jakość), czy tylko kanarek i budżet wejścia; spec przyjmuje węższe znaczenie (G tylko dla Sonneta).
-- Złagodzenia z CO-OSLABIA.md: właściciel nie wybrał żadnego; pozostają opcjami nierozstrzygniętymi.
+- Złagodzenia z CO-OSLABIA.md: **rozważone i odrzucone decyzją właściciela 2026-11-20** (świadome „nie”; lista zostaje jako zapis tego, co odrzucono; osłabienia zostają jako ryzyko przyjęte).
+- Dopisane później (2026-11-20): `isolationVerified` przełączane osobnym, ostatnim commitem w PR A6, po pomiarze na prawdziwym CLI i po potwierdzeniu znacznikiem braku zapisu sesji. Znacznik pochodzenia: w bazie dokładny model z wyniku CLI, chip z nazwą krótką, w „Szczegółach” dokładny identyfikator (zastępuje opis D9 „tylko alias” niżej).
 - Makieta nie jest przerysowywana; poniższe opisy opcji są historyczne (przed wyborem), zachowane do wglądu.
 
 ---

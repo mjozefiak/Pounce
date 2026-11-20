@@ -348,8 +348,8 @@ probe without the configuration flags and with the product flags. Both calls kep
 
 Source: the owner's notes on the provider/model selection mock-up v2 (2026-11-20, with the addendum), the owner's
 condition on the core pull request (#205) and the owner's decision D15. Status of this amendment: **the owner fully accepted mock-up v2 on 2026-11-20 and
-settled D5–D10 and D12–D15 (recorded below as "owner decision 2026-11-20")**; the mitigations stay undecided options (A6 starts without them but is to be designed so that an information version with suspension after a data-scope change can be added without a rebuild). It **supersedes decisions 2 and 3 in the parts marked "superseded"** and adds the conditions below to decision 8. Nothing here
-softens a limit on the owner's behalf: mitigations are listed as undecided options.
+settled D5–D10 and D12–D15 (recorded below as "owner decision 2026-11-20")**; the owner **considered the mitigations and rejected all of them (a deliberate "no", 2026-11-20)**; A6 starts without them and is not designed for adding them later. It **supersedes decisions 2 and 3 in the parts marked "superseded"** and adds the conditions below to decision 8. Nothing here
+softens a limit on the owner's behalf: the mitigations are kept below as a record of what was considered and rejected.
 
 ### Decisions (owner, 2026-11-20)
 
@@ -371,11 +371,11 @@ softens a limit on the owner's behalf: mitigations are listed as undecided optio
    request as the Settings UI for choosing the provider (PR 6 of the plan), so that sending cannot be enabled
    without the visible notice (today the two settings keys could be set with `defaults write`), and (ii) after a
    measurement on the real Claude Code CLI with synthetic data only. A pull request that changes only that line, or
-   its pinned test, is refused. (Decision 8 above is read together with this.)
+   its pinned test, is refused. **Also (owner, 2026-11-20): the switch is a separate, last commit in the A6 pull request, made after the measurement on the real CLI and after the confirmation by the no-session-persistence marker.** (Decision 8 above is read together with this.)
 5. **The prompt version `whole1+cli1` is stored in the existing `notes_prompt_version` column** (technical; no
    migration).
 6. **No fallback to the local model after a refusal or an error. D7 = C (owner decision 2026-11-20):** after a failure the UI asks "Write it on this Mac?" explicitly; there is no silent fallback. In the code without UI (#205) it stays "no fallback"; the explicit question arrives with the UI (A6). Whether the job is queued again, and the fate of PR 7 and `notesProviderFallback`, stay open.
-7. **Other owner decisions on the accepted mock-up (2026-11-20):** D5 = A ("Try it" sends a fixed, signed Lintel example, only after a provider is chosen); D6 = A plus one sentence that what was sent cannot be taken back; D8 = B (one line in "Details": uses your subscription limit); D9 = A plus a sentence that a missing marker does not mean "not sent"; D10 = B (no quality caption for "Local" before gate G is measured); D12 = B (confirmation only while a job runs); D13 = neutral tone, the sentence "Choosing this provider means your consent" stays, company name in bold; D14 = C (only working providers plus "Add a provider…"). The `isolationVerified` condition of decision 4 is an owner decision; the enforcement mechanism (a `CODE_REVIEW.md` rule and a source test tying the change to the provider-choice UI files) is a PROPOSAL to be confirmed.
+7. **Other owner decisions on the accepted mock-up (2026-11-20):** D5 = A ("Try it" sends a fixed, signed Lintel example, only after a provider is chosen); D6 = A plus one sentence that what was sent cannot be taken back; D8 = B (one line in "Details": uses your subscription limit); D9 = A plus a sentence that a missing marker does not mean "not sent"; D10 = B (no quality caption for "Local" before gate G is measured); D12 = B (confirmation only while a job runs); D13 = neutral tone, the sentence "Choosing this provider means your consent" stays, company name in bold; D14 = C (only working providers plus "Add a provider…"). The `isolationVerified` condition of decision 4 is an owner decision; **Origin marker (owner, 2026-11-20): the database stores the exact model from the CLI result; the chip shows the short name; "Details" shows the exact identifier** (whether the CLI result carries it is unchecked). The enforcement mechanism (a `CODE_REVIEW.md` rule and a source test tying the change to the provider-choice UI files) is a PROPOSAL to be confirmed.
 
 ### What replaces what
 
@@ -411,16 +411,16 @@ Checked against the spec `.ai/specs/2026-11-10-external-ai-providers.md` and ADR
   new consent". A subscription-to-API-key switch changes both the terms (API terms, pay per use) and the scope of
   data (no vocabulary terms, ADR 0013).
 - **The consent is no longer tied to the feature** (`ProviderFeatureID`: "future consumers need their own, new
-  consent"). Whether a future feature inherits the choice is undecided.
+  consent"). Whether a future feature inherits the choice is decided by the spec of that feature (the mitigation options were rejected).
 - **Participants are still not told by Lintel, and the reminder is less visible.** Unchanged in substance (accepted
   2026-11-19); before it was said in a window the user had to click, now only in "Details", which may stay closed.
 - **One choice covers every meeting, confidential ones and automatic runs included.** Unchanged in substance; an
   unnoticed choice is easier without a window. The banner "Transcripts leave this Mac" stays.
 - **"Try it" can no longer be used before the consent**, because choosing and consenting are one act.
 
-### Undecided options (mitigations; none chosen)
+### Mitigations: considered and rejected by the owner (2026-11-20; none chosen)
 
-Until the owner decides, the behaviour is the one without a mitigation.
+The list stays as the record of what was rejected. The behaviour is the one without a mitigation, and the section "What this weakens" stays whole as accepted risk.
 
 - Record `at` and an `infoVersion` at choice time; on a change of the data scope, suspend sending and show an inline
   banner "Review" (today's semantics without the window), or a banner without suspension, or nothing (release notes).

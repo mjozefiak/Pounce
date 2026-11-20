@@ -1,6 +1,6 @@
 # Co osłabia rezygnacja z okna zgody ("wybór dostawcy = zgoda")
 
-Wdrożone zgodnie z decyzją właściciela (2026-11-20). Ten plik jest do przedstawienia właścicielowi: wypisuje, co się zmienia względem specu `.ai/specs/2026-11-10-external-ai-providers.md` i ADR 0011/0013 (stan origin/main). Każde złagodzenie to **opcja do wyboru**, nie wdrożona w makiecie. Odwołania „spec: …” to sekcje specu (Data Model, Architecture, UI, Edge Cases, macierz „0 procesów”, Risks).
+Wdrożone zgodnie z decyzją właściciela (2026-11-20). Ten plik jest do przedstawienia właścicielowi: wypisuje, co się zmienia względem specu `.ai/specs/2026-11-10-external-ai-providers.md` i ADR 0011/0013 (stan origin/main). Każde złagodzenie to **opcja rozważona i odrzucona decyzją właściciela 2026-11-20** (lista zostaje jako zapis; osłabienia są ryzykiem przyjętym), nie wdrożona w makiecie. Odwołania „spec: …” to sekcje specu (Data Model, Architecture, UI, Edge Cases, macierz „0 procesów”, Risks).
 
 ## Co zostaje (nie słabnie)
 - Dostawca zewnętrzny jest **domyślnie wyłączony**; domyślnie Lokalnie (spec: wartości domyślne, „nic nie jest zapisywane bez kliknięcia użytkownika”).

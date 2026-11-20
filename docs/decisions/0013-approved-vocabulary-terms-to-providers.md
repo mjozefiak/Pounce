@@ -133,10 +133,8 @@ Stated plainly, as the owner accepted them:
 - The decision covers terms typed by hand before this change, not only terms that came from auto-learn. A user
   who built a vocabulary under the old promise ("the dictionary never leaves") and had already chosen Claude Code for
   meeting notes **starts sending the terms after the update, with no new question and no window** (before the
-  amendment the consent window was to tell them). Dictation must be on. **Point for the owner's decision:** whether
-  to keep it so, or to use one of the undecided options of ADR 0011 (record an info version at choice time and
-  suspend sending with an inline "Review" banner when the scope of data grows; a banner without suspension; or
-  release notes only). Nothing is chosen here; until the owner decides, the behaviour is the one described.
+  amendment the consent window was to tell them). Dictation must be on. **Owner decision (2026-11-20):** the mitigations of ADR 0011 were considered and all rejected (record an info version at choice time and
+  suspend sending with an inline "Review" banner when the scope of data grows; a banner without suspension; release notes only). The behaviour is the one described, accepted as risk.
 - The website and the trust table say today that the vocabulary never leaves the process. Both must change with
   this ADR.
 
