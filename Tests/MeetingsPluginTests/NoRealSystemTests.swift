@@ -13,7 +13,7 @@ import Testing
     /// The real parts, and the one file of the plugin allowed to build them.
     private static let realParts = [
         "MeetingHUDPanel(", "SuggestionHUDPanel(", "CoreAudioProcessObserver(", "AVAudioEngineTonePlayer(",
-        "SystemMicrophoneAuthorizer(", "runtime.makeSession(",
+        "SystemMicrophoneAuthorizer(", "runtime.makeSession(", "ProviderSystem.live(",
     ]
 
     private static func code(_ url: URL) throws -> String {

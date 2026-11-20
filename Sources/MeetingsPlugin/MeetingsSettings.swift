@@ -1,5 +1,6 @@
 import Foundation
 import LintelKit
+import LintelProviders
 import LintelSpeech
 
 /// `plugins.meetings.*` (a protected contract from the release that ships it, `BACKWARD_COMPATIBILITY.md` §3).
@@ -17,6 +18,8 @@ struct MeetingsSettings: Sendable {
         static let consentReminder = "consentReminder"
         static let notesEnabled = "notesEnabled"
         static let builtInLLMModel = "builtInLLMModel"
+        static let notesProvider = "notesProvider"
+        static let notesProviderModel = "notesProviderModel"
         static let notesChunkTokens = "notesChunkTokens"
         static let notesReduceInputTokens = "notesReduceInputTokens"
         static let suggestMeetings = "suggestMeetings"
@@ -88,6 +91,21 @@ struct MeetingsSettings: Sendable {
         return settings.string(Key.builtInLLMModel).flatMap { LLMModelCatalog.model(id: $0) }
             .flatMap { model in offered.contains { $0.id == model.id } ? model : nil } ?? LLMModelCatalog.defaultModel
     }
+
+    /// The external provider the user chose to write the notes, or `nil` for the built-in model (the default).
+    /// Choosing a provider is the consent: a transcript leaves the Mac only while this is not `nil`. Read fresh
+    /// on every call. A missing, empty, unknown or malformed value is `nil`, never a guess: it means the built-in
+    /// model, and `ProviderRunner` starts nothing for it (owner decision 2026-11-20; no UI yet).
+    var notesProviderSelection: NotesProviderSelection? {
+        guard let id = settings.string(Key.notesProvider), !id.isEmpty,
+            let descriptor = Self.knownProviders.first(where: { $0.id.rawValue == id }),
+            let model = settings.string(Key.notesProviderModel), ProviderDescriptor.isValidModelID(model)
+        else { return nil }
+        return NotesProviderSelection(provider: descriptor.id, model: model)
+    }
+
+    /// The providers this build knows (the descriptors of `LintelProviders`); an id outside the list is "not chosen".
+    static let knownProviders: [ProviderDescriptor] = [.claudeCode]
 
     /// The stored model is not the one in use: it left the catalog or does not fit this Mac's memory (the
     /// settings pane says so; the stored value stays, so it applies again on a Mac that fits it).
@@ -236,10 +254,27 @@ struct MeetingsSettings: Sendable {
     func setConsentReminder(_ value: Bool) { settings.set(value, for: Key.consentReminder) }
     func setNotesEnabled(_ value: Bool) { settings.set(value, for: Key.notesEnabled) }
     func setBuiltInLLMModel(_ model: LLMModel) { settings.set(model.id, for: Key.builtInLLMModel) }
+    /// Both keys go together, so a half-written choice never reads as one. Settings has no control for them yet
+    /// (a test or the DEBUG `--qa-setting` flag sets them).
+    func setNotesProvider(_ selection: NotesProviderSelection) {
+        settings.set(selection.provider.rawValue, for: Key.notesProvider)
+        settings.set(selection.model, for: Key.notesProviderModel)
+    }
+    /// Back to the built-in model: removes both keys.
+    func clearNotesProvider() {
+        settings.removeValue(for: Key.notesProvider)
+        settings.removeValue(for: Key.notesProviderModel)
+    }
     func setSuggestMeetings(_ value: Bool) { settings.set(value, for: Key.suggestMeetings) }
     func setSuggestMutedBundleIDs(_ ids: [String]) { settings.set(ids, for: Key.suggestMutedBundleIDs) }
     func setSuggestExtraBundleIDs(_ ids: [String]) { settings.set(ids, for: Key.suggestExtraBundleIDs) }
     func setRetentionDays(_ days: Int) { settings.set(max(0, days), for: Key.retentionDays) }
     func setKeepAudio(_ value: Bool) { settings.set(value, for: Key.keepAudio) }
     func setOrphanAudioDays(_ days: Int) { settings.set(days, for: Key.orphanAudioDays) }
+}
+
+/// The external provider and model that write the notes: the user's choice in settings, which is the consent.
+struct NotesProviderSelection: Equatable, Sendable {
+    var provider: ProviderID
+    var model: String
 }

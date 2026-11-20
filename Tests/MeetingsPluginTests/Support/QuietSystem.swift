@@ -1,4 +1,5 @@
 import Foundation
+import LintelProviders
 import LintelSpeech
 import Testing
 
@@ -15,7 +16,8 @@ extension MeetingsSystem {
             makeProcessObserver: { ScriptedProcessObserver() },
             makeSelfTest: { SystemAudioSelfTest(backend: FakeBackend(), player: FakeTonePlayer()) },
             microphoneAuthorizer: { FakeAuthorizer(.notDetermined) },
-            makeSession: { _, _ in ScriptedSession() })
+            makeSession: { _, _ in ScriptedSession() },
+            makeProviderRunner: { ProviderRunner(system: .quiet, cachesDirectory: $0) })
     }
 
     /// Makes `quiet` what `MeetingsPlugin.init(context:)` uses, and fails the calling test when any test in

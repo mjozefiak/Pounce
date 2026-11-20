@@ -1,10 +1,12 @@
 import Foundation
 import LintelKit
+import LintelProviders
 import LintelSpeech
 import LintelTestSupport
 import Synchronization
 import Testing
 
+@testable import LintelProviders
 @testable import MeetingsPlugin
 
 /// For a condition with no event to hang on (a model's own state, a fake's flag): polls on the main actor with the
@@ -82,7 +84,9 @@ final class NotesServiceRig {
         physicalMemory: UInt64 = 16 * NotesServiceRig.gibibyte,
         handler: @escaping ScriptedLLM.Handler = NotesFake.standard,
         runtime custom: (any LLMRuntime)? = nil, shutdownLimit: Duration = .milliseconds(200),
-        configure: @escaping @Sendable (inout NotesPipeline.Configuration) -> Void = { _ in }
+        configure: @escaping @Sendable (inout NotesPipeline.Configuration) -> Void = { _ in },
+        providerRunner: ProviderRunner? = nil,
+        configureWhole: @escaping @Sendable (inout WholeNotesPipeline.Configuration) -> Void = { _ in }
     ) throws {
         harness = try MeetingsHarness(settings: initial)
         library = harness.library()
@@ -102,7 +106,8 @@ final class NotesServiceRig {
                 configure: { configuration in
                     configuration.busyPoll = .milliseconds(10)
                     configure(&configuration)
-                }, now: { now }, shutdownLimit: shutdownLimit,
+                }, providerRunner: providerRunner, configureWhole: configureWhole, now: { now },
+                shutdownLimit: shutdownLimit,
                 openModels: { id in opened.update { $0.append(id) } },
                 changed: {
                     changes.update { $0 += 1 }

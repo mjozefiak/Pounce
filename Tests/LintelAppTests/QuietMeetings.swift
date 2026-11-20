@@ -1,4 +1,5 @@
 import Foundation
+import LintelProviders
 import LintelSpeech
 import Testing
 
@@ -15,7 +16,8 @@ enum QuietMeetings {
             makeProcessObserver: { UnavailableProcessObserver() },
             makeSelfTest: { SystemAudioSelfTest(backend: NoTapBackend(), player: NoTonePlayer()) },
             microphoneAuthorizer: { UnaskedMicrophone() },
-            makeSession: { _, _ in RefusedSession() })
+            makeSession: { _, _ in RefusedSession() },
+            makeProviderRunner: { ProviderRunner(system: .quiet, cachesDirectory: $0) })
         #expect(
             MeetingsSystem.liveUses.isEmpty, "a test built the real \(MeetingsSystem.liveUses.sorted())")
     }

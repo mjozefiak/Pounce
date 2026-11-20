@@ -1,4 +1,5 @@
 import Foundation
+import LintelProviders
 import LintelSpeech
 import Synchronization
 import os
@@ -78,6 +79,11 @@ final class NotesService {
         var makeRuntime: @Sendable () -> any LLMRuntime = { LlamaRuntime(contextLength: NotesModel.contextLength) }
         /// Tests shorten the timeouts and the waiting for a busy model.
         var configure: @Sendable (inout NotesPipeline.Configuration) -> Void = { _ in }
+        /// The only way a process with a transcript starts. `nil` in tests that never choose a provider; a job for a
+        /// chosen provider without one ends `failed` and starts nothing.
+        var providerRunner: ProviderRunner?
+        /// Tests shorten the whole-transcript track's limits.
+        var configureWhole: @Sendable (inout WholeNotesPipeline.Configuration) -> Void = { _ in }
         var sleep: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
         var now: @Sendable () -> Date = { Date() }
         /// How long `shutDown` waits for a job that does not stop (a model load cannot be cancelled).
@@ -118,6 +124,7 @@ final class NotesService {
     /// The plugin is active: jobs are accepted.
     func start() async {
         accepting = true
+        deps.providerRunner?.sweepStaleWorkspaces()
         await refreshAvailability()
     }
 
@@ -178,7 +185,9 @@ final class NotesService {
     /// download, a removal or a change of the switch or the model).
     func refreshAvailability() async {
         let enabled = deps.settings.notesEnabled
-        let installed = await deps.modelFile(deps.settings.builtInLLMModel) != nil
+        // A chosen provider writes the notes, so the built-in model is not missing.
+        var installed = deps.settings.notesProviderSelection != nil
+        if !installed { installed = await deps.modelFile(deps.settings.builtInLLMModel) != nil }
         let changed = board.update {
             $0.enabled = enabled
             $0.modelMissing = !installed
@@ -249,6 +258,13 @@ final class NotesService {
         let utterances = NotesUtterance.make(from: document, selfName: deps.settings.selfName)
         guard !utterances.isEmpty else { return }
 
+        // The writer is chosen here, for this job, from the settings as they are now. The provider's authorization
+        // reads them again before every process.
+        if let selection = deps.settings.notesProviderSelection {
+            await processWithProvider(job, selection: selection, utterances: utterances, store: store)
+            return
+        }
+
         let model = deps.settings.builtInLLMModel
         guard let file = await deps.modelFile(model) else {
             // Nothing is written: the notes stay as they were, and the library offers the download.
@@ -286,9 +302,64 @@ final class NotesService {
             outcome = .failure(error)
         }
         let epoch = epoch
-        if conclude(outcome, job: job, previous: previous, model: model, store: store), epoch == self.epoch {
+        if conclude(outcome, job: job, previous: previous, origin: .builtIn(model), store: store),
+            epoch == self.epoch
+        {
             rerun.insert(id)
         }
+    }
+
+    /// The notes written by the chosen provider: the whole-transcript track over `ProviderNotesGenerator`. No
+    /// model file is needed and nothing falls back to the built-in model; an error ends the job as `failed`.
+    private func processWithProvider(
+        _ job: Job, selection: NotesProviderSelection, utterances: [NotesUtterance], store: MeetingsStore
+    ) async {
+        let id = job.meetingID
+        guard let previous = try? store.beginNotes(id) else { return }
+        board.update {
+            $0.modelMissing = false
+            $0.awaitingModel = []
+        }
+        setPhase(.mapping(done: 0, total: 1), for: id)
+
+        guard let runner = deps.providerRunner,
+            let descriptor = MeetingsSettings.knownProviders.first(where: { $0.id == selection.provider })
+        else {
+            _ = try? store.settleNotes(id, status: .failed)
+            deps.logger.error("Notes failed: no provider runner")
+            deps.library.refreshCount()
+            return
+        }
+        let settings = deps.settings
+        let generator = ProviderNotesGenerator(
+            runner: runner, selection: selection,
+            inputBudgetTokens: descriptor.inputBudgetTokens(forModel: selection.model),
+            currentSelection: { settings.notesProviderSelection })
+        var configuration = WholeNotesPipeline.Configuration()
+        deps.configureWhole(&configuration)
+        let pipeline = WholeNotesPipeline(generator: generator, configuration: configuration, sleep: deps.sleep)
+
+        let outcome: Result<NotesResult, any Error>
+        do {
+            outcome = .success(
+                try await pipeline.run(utterances: utterances) { [weak self] event in
+                    Task { @MainActor in self?.apply(event, to: id) }
+                })
+        } catch {
+            outcome = .failure(error)
+        }
+        let epoch = epoch
+        let origin = Origin.provider(selection, promptFormat: generator.profile.promptFormat)
+        if conclude(outcome, job: job, previous: previous, origin: origin, store: store), epoch == self.epoch {
+            rerun.insert(id)
+        }
+    }
+
+    /// Who wrote the notes, as `conclude` records it: taken from the generator that wrote them, not from the
+    /// settings at the time of the write.
+    private enum Origin {
+        case builtIn(LLMModel)
+        case provider(NotesProviderSelection, promptFormat: String)
     }
 
     private func apply(_ event: NotesEvent, to id: Int64) {
@@ -304,7 +375,7 @@ final class NotesService {
     /// Writes what the job ended with. True when the notes were stored `stale` (a rename came while they were
     /// written) and must be written again.
     private func conclude(
-        _ outcome: Result<NotesResult, any Error>, job: Job, previous: NotesStatus, model: LLMModel,
+        _ outcome: Result<NotesResult, any Error>, job: Job, previous: NotesStatus, origin: Origin,
         store: MeetingsStore
     ) -> Bool {
         let id = job.meetingID
@@ -316,6 +387,10 @@ final class NotesService {
                 // Back to what it was; nothing partial is kept.
                 _ = try? store.settleNotes(id, status: previous)
                 logger.notice("Notes cancelled")
+            } else if error is NotesGenerationRefusal {
+                // The provider is no longer chosen: no retry, no partial notes, the earlier text and mark stay.
+                _ = try? store.settleNotes(id, status: previous)
+                logger.notice("Notes stopped: the provider is not chosen")
             } else {
                 _ = try? store.settleNotes(id, status: .failed)
                 logger.error("Notes failed: \(String(describing: error), privacy: .public)")
@@ -335,10 +410,22 @@ final class NotesService {
                 _ = try? store.settleNotes(id, status: .failed)
                 logger.notice("Partial notes were not stored over complete ones")
             } else {
+                let promptVersion: String
+                let modelID: String?
+                let provider: String?
+                let providerModel: String?
+                switch origin {
+                case .builtIn(let model):
+                    (promptVersion, modelID, provider, providerModel) = (result.promptVersion, model.id, nil, nil)
+                case .provider(let selection, let promptFormat):
+                    (promptVersion, modelID, provider, providerModel) =
+                        (promptFormat, nil, selection.provider.rawValue, selection.model)
+                }
                 let outcome =
                     (try? store.finishNotes(
-                        id, markdown: result.markdown, status: status, promptVersion: result.promptVersion,
-                        model: model.id, droppedCount: result.droppedCount, generatedAt: deps.now())) ?? .discarded
+                        id, markdown: result.markdown, status: status, promptVersion: promptVersion,
+                        model: modelID, provider: provider, providerModel: providerModel,
+                        droppedCount: result.droppedCount, generatedAt: deps.now())) ?? .discarded
                 switch outcome {
                 case .stored: break
                 case .storedStale:
