@@ -1,10 +1,12 @@
 # ADR 0011: External AI providers for meeting notes (Claude Code CLI first, API key second)
 
 - Status: **Accepted** for the decisions below (owner decisions of 2026-11-19, recorded in
-  `.ai/specs/2026-11-10-external-ai-providers.md`). **`isolationVerified` stays `false`** in the descriptor. The
-  user-level isolation below is measured, but canary point 5 (TCC inheritance for a child of Lintel) and the other
-  items of "What is not verified" are open, and setting the flag to `true` is the owner's decision, not this ADR's.
-- Date: 2026-11-19
+  `.ai/specs/2026-11-10-external-ai-providers.md`). **`isolationVerified` stays `false`** in the descriptor until the
+  code and tests of PR 2 exist. **The flag does not depend on the TCC test (owner, 2026-11-20).** It rests on the
+  measured isolation (no tools, hooks, MCP servers, plugins or session files from the user's configuration, for a
+  CLI version range) and on the tests of decision 9. TCC/FDA has its own row in "Spec table" and in "What is not
+  verified" and is checked after the first signed install.
+- Date: 2026-11-19. Follow-up measurements of 2026-11-20 (Claude Code 2.1.329): see "Follow-up of 2026-11-20".
 - Spec: `.ai/specs/2026-11-10-external-ai-providers.md` (story MEET-X.1), PR 1 of its plan (canary, measurements,
   this ADR). This PR changes no behaviour and no screen of the app.
 - Number 0011: 0010 is the dictation-context ADR on `main`; no open pull request adds an ADR (checked 2026-11-19).
@@ -59,6 +61,8 @@ Claude Code CLI can be run in the way the decisions require.
    - `--strict-mcp-config` with no `--mcp-config` (a second, independent switch for MCP servers),
    - `--no-session-persistence` (no session file with the transcript),
    - `--tools ""` and `--disable-slash-commands`,
+   - `--safe-mode` (added 2026-11-20 after the measurement in "Follow-up of 2026-11-20": it changes neither the
+     login nor the result format and removes two more things of the user's from the request),
    - never `--settings`, `--mcp-config`, `--plugin-dir`, `--plugin-url`, `--add-dir`, `--agents`, `--continue` or
      `--resume`,
    - the environment is the allowlist only (no `CLAUDE_*` or `ANTHROPIC_*` variable other than
@@ -140,15 +144,14 @@ its own `claude` login), that is a product decision with its own consent text: s
 ### Flags (golden list for the descriptor)
 
 `claude -p --model <m> --output-format json --tools "" --no-session-persistence --disable-slash-commands
---strict-mcp-config --setting-sources "" --system-prompt <static text>`, content on stdin. All of them exist and
-work in 2.1.328 (every logged-in canary call of the default run uses them). Notes:
+--strict-mcp-config --setting-sources "" --safe-mode --system-prompt <static text>`, content on stdin. All of them exist and
+work in 2.1.328 and 2.1.329 (every logged-in canary call of the default run uses them). Notes:
 
 - `--bare` stays unusable with a subscription (it reads only `ANTHROPIC_API_KEY`); it is the candidate for Phase 2.
-- `--safe-mode` exists in this version ("all customizations disabled", auth and built-in tools still work). Alone,
-  in the temporary `HOME`, it stopped the user hooks, the MCP server and the plugin hook (table above). It was not
-  measured together with the product flags or with a login, so it is not in the golden list; it is the candidate
-  for a second layer if the owner wants one. Its help text says admin-managed settings and the hooks of managed
-  plugins still apply.
+- `--safe-mode` ("all customizations disabled", auth and built-in tools still work): measured alone in the first
+  run (temporary `HOME`) and, on 2026-11-20, together with the product flags under the real login. It is in the
+  golden list. Its help text says admin-managed settings and the hooks of managed plugins still apply (this Mac has
+  none). A CLI version without the flag fails with an unknown-option error (exit 1, `incompatibleVersion`).
 - `--restricted` (ignores user, project and local settings files, removes code-running tools) also exists; not
   measured.
 - The aliases `sonnet` and `haiku` are accepted by `--model`.
@@ -166,7 +169,8 @@ work in 2.1.328 (every logged-in canary call of the default run uses them). Note
 | 2 | Shell | **Pass.** The marker file was not created. | First run: the control created it. |
 | 3 | Hooks | **Pass, project and user level.** The decoy project hook did not run. A user-level command hook runs without the flags and does not run with them (section "User-level isolation"); under the real login no hook of the owner started. In the debug log the CLI loads 2 user-level hook modules without `--setting-sources ""` (first run) and 0 with it (4 built-in modules in both). | First run: the control ran the project hook. Second run: the temporary-`HOME` control ran the user hooks. |
 | 4 | `CLAUDE.md`, MCP, plugins | **Pass**, with one unexplained observation (above). The project token was not in the answer, the decoy MCP server was not launched; init reports 0 MCP servers, 0 skills, 0 slash commands, 4 built-in plugins and 6 agents (5 in the temporary `HOME`; the extra one under the login was not identified, agents are definitions and `--tools ""` leaves no tool to start one). A user-scope MCP server and a user plugin do not load with the flags. | First run: the control answered the token and launched the MCP server. Second run: the temporary-`HOME` control started the user MCP server and loaded the plugin. |
-| 5 | TCC inheritance | **Not verified.** See below. | |
+| 5 | TCC inheritance | **Not verified; does not gate `isolationVerified`.** See below. | |
+| 5b | **TCC/FDA** | **To be checked after the first signed install.** | Owner action; procedure in `scripts/provider-canary/README.md`. |
 | 6 | Copies on disk | **Pass.** First run: 0 files with a canary from the 5 isolated calls among 168 files modified in the scanned roots (CLI config directory, home caches and logs, system temp, working and temp directories). The control call, run without `--no-session-persistence`, left the transcript and answer in `~/.claude/projects/<encoded working directory>/<uuid>.jsonl` (1 file): this confirms the spec's assumption and proves the scan can find a copy. The script removed that file. Second run: in the temporary `HOME`, 1 session file with the marker without the flag and 0 with it; 0 session files and 0 other copies from the isolated logged-in calls (about 100 changed files scanned). | The scan stopped at 400 000 entries in `~/.cache`. |
 | 7 | Login | **Pass.** `auth status` ready (`loggedIn`, `claude.ai`, `firstParty`); calls work. | |
 
@@ -207,9 +211,65 @@ output), so the times are a lower bound for `ProviderNotesGenerator`; the workin
 large margin. Not measured: the 100 000 token budget, a one-hour and a three-hour transcript, and the largest input
 the CLI accepts (`canary.py --large-tokens 100000 --only timings`; see `docs/perf.md`).
 
+## Follow-up of 2026-11-20 (Claude Code 2.1.329, macOS 27.0.1, subscription login)
+
+Script: `scripts/provider-canary/canary.py`, steps `safeMode` and `realConfig`. All prompts were synthetic text with a
+random marker. The report holds counts only; no hook name, setting, path or file content of the owner was read or is
+recorded here.
+
+### `--safe-mode` (flag exists in 2.1.329; measured with the real login)
+
+Two runs of four short Haiku calls each: the product flags alone, and the product flags plus `--safe-mode`, each
+once with `--output-format json` (login and result shape) and once with `stream-json` (the init event and the hook
+events). Both runs gave the same numbers.
+
+| | Product flags | Product flags + `--safe-mode` |
+|---|---|---|
+| Exit code, `is_error`, answer present | 0, false, yes | 0, false, yes |
+| Keys of the JSON result, `subtype`, stderr | same set, `success`, empty | same set, `success`, empty |
+| Hooks started, user-tier hook modules | 0, 0 | 0, 0 |
+| Tools, MCP servers, skills, slash commands | 0, 0, 0, 0 | 0, 0, 0, 0 |
+| Plugins (not built in) | 4 (0) | 4 (0) |
+| **Agents listed** | **6** | **5** |
+| **Memory paths listed** | **1** | **0** |
+
+Result: **both conditions hold.** The subscription login and the output format are unchanged, and the isolation is
+stronger: the flags alone still let one agent definition and one memory path reach the request (they are definitions
+and text, not processes; `--tools ""` leaves nothing to start an agent), and `--safe-mode` removes both. The sixth
+agent is the one the first measurement could not identify; its source was not identified further. `--safe-mode` is
+therefore in decision 9 and in the golden list. It is a second layer, not a replacement: the flags of decision 9
+stay, because in the temporary `HOME` table `--safe-mode` alone did not stop the session file.
+
+### Positive control with the owner's real configuration (one run, owner's consent)
+
+One pair of calls with the real `HOME`, behind `--positive-control-real-config` (off by default): the same synthetic
+probe without the configuration flags and with the product flags. Both calls kept `--no-session-persistence` and
+`--tools ""`. Counts from the init event, the hook events and the debug log:
+
+| | Without the flags | With the flags |
+|---|---|---|
+| Hooks started (SessionStart / UserPromptSubmit / Stop) | **4** (2 / 1 / 1) | **0** |
+| User-tier hook modules in the debug log | 2 | 0 |
+| MCP servers | 11 | 0 |
+| Plugins (not built in) | 8 (4) | 4 (0) |
+| Skills | 154 | 0 |
+| Slash commands | 199 | 0 |
+| Tools in the init event | 198 | 0 |
+| Agents | 6 | 6 |
+| Model call worked | yes | yes |
+
+- The control is informative: the owner's hooks, servers, plugins, skills and commands do load and run without the
+  flags, and nothing of them loads with them. This closes item 2(a) of "What is not verified".
+- **`--tools ""` removes only the built-in tools.** With the user's 11 MCP servers loaded the init event listed 198
+  tools. `--strict-mcp-config` and `--setting-sources ""` are what remove them, so they are not optional.
+- Changes in the config directory (by name and time, no content read): 0 new files, 3 new empty directories (two
+  under `projects/`, one of them a `memory` subdirectory, and one under `session-env/`), 3 existing CLI state files
+  modified, and `~/.claude.json` modified. No session file was written. Which of the two calls created the
+  directories was not recorded. The script deletes nothing; the three empty directories are for the owner to remove.
+
 ## What is not verified
 
-1. **TCC (canary point 5).** The canary opens two protected files from itself and from a plain child. On this Mac
+1. **TCC/FDA: to be checked after the first signed install (canary point 5; not a condition of `isolationVerified`).** The canary opens two protected files from itself and from a plain child. On this Mac
    the terminal that ran it has no Full Disk Access, so both failed with errno 1 and nothing about inheritance was
    learned. Whether a child of `Lintel.app` holding Full Disk Access, Accessibility or the microphone can use those
    permissions was not tested. **Owner action:** the procedure is in `scripts/provider-canary/README.md` ("TCC
@@ -227,10 +287,11 @@ the CLI accepts (`canary.py --large-tokens 100000 --only timings`; see `docs/per
    were not probed (the project `CLAUDE.md` was; with `--system-prompt` and no tools they could only add text to
    the request, not start a process). Residual risk: a future CLI version moves a source outside the flag.
    Mitigation: `isolationVerified` is tied to a version range, the canary is repeated for every new range
-   (`--only userConfig,isolation,hooks,disk`: 2 short model calls), and `--safe-mode` is the candidate second
-   layer. **Owner action (optional, closes (a)):** `canary.py --only isolation,hooks,disk
-   --positive-control-real-config` runs your real hooks once on purpose and shows that they do fire without the
-   flags on your own configuration; read the warning in the README first.
+   (`--only userConfig,isolation,hooks,disk`: 2 short model calls), and `--safe-mode` is now the second
+   layer (follow-up of 2026-11-20). Update 2026-11-20: (a) is closed by the one-run positive control with the real configuration (section
+   "Follow-up of 2026-11-20"): the owner's own hooks did fire under the real login without the flags (4 hook starts)
+   and none did with them. (d) is narrowed: with the flags alone the init event lists one memory path, with
+   `--safe-mode` none.
 3. Another account's login and other install methods (npm, Homebrew) were not tested.
 4. A real hour of meeting: all input was synthetic; no real transcript or speaker name was sent.
 5. The disk scan is bounded (400 000 entries per root; `~/.cache` was cut). A copy outside the scanned roots would
@@ -259,7 +320,7 @@ the CLI accepts (`canary.py --large-tokens 100000 --only timings`; see `docs/per
 
 ## Consequences
 
-- PR 2 builds `LintelProviders` against this list of flags, with `isolationVerified = false`, and ships the tests
+- PR 2 builds `LintelProviders` against this list of flags (including `--safe-mode`, which was added after that PR was opened: its golden argv test and its required-flag check need the extra entry), with `isolationVerified = false`, and ships the tests
   of decision 9: the golden argv holds every required flag with an empty value where one is required and none of
   the forbidden ones; the environment handed to the process is exactly the allowlist; the working directory is new
   and empty; a descriptor whose argv lacks a required flag is refused before `Process.run()`.

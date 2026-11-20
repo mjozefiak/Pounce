@@ -321,7 +321,7 @@ protocol NotesGenerating: Sendable {
 }
 ```
 
-**Argumenty Claude Code (golden test deskryptora; lista do potwierdzenia w PR 1):** `claude -p --model <m> --output-format json --tools "" --no-session-persistence --disable-slash-commands --strict-mcp-config --setting-sources "" --system-prompt <statyczny prompt Lintela>`, treść na stdin. Statyczny prompt w argv jest dopuszczalny (nasz tekst, nie dane użytkownika). `--no-session-persistence` i wyłączenie hooków są **wymogiem wydania**: bez dowodu z kanarka `isolationVerified` zostaje `false`.
+**Argumenty Claude Code (golden test deskryptora; lista do potwierdzenia w PR 1):** `claude -p --model <m> --output-format json --tools "" --no-session-persistence --disable-slash-commands --strict-mcp-config --setting-sources "" --safe-mode --system-prompt <statyczny prompt Lintela>`, treść na stdin. `--safe-mode` doszedł 2026-11-20 po pomiarze (ADR 0011: login i format bez zmian, dodatkowo bez 1 agenta i 1 ścieżki pamięci użytkownika). Statyczny prompt w argv jest dopuszczalny (nasz tekst, nie dane użytkownika). `--no-session-persistence` i wyłączenie hooków są **wymogiem wydania**: bez dowodu z kanarka `isolationVerified` zostaje `false`. Dowód to izolacja zmierzona w kanarku (narzędzia, hooki, MCP, pluginy, pliki sesji), nie test TCC (decyzja właściciela 2026-11-20).
 
 **Wymaganie izolacji procesu dostawcy (właściciel 2026-11-19; ADR 0011, decyzja 9).** Proces dostawcy nie uruchamia hooków użytkownika i nie ładuje jego ustawień, serwerów MCP ani pluginów, **także z poziomu użytkownika**, nie tylko projektu. Każde wywołanie z treścią musi mieć naraz:
 
@@ -491,10 +491,11 @@ Ręczny skrypt w `scripts/`, uruchamiany z prawdziwym Claude Code na Macu z Lint
 | 3 | Hooki | Testowa konfiguracja **użytkownika** (tymczasowy `HOME`: hooki command w `settings.json`) i projektu, z hookiem zapisującym plik-znacznik. Kontrola: ten sam hook odpala się bez flag. Przy prawdziwym logowaniu: liczba hooków, które wystartowały, poza hookiem-kanarkiem. | Hook nie uruchamia się z flagami produktu i uruchamia się w kontroli; 0 obcych hooków przy prawdziwym logowaniu. |
 | 4 | `CLAUDE.md`, MCP, wtyczki | Konfiguracja z instrukcją, serwerem MCP (projektu i poziomu użytkownika) i włączonym pluginem użytkownika z hookiem. Kontrola jak w punkcie 3. | Nie są załadowane; w kontroli są. |
 | 5 | **Dziedziczenie TCC** | Proces potomny uruchomiony przez Lintel z FDA; prompt i hook próbują czytać miejsce chronione TCC (np. plik-kanarek w `~/Library/Mail` konta testowego). | Brak odczytu. Zapisać, czy proces w ogóle miałby dostęp (czy macOS przypisuje mu uprawnienia Lintela). |
+| 5b | **TCC/FDA** | Sprawdzenie z punktu 5 na zainstalowanej, podpisanej aplikacji z FDA. | **Do sprawdzenia po pierwszej podpisanej instalacji.** Nie blokuje `isolationVerified`. |
 | 6 | **Kopie treści na dysku** | Po wywołaniu przeszukać `HOME` użytkownika testowego, `CLAUDE_CONFIG_DIR`, `TMPDIR` i katalog roboczy pod kątem ciągu-kanarka z wejścia i z odpowiedzi. Osobno: pliki sesji `projects/**/*.jsonl` w katalogu konfiguracji; kontrola bez `--no-session-persistence` w tymczasowym `HOME` musi taki plik zostawić. | Żaden nowy plik nie zawiera kanarka; 0 plików `.jsonl` z kanarkiem po wywołaniu z flagą, 1 w kontroli. |
 | 7 | Logowanie | Wszystkie powyższe przy działającym logowaniu z subskrypcji. | `auth status` gotowy, wywołanie działa. |
 
-Jeśli punkt 5 pokaże, że proces potomny ma uprawnienia Lintela, ADR rozstrzyga między: (a) poleganiem na udowodnionym wyłączeniu narzędzi i hooków, (b) zrzeczeniem się odpowiedzialności przy spawnie (prywatne SPI, wymaga osobnej decyzji właściciela). **Brak dowodu któregokolwiek punktu = dostawca niewydawany** (`isolationVerified = false`).
+Jeśli punkt 5 pokaże, że proces potomny ma uprawnienia Lintela, ADR rozstrzyga między: (a) poleganiem na udowodnionym wyłączeniu narzędzi i hooków, (b) zrzeczeniem się odpowiedzialności przy spawnie (prywatne SPI, wymaga osobnej decyzji właściciela). **Brak dowodu punktów 1–4 i 6–7 = dostawca niewydawany** (`isolationVerified = false`). **Punkt 5 (TCC) nie warunkuje `isolationVerified`** (decyzja właściciela 2026-11-20); ma osobny wiersz 5b.
 
 ## 📝 Risks & Impact Review
 
