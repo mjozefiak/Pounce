@@ -66,9 +66,23 @@ struct MeetingsPaneContent: View {
                 } header: {
                     Text("Notes are written by", comment: "Settings → Meetings: provider menu label")
                         .settingsSectionHeader()
+                } footer: {
+                    if model.provider.isLocal {
+                        SettingsFooter(
+                            LocalizedStringResource(
+                                "Nothing leaves this Mac.",
+                                comment: "Settings → Meetings: caption under the local choice"))
+                    }
                 }
-                Section {
-                    NotesWrittenByNotices(provider: model.provider)
+                if !model.provider.isLocal {
+                    Section {
+                        NotesWrittenByNotices(provider: model.provider)
+                    } footer: {
+                        SettingsFooter(
+                            LocalizedStringResource(
+                                "Switch back to Local here at any time: no question asked. It stops further sending; it can’t recall what was sent.",
+                                comment: "Settings → Meetings: caption under the notice about an external provider"))
+                    }
                 }
             }
             Section {

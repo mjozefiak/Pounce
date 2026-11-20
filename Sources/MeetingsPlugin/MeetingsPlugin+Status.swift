@@ -38,7 +38,7 @@ extension MeetingsPlugin {
                 check: model.provider.check, failure: model.provider.failure, jobRunning: model.provider.jobRunning),
             actions: model.provider.bannerActions)
         if banner.level == .attention || banner.level == .error { return banner }
-        return base.level == .ok ? banner : base
+        return base.level == .ok || settings.qaProviderScenario != nil ? banner : base
     }
 
     /// The banner ids of the plugin's own actions.

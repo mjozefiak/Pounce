@@ -118,10 +118,29 @@ final class ProviderChoiceModel {
         let snapshot = service.board.snapshot
         failure = snapshot.providerFailure
         jobRunning = snapshot.jobRunning
+        applyQAScenario()
         if selection == nil {
             check = .unknown
             testState = .idle
             confirmingUseLocal = false
+        }
+    }
+
+    /// DEBUG QA only: shows a state no test run can reach without a real CLI (`plugins.meetings.qaProviderScenario`).
+    private func applyQAScenario() {
+        guard selection != nil, let scenario = settings.qaProviderScenario else { return }
+        switch scenario {
+        case "running": jobRunning = true
+        case "confirm":
+            jobRunning = true
+            confirmingUseLocal = true
+        case "details": detailsExpanded = true
+        default:
+            if let reason = ProviderJobFailure.Reason(rawValue: scenario) {
+                failure = ProviderJobFailure(
+                    reason: reason, meetingID: 0, title: "Orchard weekly sync",
+                    startedAt: Date(timeIntervalSince1970: 1_730_642_700))
+            }
         }
     }
 

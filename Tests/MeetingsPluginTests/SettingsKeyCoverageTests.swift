@@ -33,6 +33,7 @@ import Testing
     /// any of them either (step 5.2).
     static let exempt: [String: String] = [
         "qaProviderStatus": "DEBUG-only QA key (--qa-setting): forces the provider's status; release builds ignore it",
+        "qaProviderScenario": "DEBUG-only QA key (--qa-setting): shows a job state without a real CLI",
         "systemAudio": "no pane control by design: capture setting kept for defaults, default on",
         "diarization": "no pane control by design: capture setting kept for defaults, default on",
         "notesChunkTokens": "tuning key set with defaults only; no pane control by design",

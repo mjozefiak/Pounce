@@ -23,6 +23,7 @@ struct MeetingsSettings: Sendable {
         static let notesProviderInfoVersion = "notesProviderInfoVersion"
         static let notesProviderBinary = "notesProviderBinary"
         static let qaProviderStatus = "qaProviderStatus"
+        static let qaProviderScenario = "qaProviderScenario"
         static let notesChunkTokens = "notesChunkTokens"
         static let notesReduceInputTokens = "notesReduceInputTokens"
         static let suggestMeetings = "suggestMeetings"
@@ -293,6 +294,17 @@ struct MeetingsSettings: Sendable {
         } else {
             settings.removeValue(for: Key.notesProviderBinary)
         }
+    }
+
+    /// DEBUG only (`--qa-setting plugins.meetings.qaProviderScenario=running|confirm|details|ready|<failure reason>`; any value puts the provider banner first): a job
+    /// in progress, the D12 question, the notice's Details open, or the last job failed with that reason
+    /// (`timedOut`, `network`, `rateLimited`, `other`, `tooLong`, `modelNotAvailable`). Nothing runs.
+    var qaProviderScenario: String? {
+        #if DEBUG
+        settings.string(Key.qaProviderScenario)
+        #else
+        nil
+        #endif
     }
 
     /// DEBUG only (`--qa-setting plugins.meetings.qaProviderStatus=ready|notInstalled|notSignedIn|incompatibleVersion`):

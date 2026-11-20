@@ -139,7 +139,10 @@ enum NotesQAFixtures {
                         id: "transcript", author: .stt, markdown: transcript, provenance: transcriptProvenance,
                         version: "1"),
                 ], speakers: speakers,
-                details: [NoteDetail(label: "Speech model", value: "Parakeet Ultra")])
+                details: [
+                    NoteDetail(label: "Speech model", value: "Parakeet Ultra"),
+                    NoteDetail(label: "Sent to", value: "Claude · claude-opus-5-5"),
+                ])
         case summaryID:
             return NoteContent(
                 summary: summary,

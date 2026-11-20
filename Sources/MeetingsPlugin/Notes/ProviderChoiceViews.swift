@@ -349,20 +349,10 @@ struct NotesWrittenByNotices: View {
     @Environment(\.lintelTextSize) private var textSize
 
     var body: some View {
-        if provider.chosen != nil {
-            if provider.status == .notSignedIn || provider.failure?.reason == .notSignedIn { signInCard }
-            if provider.confirmingUseLocal { confirmCard }
-            if let failure = provider.failure { lastMeetingRow(failure) }
-            noticeCard
-            SettingsFooter(
-                LocalizedStringResource(
-                    "Switch back to Local here at any time: no question asked. It stops further sending; it can’t recall what was sent.",
-                    comment: "Settings → Meetings: caption under the notice about an external provider"))
-        } else {
-            SettingsFooter(
-                LocalizedStringResource(
-                    "Nothing leaves this Mac.", comment: "Settings → Meetings: caption under the local choice"))
-        }
+        if provider.status == .notSignedIn || provider.failure?.reason == .notSignedIn { signInCard }
+        if provider.confirmingUseLocal { confirmCard }
+        if let failure = provider.failure { lastMeetingRow(failure) }
+        noticeCard
     }
 
     private var signInCard: some View {
