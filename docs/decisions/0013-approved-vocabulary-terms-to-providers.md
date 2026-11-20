@@ -98,7 +98,7 @@ spec.
 | # | Point |
 |---|---|
 | 1 | The whole vocabulary in every request, or only the terms that match the transcript at hand. |
-| 2 | Whether heard forms (variants) are sent, or only the target spelling. The providers spec has "target spelling only" as a working text. |
+| 2 | Whether heard forms (variants) are sent, or only the target spelling. Until this is answered, the providers spec keeps heard forms on its "Never" list, as it keeps the whole vocabulary today; that is the current state, not a decision. |
 | 3 | "My server": in which requests. Today the only request to it is dictation text cleanup; a term list in the cleanup prompt is the conditional story DICT-4.2, which waits for a measurement. And whether the user is told, or asked, before terms go to "My server". |
 | 4 | Whether the decision also covers the second channel to the same recipient (an API key, providers Phase 2), later providers (Phase 3) and dictation through a provider (Phase 4). The answer names meeting notes and Claude. |
 | 5 | Attaching terms changes the notes prompt (`whole1`), so it needs a new prompt version: whether the measurement of quality gate G must be repeated. |
