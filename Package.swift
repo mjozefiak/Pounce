@@ -29,6 +29,10 @@ let package = Package(
         // Whisper large-v3-turbo through Core ML (MIT), the second speech engine with a pinned language
         // (ADR 0003), used by LintelSpeech only.
         .package(url: "https://github.com/argmaxinc/argmax-oss-swift.git", exact: "1.1.1"),
+        // In-app updates (MIT), used by LintelApp only, behind the `UpdateChecking` port
+        // (docs/decisions/0012-distribution-and-updates.md). A prebuilt XCFramework: `scripts/make-app.sh`
+        // embeds Sparkle.framework and signs its nested code inside-out.
+        .package(url: "https://github.com/sparkle-project/Sparkle.git", exact: "2.10.1"),
     ],
     targets: [
         // llama.cpp (MIT) as the project's own prebuilt XCFramework, pinned to a release and its checksum
@@ -152,6 +156,7 @@ let package = Package(
                 "WindowsPlugin",
                 "NotesPlugin",
                 .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
+                .product(name: "Sparkle", package: "Sparkle"),
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),

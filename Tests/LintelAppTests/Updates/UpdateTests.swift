@@ -1,0 +1,208 @@
+import Foundation
+import LintelKit
+import Testing
+
+@testable import LintelApp
+
+@MainActor
+@Suite struct UpdaterStartPolicyTests {
+    nonisolated static let home = URL(fileURLWithPath: "/Users/tester")
+
+    nonisolated static func facts(
+        debug: Bool = false,
+        bundle: String = "/Applications/Lintel.app",
+        team: String? = "39G44CM6GF",
+        key: String? = "cHVibGljLWtleQ==",
+        feed: String? = "https://lintelapp.com/appcast.xml"
+    ) -> UpdaterStartPolicy.Facts {
+        UpdaterStartPolicy.Facts(
+            isDebugBuild: debug, bundleURL: URL(fileURLWithPath: bundle), teamIdentifier: team, publicKey: key,
+            feedURL: feed, homeDirectory: home)
+    }
+
+    @Test func aSignedReleaseBuildInApplicationsWithAKeyStarts() {
+        #expect(UpdaterStartPolicy.decide(Self.facts()) == .start)
+        #expect(UpdaterStartPolicy.decide(Self.facts(bundle: "/Users/tester/Applications/Lintel.app")) == .start)
+    }
+
+    @Test(arguments: [
+        (facts(debug: true), UpdaterStartPolicy.Refusal.debugBuild),
+        (facts(bundle: "/Applications/Lintel.app/Contents/MacOS/Lintel"), .notAnAppBundle),
+        (facts(bundle: "/Volumes/Lintel/Lintel.app"), .outsideApplications),
+        (facts(bundle: "/Users/tester/Downloads/Lintel.app"), .outsideApplications),
+        (facts(bundle: "/Applications/Tools/Lintel.app"), .outsideApplications),
+        (facts(bundle: "/private/var/folders/x/AppTranslocation/1/d/Lintel.app"), .outsideApplications),
+        (facts(bundle: "/Users/other/Applications/Lintel.app"), .outsideApplications),
+        (facts(team: nil), .adHocSignature),
+        (facts(team: ""), .adHocSignature),
+        (facts(key: nil), .noPublicKey),
+        (facts(key: "  \n"), .noPublicKey),
+        (facts(feed: nil), .noFeed),
+        (facts(feed: "http://lintelapp.com/appcast.xml"), .noFeed),
+    ])
+    func everythingElseIsRefused(facts: UpdaterStartPolicy.Facts, reason: UpdaterStartPolicy.Refusal) {
+        #expect(UpdaterStartPolicy.decide(facts) == .refuse(reason))
+    }
+
+    /// The order matters for DEBUG builds: they are refused before anything else is looked at.
+    @Test func aDebugBuildIsRefusedEvenWhenEverythingElseIsRight() {
+        #expect(UpdaterStartPolicy.decide(Self.facts(debug: true)) == .refuse(.debugBuild))
+    }
+}
+
+@MainActor
+@Suite struct UpdateChannelTests {
+    @Test func betaIsOfferedOnlyWhenIncluded() {
+        #expect(UpdateChannel.allowed(includeBeta: true) == ["beta"])
+        #expect(UpdateChannel.allowed(includeBeta: false).isEmpty)
+    }
+
+    @Test(arguments: [
+        ("0.1.0-beta.1", true), ("1.2.3-beta.12", true), ("0.1.0", false), ("0.0.0", false), ("", false),
+    ])
+    func preReleaseVersionsAreRecognised(version: String, expected: Bool) {
+        #expect(UpdateChannel.isPreRelease(version: version) == expected)
+    }
+
+    @Test func aPreReleaseBuildWritesTheSettingOnce() {
+        let settings = InMemorySettingsStore()
+        #expect(UpdateChannel.includeBeta(settings: settings, runningVersion: "0.1.0-beta.1"))
+        #expect(settings.value(forKey: "app.updates.includeBeta") == .bool(true))
+    }
+
+    @Test func aStableBuildWritesNothingAndMeansNo() {
+        let settings = InMemorySettingsStore()
+        #expect(!UpdateChannel.includeBeta(settings: settings, runningVersion: "0.1.0"))
+        #expect(settings.value(forKey: "app.updates.includeBeta") == nil)
+    }
+
+    @Test func theUsersChoiceIsNeverReplaced() {
+        let settings = InMemorySettingsStore()
+        settings.setValue(.bool(false), forKey: "app.updates.includeBeta")
+        #expect(!UpdateChannel.includeBeta(settings: settings, runningVersion: "0.2.0-beta.1"))
+        #expect(settings.value(forKey: "app.updates.includeBeta") == .bool(false))
+        settings.setValue(.bool(true), forKey: "app.updates.includeBeta")
+        #expect(UpdateChannel.includeBeta(settings: settings, runningVersion: "0.2.0"))
+    }
+}
+
+@MainActor
+@Suite struct UpdateControllerTests {
+    final class FakeChecker: UpdateChecking {
+        var started = 0
+        var checks = 0
+        var startError: (any Error)?
+        var allowedChannels: Set<String> = []
+        var canCheckForUpdates: Bool { started > 0 }
+        func start() throws {
+            if let startError { throw startError }
+            started += 1
+        }
+        func checkForUpdates() { checks += 1 }
+    }
+
+    struct Boom: Error {}
+
+    func controller(
+        _ facts: UpdaterStartPolicy.Facts, settings: InMemorySettingsStore = InMemorySettingsStore(),
+        version: String = "0.1.0", made: @escaping (FakeChecker) -> Void = { _ in }, error: (any Error)? = nil
+    ) -> UpdateController {
+        UpdateController(
+            facts: facts, settings: settings, runningVersion: version,
+            makeChecker: {
+                let checker = FakeChecker()
+                checker.startError = error
+                made(checker)
+                return checker
+            })
+    }
+
+    @Test func aRefusedPolicyCreatesNoCheckerAndWritesNoSetting() {
+        var made = 0
+        let settings = InMemorySettingsStore()
+        let controller = controller(
+            UpdaterStartPolicyTests.facts(key: nil), settings: settings, version: "0.1.0-beta.1",
+            made: { _ in made += 1 })
+        controller.startIfAllowed()
+        #expect(controller.state == .off(.noPublicKey))
+        #expect(made == 0)
+        #expect(!controller.canCheckForUpdates)
+        controller.checkForUpdates()
+        #expect(settings.value(forKey: "app.updates.includeBeta") == nil)
+    }
+
+    @Test func anAllowedPolicyStartsTheCheckerOnceWithTheChannels() {
+        var checkers: [FakeChecker] = []
+        let controller = controller(
+            UpdaterStartPolicyTests.facts(), version: "0.1.0-beta.1", made: { checkers.append($0) })
+        controller.startIfAllowed()
+        controller.startIfAllowed()
+        #expect(controller.state == .running)
+        #expect(checkers.count == 1)
+        #expect(checkers.first?.started == 1)
+        #expect(checkers.first?.allowedChannels == ["beta"])
+        #expect(controller.canCheckForUpdates)
+        controller.checkForUpdates()
+        #expect(checkers.first?.checks == 1)
+    }
+
+    @Test func aStableBuildOffersNoBetaChannel() {
+        var checkers: [FakeChecker] = []
+        let controller = controller(UpdaterStartPolicyTests.facts(), made: { checkers.append($0) })
+        controller.startIfAllowed()
+        #expect(checkers.first?.allowedChannels.isEmpty == true)
+    }
+
+    @Test func aStartErrorLeavesTheUpdaterOff() {
+        let controller = controller(UpdaterStartPolicyTests.facts(), error: Boom())
+        controller.startIfAllowed()
+        #expect(controller.state == .failed)
+        #expect(!controller.canCheckForUpdates)
+    }
+}
+
+/// The switch that keeps updates off until the owner's key exists (spec Step 4.3): no public key, and automatic
+/// checks disabled, in the plist every build is made from.
+@Suite struct UpdateInfoPlistTests {
+    static let root = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent()
+
+    static func plist() throws -> [String: Any] {
+        let data = try Data(contentsOf: root.appending(path: "Resources/Info.plist"))
+        let value = try PropertyListSerialization.propertyList(from: data, format: nil)
+        return try #require(value as? [String: Any])
+    }
+
+    @Test func theUpdaterIsSwitchedOff() throws {
+        let plist = try Self.plist()
+        #expect(plist["SUPublicEDKey"] == nil)
+        #expect(plist["SUEnableAutomaticChecks"] as? Bool == false)
+        #expect(plist["SUAutomaticallyUpdate"] == nil)
+        #expect(plist["SUEnableSystemProfiling"] == nil)
+    }
+
+    @Test func theFeedIsTheSiteOverHTTPSAndMustBeSigned() throws {
+        let plist = try Self.plist()
+        #expect(plist["SUFeedURL"] as? String == "https://lintelapp.com/appcast.xml")
+        #expect(plist["SURequireSignedFeed"] as? Bool == true)
+        #expect(plist["SUVerifyUpdateBeforeExtraction"] as? Bool == true)
+        #expect(plist["SUScheduledCheckInterval"] as? Int == 86400)
+    }
+
+    /// Only `SparkleUpdateChecker` may import Sparkle: everything else goes through `UpdateChecking`.
+    @Test func onlyOneFileImportsSparkle() throws {
+        let sources = Self.root.appending(path: "Sources")
+        let files = try #require(FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil))
+        var importing: [String] = []
+        for case let file as URL in files where file.pathExtension == "swift" {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            if text.split(separator: "\n").contains(where: {
+                $0.trimmingCharacters(in: .whitespaces) == "import Sparkle"
+            }) {
+                importing.append(file.lastPathComponent)
+            }
+        }
+        #expect(importing == ["SparkleUpdateChecker.swift"])
+    }
+}

@@ -10,7 +10,7 @@ assert_ok() { local m="$1"; shift; if "$@" >/dev/null 2>&1; then _pass; else _fa
 assert_fails() { local m="$1"; shift; if "$@" >/dev/null 2>&1; then _fail "$m"; else _pass; fi }
 finish() { print -r -- "$PASSED passed, $FAILED failed"; (( FAILED == 0 )) }
 
-# A fixture app bundle: Info.plist, a signable executable, the two embedded frameworks make-app.sh signs and the
+# A fixture app bundle: Info.plist, a signable executable, the embedded frameworks make-app.sh signs (Sparkle with its nested helpers) and the
 # Polish recorder strings it compares. Prints the path. Needs $tmp (a temporary directory) from the caller.
 make_signable_bundle() {
   local dist="$1" app fw
@@ -27,6 +27,21 @@ make_signable_bundle() {
     ln -s Versions/Current/$fw "$app/Contents/Frameworks/$fw.framework/$fw"
     ln -s Versions/Current/Resources "$app/Contents/Frameworks/$fw.framework/Resources"
   done
+  # Sparkle's layout: version B, a helper tool and a helper app nested in the framework (no XPC services).
+  local sparkle="$app/Contents/Frameworks/Sparkle.framework"
+  mkdir -p "$sparkle/Versions/B/Resources" "$sparkle/Versions/B/Updater.app/Contents/MacOS"
+  cp /usr/bin/true "$sparkle/Versions/B/Sparkle"
+  cp /usr/bin/true "$sparkle/Versions/B/Autoupdate"
+  cp /usr/bin/true "$sparkle/Versions/B/Updater.app/Contents/MacOS/Updater"
+  sed "s/Fixture/Sparkle/; s/com.example.fixture/com.example.Sparkle/; s/APPL/FMWK/" "$FIXTURES/Info.fixture.plist" \
+    > "$sparkle/Versions/B/Resources/Info.plist"
+  sed "s/Fixture/Updater/; s/com.example.fixture/com.example.Updater/" "$FIXTURES/Info.fixture.plist" \
+    > "$sparkle/Versions/B/Updater.app/Contents/Info.plist"
+  ln -s B "$sparkle/Versions/Current"
+  ln -s Versions/Current/Sparkle "$sparkle/Sparkle"
+  ln -s Versions/Current/Resources "$sparkle/Resources"
+  ln -s Versions/Current/Autoupdate "$sparkle/Autoupdate"
+  ln -s Versions/Current/Updater.app "$sparkle/Updater.app"
   local pl="$app/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle/Contents/Resources/pl.lproj"
   mkdir -p "$pl"
   cp "$ROOT/Resources/KeyboardShortcuts/pl.lproj/Localizable.strings" "$pl/Localizable.strings"

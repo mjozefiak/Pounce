@@ -91,11 +91,34 @@ further. A pull request cannot reach the secrets even with an edited workflow: t
 which for a pull request is `refs/pull/<n>/merge`, so the Environment refuses the deployment before any reviewer is
 asked.
 
+## Sparkle, embedded and off (spec Steps 4.1 and 4.3)
+
+Sparkle 2.10.1 is a dependency of `LintelApp` only, pinned exactly; it arrives as a prebuilt XCFramework.
+
+- **What is shipped.** `scripts/make-app.sh` copies `Sparkle.framework` into `Contents/Frameworks` and removes its
+  `XPCServices`. Sparkle's documentation says only sandboxed apps need the XPC services (their `Info.plist` switches
+  default to off); Lintel is not sandboxed, so they would be unused code to sign and notarize.
+- **Signing order.** Inside-out, without `--deep`, each with the same identity, timestamp and hardened runtime:
+  `Versions/B/Autoupdate`, `Versions/B/Updater.app`, the framework, then (after the other frameworks) the app. The
+  script fails when the framework has no `Versions/B/Autoupdate` or `Updater.app`, or still holds `XPCServices`, so a
+  Sparkle release with a different layout cannot be signed half-way. `codesign --verify --strict --deep` passes on
+  the ad-hoc build; the Developer ID and notarization result comes from the first signed run that includes it.
+- **One import.** Only `Sources/LintelApp/Updates/SparkleUpdateChecker.swift` imports Sparkle (a test checks it);
+  the rest of the app talks to the `UpdateChecking` port.
+- **The switch.** `UpdaterStartPolicy` (pure) lets the updater start only in a release build that runs as an app
+  bundle directly in `/Applications` or `~/Applications`, is signed with a Team ID, and has `SUPublicEDKey` and an
+  HTTPS `SUFeedURL` in `Info.plist`. `Info.plist` carries no `SUPublicEDKey` and sets `SUEnableAutomaticChecks` to
+  `false`, so no build made before the owner's key exists creates the updater, asks the user, makes a request or
+  writes a Sparkle default. DEBUG and QA builds are refused first, whatever else is true.
+- **Channels.** Stable releases are Sparkle's default channel; pre-releases are in the channel `beta`, offered when
+  `app.updates.includeBeta` is true (`UpdateChannel`).
+
 ## Deferred
 
-- **Sparkle (in-app updates), spec Phase 4.** Embedding Sparkle, `UpdateController`, channels, the EdDSA key
-  (`SPARKLE_ED_PRIVATE_KEY`, in the Environment `release`), signing the feed in the `sign` job. Nothing of it exists
-  yet; Step 4.1 records how Sparkle's nested code is signed under this layout.
+- **Sparkle switched on, spec Steps 4.4 to 4.8.** The owner's EdDSA key (`SPARKLE_ED_PRIVATE_KEY`, in the Environment
+  `release`; the public key as `SUPublicEDKey` in `Info.plist`), the Updates settings, the permission question,
+  gentle reminders, the postponed relaunch and signing the feed in the `sign` job. See "Sparkle, embedded and off"
+  for what exists.
 - **The feed (`appcast.xml`), spec Architecture and Step 4.7.** One signed feed rebuilt on every release, served from the
   address decided in D4; the website copies it. Not built.
 - **Homebrew, spec Phase 5 (D13).** The project's own tap `mjozefiak/homebrew-lintel` (casks `lintel` and `lintel@beta`),

@@ -49,4 +49,9 @@ enum SettingsKeys {
 
     /// `String`: the id of the Settings pane the main window showed last (a shell pane or a plugin id).
     static let mainWindowSettingsPane = "app.mainWindow.settingsPane"
+
+    /// `Bool`: updates include pre-releases (the `beta` channel). Written once as `true` by the first pre-release
+    /// build that finds it absent (`UpdateChannel.includeBeta`); absent on a stable build means `false`.
+    /// Added with in-app updates (spec `2026-11-19-updates-and-open-source-hygiene`, Step 4.3).
+    static let updatesIncludeBeta = "app.updates.includeBeta"
 }

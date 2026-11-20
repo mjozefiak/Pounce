@@ -26,6 +26,7 @@ enum LintelMain {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var coordinator: AppCoordinator?
+    private var updates: UpdateController?
     /// Files opened before the coordinator has started (a double-click that launched the app).
     private var pendingFiles: [URL] = []
     private var started = false
@@ -49,6 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             #endif
             await coordinator.start()
             started = true
+            // Off until the owner's update key is in Info.plist (`UpdaterStartPolicy`); DEBUG and QA builds never start it.
+            let updates = UpdateController.live(settings: environment.settings)
+            updates.startIfAllowed()
+            self.updates = updates
             if !pendingFiles.isEmpty {
                 let files = pendingFiles
                 pendingFiles = []
