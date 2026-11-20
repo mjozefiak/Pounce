@@ -260,6 +260,9 @@ struct TrackScript {
         spans.append(start..<(closed ? samples.count : samples.count + 10_000_000))
     }
 
+    /// A raw detector span over samples already scripted (overlapping spans make an unmatched end).
+    mutating func span(_ range: Range<Int>) { spans.append(range) }
+
     var vad: ScriptedVAD { ScriptedVAD(spans) }
 }
 
@@ -483,7 +486,8 @@ struct SessionRig {
         modelID: String = "test-model", lease: SpeechEngineLease? = nil, engine: (any SpeechEngine)? = nil,
         withSystem: Bool = true, clock: TestClock? = nil, realTime: Bool = false, micAudio: (any AudioInput)? = nil,
         beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil, sourceBundleID: String? = nil,
-        keepAudio: Bool = false
+        keepAudio: Bool = false, systemAudio: (any AudioInput)? = nil,
+        recordCounters: @escaping @Sendable (CaptureCounters) -> Void = { _ in }
     ) -> MeetingSession {
         // Every session runs on a clock of its own that only the test moves, so a loaded machine cannot make the
         // heartbeat see a stalled stream; `realTime: true` is for a test that needs the wall clock.
@@ -497,14 +501,14 @@ struct SessionRig {
         let vads = Mutex<[ScriptedVAD]>([micScript.vad] + (systemScript.map { [$0.vad] } ?? []))
         return MeetingSession(
             store: store, keys: keys, spool: spool, mic: micAudio ?? micInput ?? mic,
-            system: withSystem ? (systemInput ?? system) : nil,
+            system: withSystem ? (systemAudio ?? systemInput ?? system) : nil,
             makeVAD: { vads.withLock { $0.isEmpty ? ScriptedVAD([]) : $0.removeFirst() } },
             engine: engine ?? self.engine, modelID: modelID, modelFolder: directory.url.appending(path: "model"),
             lease: lease ?? self.lease, keepWarm: { .seconds(321) }, sleepAssertion: sleepAssertion,
             gate: gate ?? self.gate, limits: limits ?? shortLimits, freeSpace: freeSpace, uuid: uuid,
             now: nowFn, sleep: sleepFn,
             beforeReady: beforeReady, sourceBundleID: sourceBundleID,
-            keepAudio: { keepAudio })
+            keepAudio: { keepAudio }, recordCounters: recordCounters)
     }
 
     var shortLimits: MeetingSessionLimits {

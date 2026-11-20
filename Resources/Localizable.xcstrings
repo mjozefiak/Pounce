@@ -20071,6 +20071,42 @@
         }
       }
     },
+    "Capture diagnostics" : {
+      "comment" : "Meetings setting: counters of what the recording dropped",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Capture diagnostics"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostyka nagrywania"
+          }
+        }
+      }
+    },
+    "Numbers about the last recordings: segments, silence and dropped audio. No text, names or titles." : {
+      "comment" : "Meetings setting: what the diagnostics contain",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numbers about the last recordings: segments, silence and dropped audio. No text, names or titles."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liczby o ostatnich nagraniach: segmenty, cisza i pominięty dźwięk. Bez tekstu, nazw i tytułów."
+          }
+        }
+      }
+    },
     "Copy diagnostics" : {
       "comment" : "Window Management setting: counters for a bug report",
       "extractionState" : "manual",

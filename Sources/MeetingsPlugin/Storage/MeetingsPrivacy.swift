@@ -6,7 +6,9 @@ extension MeetingsStore {
     /// folders). A running session keeps its row and its audio, and so does a meeting in `protected` (being
     /// finished: it is `processing` while its audio is replayed).
     func deleteFinishedMeetings(excluding protected: Set<Int64> = []) throws -> [String] {
-        try write { db in
+        // Clear Library: the counters of quiet meetings that were discarded go too.
+        defer { pruneCaptureCounters(dropDiscarded: true) }
+        return try write { db in
             let rows = try Row.fetchAll(
                 db, sql: "SELECT id, uuid FROM meeting WHERE status NOT IN ('recording', 'processing')"
             ).filter { !protected.contains($0["id"] as Int64) }
