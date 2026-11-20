@@ -208,7 +208,7 @@ final class ScriptedGenerator: NotesGenerating, @unchecked Sendable {
                 startMs: 0, speaker: "Zuzanna", text: "Spotkanie jest o piątej, napisz do Ewy do poniedziałku."),
             NotesUtterance(
                 startMs: 5000, speaker: "Marek",
-                text: "Koszt to dwa tysiące pięćset złotych, Szybko Pak się spóźnia, a w girce mamy zgłoszenie."),
+                text: "Koszt to dwa tysiące pięćset złotych, Szybko Pak się spóźnia, a w prelzie mamy zgłoszenie."),
         ]
         let guardian = NotesFactGuard(utterances: utterances)
         func kept(_ line: String) -> Bool {
@@ -221,8 +221,8 @@ final class ScriptedGenerator: NotesGenerating, @unchecked Sendable {
         #expect(kept("Koszt to 2,500 złotych."))
         #expect(!kept("Koszt to 2600 złotych."))
         #expect(kept("Szybkopak się spóźnia."))
-        #expect(kept("Zgłoszenie jest w Jirze."))
-        #expect(!kept("Zgłoszenie jest w Trello."))
+        #expect(kept("Zgłoszenie jest w Brelsie."))
+        #expect(!kept("Zgłoszenie jest w Fendrze."))
         #expect(!kept("Firma Kwantoris się spóźnia."))
         #expect(kept("Ewie napisać do poniedziałku."))
     }
