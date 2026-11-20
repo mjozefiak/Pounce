@@ -35,12 +35,12 @@ import Testing
         // The first flush has read the window and waits for its answer to arrive.
         rig.client.armReadHold()
         await rig.engine.ingest(.moved(id(1)))
-        let first = Task { await rig.engine.flushEvents() }
+        let first = Task { await rig.engine.flushGuarded() }
         await rig.client.waitUntilReadHeld()
         // The window is closed meanwhile and a second flush starts: it must wait for the first.
         rig.client.remove(id(1))
         await rig.engine.ingest(.destroyed(id(1)))
-        let second = Task { await rig.engine.flushEvents() }
+        let second = Task { await rig.engine.flushGuarded() }
         rig.client.releaseReadHold()
         await first.value
         await second.value
@@ -67,7 +67,7 @@ import Testing
         rig.client.emit([.destroyed(id(1))])
         rig.client.remove(id(1))
         await rig.engine.start()
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(await rig.engine.snapshot.windows.isEmpty)
         await rig.engine.stop()
     }
@@ -82,7 +82,7 @@ import Testing
         await rig.engine.send(.showWorkspace(ws(2)))
         await rig.engine.update(config: EngineConfig())
         await rig.engine.ingest(.created(id(9)))
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         #expect(rig.client.calls.isEmpty)
         #expect(await rig.engine.restoreAllWindows().isEmpty)
     }
