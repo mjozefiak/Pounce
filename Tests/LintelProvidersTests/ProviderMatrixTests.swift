@@ -69,6 +69,7 @@ import Testing
 
     @Test(arguments: [
         "--setting-sources", "--strict-mcp-config", "--no-session-persistence", "--tools", "--disable-slash-commands",
+        "--safe-mode",
     ])
     func anArgvWithoutARequirementMeansZeroProcesses(missing: String) async throws {
         let process = QuietProviderProcess()

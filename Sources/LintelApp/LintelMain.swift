@@ -160,12 +160,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The fakes never quit, so QA goes on with the launch whatever the answer.
         return true
         #else
+        var mover = MoveToApplications(
+            files: SystemInstallFileManager(), processes: SystemRunningAppListing(),
+            quarantine: SystemQuarantineRemover(), relauncher: SystemAppRelauncher(),
+            versions: SystemBundleVersionReader())
+        // Files opened while the alert is up go to the moved copy; if its open fails they open here as usual.
+        mover.pendingFiles = { [weak self] in self?.pendingFiles ?? [] }
         let prompt = MoveToApplicationsPrompt(
             settings: environment.settings,
-            mover: MoveToApplications(
-                files: SystemInstallFileManager(), processes: SystemRunningAppListing(),
-                quarantine: SystemQuarantineRemover(), relauncher: SystemAppRelauncher(),
-                versions: SystemBundleVersionReader()))
+            mover: mover)
         return await prompt.offerIfNeeded(bundleURL: Bundle.main.bundleURL, home: home)
             .continuesLaunch
         #endif

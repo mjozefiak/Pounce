@@ -11,15 +11,20 @@ struct BuiltInFormatter: TextFormatter {
 
     private let runtime: KeepWarmRuntime
     private let timeout: @Sendable (Int) -> Duration
+    private let clock: any Clock<Duration>
     private let logger: Logger
 
-    /// - Parameter timeout: how long a chunk of this many words may take; tests shorten it.
+    /// - Parameters:
+    ///   - timeout: how long a chunk of this many words may take; tests shorten it.
+    ///   - clock: the clock the time limit is measured on; a test passes a virtual one.
     init(
         runtime: KeepWarmRuntime, timeout: @escaping @Sendable (Int) -> Duration = BuiltInFormatter.timeout(forWords:),
+        clock: any Clock<Duration> = ContinuousClock(),
         logger: Logger = Logger(subsystem: "com.lintelapp", category: "dictation")
     ) {
         self.runtime = runtime
         self.timeout = timeout
+        self.clock = clock
         self.logger = logger
     }
 
@@ -44,7 +49,7 @@ struct BuiltInFormatter: TextFormatter {
         let runtime = runtime
         let outcome: Result<String, any Error>?
         do {
-            outcome = try await FirstResult.within(timeout(words)) {
+            outcome = try await FirstResult.within(timeout(words), clock: clock) {
                 do {
                     return .success(try await runtime.generate(messages: messages, maxTokens: words * 4 + 64))
                 } catch {

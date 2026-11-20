@@ -39,6 +39,7 @@ private let day: TimeInterval = 86_400
                 "speaker_mode", "languages", "speech_model_id", "diarization_model_id", "audio_state",
                 "notes_markdown", "notes_status", "notes_prompt_version", "notes_model", "notes_dropped_count",
                 "notes_generated_at", "resume_attempts", "audio_gap", "consent_text_copied_at",
+                "notes_provider", "notes_provider_model",
             ])
         let speakerColumns = try store.read { db in
             try Row.fetchAll(db, sql: "PRAGMA table_info(meeting_speaker)").map { $0["name"] as String }
@@ -49,7 +50,7 @@ private let day: TimeInterval = 86_400
         }
         #expect(segmentColumns == ["id", "meeting_id", "channel", "start_ms", "end_ms", "speaker_id", "text"])
         let applied = try store.read { db in try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations") }
-        #expect(applied == ["v1-meetings", "v2-consent"])
+        #expect(applied == ["v1-meetings", "v2-consent", "v3-notes-provider"])
         #expect(try store.meetingCount() == 0)
 
         try store.insertMeeting(uuid: "a", startedAt: Date(), speechModelID: "parakeet-ultra")
@@ -119,7 +120,7 @@ private let day: TimeInterval = 86_400
         }
         try migrator.migrate(queue)
         let applied = try queue.read { try migrator.appliedIdentifiers($0) }
-        #expect(applied == ["v1-meetings", "v2-consent"])
+        #expect(applied == ["v1-meetings", "v2-consent", "v3-notes-provider"])
         let counts = try queue.read { db in
             [
                 try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM meeting") ?? -1,

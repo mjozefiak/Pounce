@@ -25,8 +25,9 @@ self-signed release. A bridge would cost the users who installed it one more rou
 identity arrives, for no benefit, because no release exists. The bundle identifier `com.lintelapp.Lintel` stays. The
 designated requirement becomes Team-ID based (`anchor apple generic` and `certificate leaf[subject.OU] = "39G44CM6GF"`):
 it survives certificate renewal, which a pinned certificate hash does not. The exact text `codesign -dr -` prints for
-the first signed build is recorded in `Resources/designated-requirement.txt` by Step 3.4; until then the file holds a
-placeholder, a tag run fails on it and a manual signed run only warns and uploads the requirement it printed.
+the first signed build is recorded in `Resources/designated-requirement.txt` (Step 3.4); while the
+file held a placeholder, a tag run failed on it and a manual signed run only warned and uploaded the requirement it
+printed.
 
 The Team ID lives in one committed file, `scripts/release-team-id.txt`; `scripts/verify-release-bundle.sh` reads it.
 
@@ -39,7 +40,7 @@ decides from the `TeamIdentifier` of a probe signature, not from the identity's 
 ### Notarization
 
 The `sign` job signs the app inside-out (frameworks, then the app, hardened runtime), submits it with
-`xcrun notarytool submit --wait` using an App Store Connect API key, staples the app, builds the DMG **from the stapled
+`xcrun notarytool submit` (without waiting; the script then polls `notarytool info` with a bound) using an App Store Connect API key, staples the app, builds the DMG **from the stapled
 app**, signs, notarizes and staples the DMG, and only then computes `Lintel.dmg.sha256`. `scripts/verify-release-bundle.sh`
 then requires `codesign --verify --strict --deep`, a requirement that names the Team ID and has no `cdhash`, `spctl`
 reporting "Notarized Developer ID" and a valid staple, for the app and the DMG. A rejected submission uploads

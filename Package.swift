@@ -248,7 +248,7 @@ let package = Package(
         ),
         .testTarget(
             name: "LintelProvidersTests",
-            dependencies: ["LintelProviders", "LintelSpeech"]
+            dependencies: ["LintelProviders", "LintelSpeech", "LintelTestSupport"]
         ),
         .testTarget(
             name: "LintelPersistenceTests",

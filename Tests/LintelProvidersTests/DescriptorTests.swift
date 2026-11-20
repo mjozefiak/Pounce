@@ -10,8 +10,8 @@ import Testing
         let argv = try descriptor.arguments(model: "sonnet", systemPrompt: "Static prompt.")
         #expect(
             argv == [
-                "-p", "--output-format", "json", "--tools", "", "--no-session-persistence",
-                "--disable-slash-commands", "--strict-mcp-config", "--setting-sources", "", "--model", "sonnet",
+                "-p", "--model", "sonnet", "--output-format", "json", "--tools", "", "--no-session-persistence",
+                "--disable-slash-commands", "--strict-mcp-config", "--setting-sources", "", "--safe-mode",
                 "--system-prompt", "Static prompt.",
             ])
         #expect(descriptor.isolationProblems(arguments: argv).isEmpty)
@@ -42,6 +42,7 @@ import Testing
 
     @Test(arguments: [
         "--setting-sources", "--strict-mcp-config", "--no-session-persistence", "--tools", "--disable-slash-commands",
+        "--safe-mode",
     ])
     func removingAnyRequirementNamesIt(flag: String) throws {
         var argv = try descriptor.arguments(model: "sonnet", systemPrompt: "")
@@ -134,6 +135,7 @@ import Testing
         (#"{"is_error":true,"result":"fetch failed ENOTFOUND"}"#, "", .network),
         (#"{"is_error":true,"result":"There was an issue with the selected model"}"#, "", .other),
         ("", "error: unknown option '--zzz'", .incompatibleVersion),
+        ("", "error: unknown option '--safe-mode'", .incompatibleVersion),
         ("", "", .other),
     ])
     func classifiesStdoutAndStderr(stdout: String, stderr: String, expected: ProviderFailure) {
