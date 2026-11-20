@@ -53,16 +53,6 @@ Requires macOS 26 or later on Apple silicon.
 3. Open Lintel from Applications. A ring with a small cut appears in the menu bar, and the welcome screen walks you
    through the shortcut and each feature. Every step can be skipped.
 
-### First launch: Gatekeeper "Open Anyway"
-
-Lintel is signed with its own stable certificate ("Lintel Release"), so macOS keeps your permissions
-across updates, but it is **not notarized** by Apple. The first time you open it, macOS blocks it. To
-allow it once:
-
-1. Open Lintel and close the warning.
-2. Open **System Settings → Privacy & Security** and scroll down.
-3. Click **Open Anyway** next to the message about Lintel, then confirm with your password or Touch ID.
-
 ## Permissions
 
 Lintel asks for a permission only when you use the feature that needs it (the microphone, for example,
@@ -98,8 +88,8 @@ scripts/make-dmg.sh --skip-build           # dist/Lintel.dmg
 ```
 
 A build signed ad-hoc gets a new signature every time, so macOS asks again for its permissions after each
-rebuild. Release builds are signed with a stable self-signed certificate so macOS keeps your permissions
-across updates; see [docs/signing.md](docs/signing.md).
+rebuild. Release builds are signed with an Apple Developer ID and notarized, so macOS opens them normally and keeps
+your permissions across updates; see [docs/signing.md](docs/signing.md).
 
 Contributions are welcome: read [CONTRIBUTING.md](CONTRIBUTING.md) first, and report security problems
 privately as described in [SECURITY.md](SECURITY.md).

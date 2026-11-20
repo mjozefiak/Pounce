@@ -1,1 +1,1 @@
-designated => identifier "com.lintelapp.Lintel" and certificate leaf = H"REPLACE-WITH-THE-LINTEL-RELEASE-CERTIFICATE-SHA1"
+designated => identifier "com.lintelapp.Lintel" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = "39G44CM6GF"

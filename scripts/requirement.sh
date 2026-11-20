@@ -9,6 +9,12 @@
 #   scripts/requirement.sh check <actual-file>
 #       the requirement names the Team ID of scripts/release-team-id.txt through certificate leaf[subject.OU] and
 #       anchor apple generic, and has no cdhash. Prints every problem; 0 when there is none.
+#   scripts/requirement.sh shape <recorded-file>
+#       the SHAPE a recorded Resources/designated-requirement.txt must have once it is not the placeholder: identifier
+#       com.lintelapp.Lintel, anchor apple generic, the Developer ID fields 1.2.840.113635.100.6.2.6 and
+#       1.2.840.113635.100.6.1.13, certificate leaf[subject.OU] = the Team ID of scripts/release-team-id.txt, no
+#       cdhash. The placeholder passes. The file is the text `codesign -dr -` prints (see docs/signing.md); comment
+#       lines are not allowed because the whole file is compared with it.
 # Messages carry the ::error:: / ::warning:: prefix when GITHUB_ACTIONS is set.
 
 _REQ_ROOT="${${(%):-%x}:A:h:h}"
@@ -48,6 +54,21 @@ requirement_problems() {
   return $bad
 }
 
+# Prints one line per problem with a recorded requirement file; the placeholder has none. Argument: recorded-file.
+requirement_shape_problems() {
+  local text bad=0 team
+  text="$(<"$1")"
+  [[ "$text" == *REPLACE-WITH* ]] && return 0
+  team="$(release_team_id)"
+  local problems
+  problems="$(requirement_problems "$1" "$team")" || { print -r -- "$problems"; bad=1; }
+  [[ "$text" == *'identifier "com.lintelapp.Lintel"'* ]] || { print -r -- "the recorded requirement lacks identifier \"com.lintelapp.Lintel\""; bad=1; }
+  [[ "$text" == *1.2.840.113635.100.6.2.6* ]] || { print -r -- "the recorded requirement lacks the Developer ID CA field 1.2.840.113635.100.6.2.6"; bad=1; }
+  [[ "$text" == *1.2.840.113635.100.6.1.13* ]] || { print -r -- "the recorded requirement lacks the Developer ID Application field 1.2.840.113635.100.6.1.13"; bad=1; }
+  if print -r -- "$text" | grep -Eq '^[[:space:]]*#'; then print -r -- "the recorded requirement file has comment lines"; bad=1; fi
+  return $bad
+}
+
 requirement_cli() {
   case "${1:-}" in
     compare)
@@ -75,7 +96,14 @@ requirement_cli() {
         print -r -- "$problems" | while IFS= read -r line; do _req_msg error "$line"; done
         return 1
       fi ;;
-    *) echo "usage: requirement.sh compare|check ..." >&2; return 64 ;;
+    shape)
+      [[ -f "${2:-}" ]] || { echo "usage: requirement.sh shape <recorded-file>" >&2; return 64; }
+      local shape_problems
+      if ! shape_problems="$(requirement_shape_problems "$2")"; then
+        print -r -- "$shape_problems" | while IFS= read -r line; do _req_msg error "$line"; done
+        return 1
+      fi ;;
+    *) echo "usage: requirement.sh compare|check|shape ..." >&2; return 64 ;;
   esac
 }
 
