@@ -126,7 +126,7 @@ import Testing
         #expect(kill(childPID, 0) == 0)  // alive before
         task.cancel()
         await #expect(throws: ProviderError.cancelled) { try await task.value }
-        let gone = await eventually(timeout: 10) { kill(childPID, 0) != 0 }
+        let gone = await eventually(timeout: 30) { kill(childPID, 0) != 0 }
         #expect(gone, "the grandchild must die with the group")
     }
 
@@ -151,7 +151,7 @@ import Testing
             defer { done.set() }
             return try await runner.run(request, authorization: allowed)
         }
-        let finished = await eventually(timeout: 10) { done.value }
+        let finished = await eventually(timeout: 30) { done.value }
         #expect(finished, "an escaped grandchild must not keep the run (and the gate slot) open")
         guard finished else {
             task.cancel()

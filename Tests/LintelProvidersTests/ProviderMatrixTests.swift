@@ -165,17 +165,18 @@ import Testing
     @Test func consentRevokedWhileWaitingInTheQueueStartsNothing() async throws {
         let temp = try TempDir()
         defer { temp.remove() }
-        let cli = try FakeCLI(in: temp.url, mode: "slow")
+        let cli = try FakeCLI(in: temp.url, mode: "gated")
         let gate = ProviderGate()
         let live = makeRunner(cli, caches: temp.url.appending(path: "c"), gate: gate)
         let flag = LockedCounter()
         let first = Task { try await live.run(makeRequest(), authorization: allowed) }
-        _ = await eventually { !cli.read("argv").isEmpty }
+        #expect(await eventually { !cli.read("argv").isEmpty })
         let second = Task {
             try await live.run(makeRequest(), authorization: { flag.value > 0 ? .denied(.withdrawn) : .allowed })
         }
-        try await Task.sleep(for: .milliseconds(200))
-        flag.increment()  // revoked while queued behind the first run
+        #expect(await eventuallyAsync { await gate.queuedCount == 1 })  // the second one waits behind the first
+        flag.increment()
+        cli.release()  // revoked while queued behind the first run
         _ = try await first.value
         await #expect(throws: ProviderError.notAuthorized(.withdrawn)) { try await second.value }
     }
@@ -183,8 +184,9 @@ import Testing
     @Test func authorizationIsAskedAfterTheQueueNotBefore() async throws {
         let temp = try TempDir()
         defer { temp.remove() }
-        let cli = try FakeCLI(in: temp.url, mode: "slow")
-        let live = makeRunner(cli, caches: temp.url.appending(path: "c"), gate: ProviderGate())
+        let cli = try FakeCLI(in: temp.url, mode: "gated")
+        let gate = ProviderGate()
+        let live = makeRunner(cli, caches: temp.url.appending(path: "c"), gate: gate)
         let times = TimeLog()
         let first = Task {
             try await live.run(
@@ -194,7 +196,7 @@ import Testing
                     return .allowed
                 })
         }
-        _ = await eventually { !cli.read("argv").isEmpty }
+        #expect(await eventually { !cli.read("argv").isEmpty })
         let second = Task {
             try await live.run(
                 makeRequest(),
@@ -203,21 +205,24 @@ import Testing
                     return .allowed
                 })
         }
+        #expect(await eventuallyAsync { await gate.queuedCount == 1 })
+        #expect(times.at("a2") == nil, "the second authorization must wait until the first run left the gate")
+        cli.release()
         _ = try await first.value
         _ = try await second.value
-        let a1 = try #require(times.at("a1"))
-        let a2 = try #require(times.at("a2"))
-        #expect(a2 - a1 > 0.8, "the second authorization must wait until the first run left the gate")
+        #expect(times.at("a1") != nil)
+        #expect(times.at("a2") != nil)
     }
 
     @Test func aQueuedRequestThatIsCancelledNeverAsksOrStarts() async throws {
         let temp = try TempDir()
         defer { temp.remove() }
-        let cli = try FakeCLI(in: temp.url, mode: "slow")
-        let live = makeRunner(cli, caches: temp.url.appending(path: "c"), gate: ProviderGate())
+        let cli = try FakeCLI(in: temp.url, mode: "gated")
+        let gate = ProviderGate()
+        let live = makeRunner(cli, caches: temp.url.appending(path: "c"), gate: gate)
         let asked = LockedCounter()
         let first = Task { try await live.run(makeRequest(), authorization: allowed) }
-        _ = await eventually { !cli.read("argv").isEmpty }
+        #expect(await eventually { !cli.read("argv").isEmpty })
         let second = Task {
             try await live.run(
                 makeRequest(),
@@ -226,9 +231,10 @@ import Testing
                     return .allowed
                 })
         }
-        try await Task.sleep(for: .milliseconds(150))
+        #expect(await eventuallyAsync { await gate.queuedCount == 1 })
         second.cancel()
         await #expect(throws: (any Error).self) { try await second.value }
+        cli.release()
         _ = try await first.value
         #expect(asked.value == 0)
     }

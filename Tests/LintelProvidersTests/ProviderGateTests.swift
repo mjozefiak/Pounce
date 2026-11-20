@@ -24,55 +24,82 @@ import Testing
         }
     }
 
-    @Test func oneAtATimeInArrivalOrder() async throws {
+    // No test here orders work with a sleep: bodies wait on latches the test fires, and "is queued" is read from the
+    // gate itself. The time limit is only a guard against a hang.
+
+    @Test(.timeLimit(.minutes(1)))
+    func oneAtATimeInArrivalOrder() async throws {
         let gate = ProviderGate()
         let trace = Trace()
+        let releases = (0..<5).map { _ in Latch() }
         var tasks: [Task<Void, Error>] = []
         for index in 0..<5 {
             tasks.append(
                 Task {
                     try await gate.withSlot(.claudeCode) {
                         trace.begin("\(index)")
-                        try await Task.sleep(for: .milliseconds(30))
+                        await releases[index].wait()
                         trace.end("\(index)")
                     }
                 })
-            try await Task.sleep(for: .milliseconds(15))  // arrival order is the order of submission
+            // Arrival order is the order of submission: the previous task holds the slot or waits in the queue.
+            #expect(await eventuallyAsync { await gate.queuedCount == index })
         }
-        for task in tasks { try await task.value }
+        for index in 0..<5 {
+            await releases[index].fire()
+            try await tasks[index].value
+        }
         #expect(trace.maxRunning == 1)
         #expect(trace.events == (0..<5).flatMap { ["begin \($0)", "end \($0)"] })
     }
 
-    @Test func differentProvidersDoNotWaitForEachOther() async throws {
+    @Test(.timeLimit(.minutes(1)))
+    func differentProvidersDoNotWaitForEachOther() async throws {
         let gate = ProviderGate()
         let trace = Trace()
-        async let a: Void = gate.withSlot(.claudeCode) {
-            trace.begin("a")
-            try await Task.sleep(for: .milliseconds(150))
-            trace.end("a")
+        let aEntered = Latch()
+        let releaseA = Latch()
+        let a = Task {
+            try await gate.withSlot(.claudeCode) {
+                trace.begin("a")
+                await aEntered.fire()
+                await releaseA.wait()
+                trace.end("a")
+            }
         }
-        try await Task.sleep(for: .milliseconds(30))
-        async let b: Void = gate.withSlot(ProviderID(rawValue: "other")) {
+        await aEntered.wait()
+        // `a` still holds its slot; `b` is another provider and must run to the end meanwhile.
+        try await gate.withSlot(ProviderID(rawValue: "other")) {
             trace.begin("b")
             trace.end("b")
         }
-        _ = try await (a, b)
-        #expect(trace.events.first == "begin a" && trace.events[1] == "begin b")
+        #expect(trace.events == ["begin a", "begin b", "end b"])
+        await releaseA.fire()
+        try await a.value
+        #expect(trace.events == ["begin a", "begin b", "end b", "end a"])
     }
 
-    @Test func aCancelledWaiterLeavesTheQueueAndTheNextOneRuns() async throws {
+    @Test(.timeLimit(.minutes(1)))
+    func aCancelledWaiterLeavesTheQueueAndTheNextOneRuns() async throws {
         let gate = ProviderGate()
         let trace = Trace()
+        let holderEntered = Latch()
+        let releaseHolder = Latch()
         let holder = Task {
-            try await gate.withSlot(.claudeCode) { try await Task.sleep(for: .milliseconds(300)) }
+            try await gate.withSlot(.claudeCode) {
+                await holderEntered.fire()
+                await releaseHolder.wait()
+            }
         }
-        try await Task.sleep(for: .milliseconds(50))
+        await holderEntered.wait()
         let cancelled = Task { try await gate.withSlot(.claudeCode) { trace.begin("cancelled") } }
+        #expect(await eventuallyAsync { await gate.queuedCount == 1 })
         let next = Task { try await gate.withSlot(.claudeCode) { trace.begin("next") } }
-        try await Task.sleep(for: .milliseconds(50))
+        #expect(await eventuallyAsync { await gate.queuedCount == 2 })
         cancelled.cancel()
         await #expect(throws: (any Error).self) { try await cancelled.value }
+        #expect(await gate.queuedCount == 1)
+        await releaseHolder.fire()
         try await holder.value
         try await next.value
         #expect(trace.events == ["begin next"])

@@ -41,6 +41,11 @@ struct FakeCLI {
         try? Data(mode.utf8).write(to: dir.appending(path: "mode"))
     }
 
+    /// Lets a `gated` run finish (the fake waits for this file, at most a minute, so a broken test cannot hang it).
+    func release() {
+        try? Data().write(to: dir.appending(path: "release"))
+    }
+
     func read(_ name: String) -> String {
         (try? String(contentsOf: dir.appending(path: name), encoding: .utf8)) ?? ""
     }
@@ -93,6 +98,8 @@ struct FakeCLI {
         esac
         case "$mode" in
           ok) echo '{"type":"result","subtype":"success","is_error":false,"result":"Fake answer.","usage":{"input_tokens":3,"output_tokens":2}}';;
+          gated) i=0; while [ ! -e "$here/release" ] && [ $i -lt 1200 ]; do sleep 0.05; i=$((i+1)); done
+            echo '{"type":"result","is_error":false,"result":"slow answer"}';;
           slow) sleep 1; echo '{"type":"result","is_error":false,"result":"slow answer"}';;
           hang) sleep 30;;
           child) sleep 60 & echo $! > "$here/childpid"; wait;;
@@ -107,13 +114,43 @@ struct FakeCLI {
         """#
 }
 
-func eventually(timeout: Double = 5, _ condition: () -> Bool) async -> Bool {
+/// Waits for a state, never for a duration: the timeout is only a generous guard against a hang.
+func eventually(timeout: Double = 30, _ condition: () -> Bool) async -> Bool {
     let deadline = Date().addingTimeInterval(timeout)
     while Date() < deadline {
         if condition() { return true }
         try? await Task.sleep(for: .milliseconds(25))
     }
     return condition()
+}
+
+/// The same wait for a condition that has to be read asynchronously (an actor's state).
+func eventuallyAsync(timeout: Double = 30, _ condition: () async -> Bool) async -> Bool {
+    let deadline = Date().addingTimeInterval(timeout)
+    while Date() < deadline {
+        if await condition() { return true }
+        try? await Task.sleep(for: .milliseconds(5))
+    }
+    return await condition()
+}
+
+/// A one-shot signal: `wait()` returns once `fire()` was called, before or after. Tests order work with it instead
+/// of with sleeps.
+actor Latch {
+    private var fired = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func fire() {
+        fired = true
+        let pending = waiters
+        waiters = []
+        for waiter in pending { waiter.resume() }
+    }
+
+    func wait() async {
+        if fired { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
 }
 
 /// A runner over the fake binary and the real process runner, with a descriptor that passed the (fake) canary.
