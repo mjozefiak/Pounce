@@ -63,6 +63,8 @@ Validation gate, in order (also in `.ai/agentic.config.json`):
 2. `swift test`
 3. `swift format lint --strict -r Sources Tests`
 
+Tests are run in debug only: `swift test -c release` is not a supported mode (`@testable import` needs `-Xswiftc -enable-testing`, and even then `ClipboardPluginTests` fails to link because the test bundle references a SwiftUI opaque type from `SwiftUICore`; see issue #171).
+
 Every PR that touches Swift code or the package manifest must pass the full gate; docs-only PRs say so in the PR body. CI (`.github/workflows/ci.yml`) runs the same commands plus the `PluginHost`, `NotesPlugin` (the concurrent `RevisionWriter`, registry and reconciler tests) and `FilesPlugin` tests under `--sanitize=thread`. On a developer Mac, run `swift package resolve --disable-keychain` once after cloning so SwiftPM downloads the SQLCipher binary without a Keychain lookup.
 
 ## Further reading
