@@ -54,10 +54,10 @@ private let cleaned = "Jutro mamy spotkanie o dziesiątej, nie to znaczy o jeden
         modelURL: @escaping @Sendable () async throws -> URL = {
             URL(fileURLWithPath: "/models/test.gguf")
         },
-        timeout: Duration = .seconds(5)
+        timeout: Duration = .seconds(5), clock: any Clock<Duration> = ContinuousClock()
     ) -> (BuiltInFormatter, KeepWarmRuntime) {
         let warm = KeepWarmRuntime(runtime: runtime, modelURL: modelURL, keepWarm: { .seconds(60) })
-        return (BuiltInFormatter(runtime: warm, timeout: { _ in timeout }), warm)
+        return (BuiltInFormatter(runtime: warm, timeout: { _ in timeout }, clock: clock), warm)
     }
 
     @Test func aCleanedAnswerIsUsed() async throws {
@@ -133,20 +133,34 @@ private let cleaned = "Jutro mamy spotkanie o dziesiątej, nie to znaczy o jeden
     @Test func aSlowModelGivesTheRawChunkAtTheTimeLimit() async throws {
         let runtime = ScriptedRuntime()
         await runtime.script(answer: cleaned, delay: .seconds(30))
-        let (formatter, warm) = make(runtime, timeout: .milliseconds(80))
-        let started = ContinuousClock.now
-        let result = try await formatter.format(chunk: spoken, previousContext: nil)
+        let clock = TestClock()
+        let limit = Duration.seconds(40)
+        let (formatter, warm) = make(runtime, timeout: limit, clock: clock)
+        let task = Task { try await formatter.format(chunk: spoken, previousContext: nil) }
+        defer { task.cancel() }
+        // A formatter that measures the limit on another clock never registers here: end instead of hanging.
+        guard await clock.waitForSleepers(1, guard: .seconds(5)) else { return }
+
+        // Not before the limit.
+        clock.advance(by: limit - .milliseconds(1))
+        #expect(clock.wokenDeadlines.isEmpty)
+
+        // Exactly at it, and the registered deadline is the limit itself.
+        clock.advance(by: .milliseconds(1))
+        #expect(clock.wokenDeadlines == [TestInstant().advanced(by: limit)])
+        guard !clock.wokenDeadlines.isEmpty else { return }
+        let result = try await task.value
         #expect(result == FormatResult(text: spoken, outcome: .fellBack(.timedOut)))
-        #expect(ContinuousClock.now - started < .seconds(5))
         await warm.unload()
     }
 
     @Test func cancellingTheCallerThrowsCancellation() async throws {
         let runtime = ScriptedRuntime()
         await runtime.script(answer: cleaned, delay: .seconds(30))
-        let (formatter, warm) = make(runtime)
+        let clock = TestClock()
+        let (formatter, warm) = make(runtime, clock: clock)
         let task = Task { try await formatter.format(chunk: spoken, previousContext: nil) }
-        try await Task.sleep(for: .milliseconds(100))
+        #expect(await clock.waitForSleepers(1))
         task.cancel()
         await #expect(throws: CancellationError.self) { _ = try await task.value }
         await warm.unload()
