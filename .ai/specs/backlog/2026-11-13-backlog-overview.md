@@ -197,7 +197,7 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 
 | ID | Pytanie | Domyślnie | Zmienia |
 |---|---|---|---|
-| D-Q1 ⚠ | Kontekst domyślnie włączony? | nie | DICT-2.3, 2.4 |
+| D-Q1 ⚠ | Kontekst domyślnie włączony? | ~~nie~~ **tak** (decyzja właściciela 2026-11-20, ryzyko przyjęte; lista źródeł domyślnych do potwierdzenia: punkt Z1 specu auto-nauki) | DICT-2.3, 2.4 (do przepisania) |
 | D-Q2 | Nowy opis Dostępności w Uprawnieniach (także dla `WindowsPlugin`)? | tak | DICT-2.4 |
 | D-Q3 | Próg bramki: 5 z 20 dyktowań | tak | DICT-0.1 |
 | D-Q4 ⚠ | Jednorazowy odczyt własnej historii dyktowania narzędziem poza repozytorium (monit Pęku kluczy) i przechowanie odszyfrowanych transkryptów jako zbioru regresyjnego na zaszyfrowanym obrazie dysku do końca DICT-3.6? | tak; zapas: ręczny eksport 30 wpisów | DICT-0.1, 3.6, 4.1 |
@@ -328,3 +328,16 @@ Skutki dla backlogu według właściciela: MEET-X.1 — kryterium o fladze per s
 | D-Q10 | Uchylone (decyzja 7) |
 | M-Q5 | Uchylone dla sędziego Fable (decyzja 2) |
 | M-Q14 | Przestarzałe (decyzja 1) |
+
+## Decyzje właściciela (2026-11-20): auto-nauka słownika i kontekst domyślnie włączony
+
+Pełne tabele: `.ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md`; zmiany ADR 0010: `docs/decisions/0010-dictation-context-amendment-auto-learn.md` (Proposed).
+
+| # | Decyzja | Skutek dla backlogu |
+|---|---|---|
+| D14 | Auto-nauka słownika (DICT-2.8): wszystkie decyzje P1–P13, U1–U14, K1–K4 podjęte. Funkcja **włączona domyślnie u wszystkich, także po aktualizacji**, bez arkusza zgody, bez jednorazowego okna i bez wskaźnika obserwacji; czyta całą wartość pola we wszystkich aplikacjach poza edytowalną listą wykluczeń. Zapis: **decyzje właściciela, ryzyko przyjęte (czytanie pól bez wskaźnika i bez zgody per funkcja)**. | DICT-2.8 przepisana; otwarte punkty Z1–Z10 specu. |
+| D15 | **Kontekst dyktowania także włączony domyślnie** (odwraca D-Q1 i zasadę opt-in ADR 0010). Lista tego, co kontekst czyta domyślnie, per źródło, jest **do potwierdzenia przez właściciela, zanim cokolwiek trafi do DICT-2.x** (Z1; warianty dotykają też D-Q6 i D-Q14). | DICT-2.3 i DICT-2.4 do przepisania po Z1; nie startują wcześniej. DICT-2.1 (kontrakt) nie zależy od Z1. |
+| D16 | Zatwierdzone terminy słownika mogą iść do zewnętrznego dostawcy, gdy użytkownik go włączył; niezatwierdzone propozycje i fragmenty zdań zostają lokalnie; lokalny model może oceniać propozycje. | Spec dostawców: nowy rodzaj danych w oknie zgody (zakres do potwierdzenia, Z6). Zmiana reguł 3 i 4 ADR 0010. |
+| D17 | Licznik propozycji także przy „Dyktowanie" w pasku bocznym Ustawień (U9 = B). | Nowy addytywny człon `SettingsStatus` w kolejce `LintelKit` (koszt w DICT-2.8; Z8). |
+
+Kolejność bez zmian: wydania i tor dostawcy pierwsze; rozszerzenie kontraktu `FocusContextReader` i zmiany ADR 0010 wchodzą przed PR DICT-2.1.

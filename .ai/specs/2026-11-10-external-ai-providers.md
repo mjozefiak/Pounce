@@ -27,6 +27,7 @@ Momentem decyzji jest **wybór dostawcy i modelu w ustawieniach**: jedno świado
 | Właściciel 2026-11-19, decyzja 4 | **Żadnych oznaczeń AI/człowiek** w notatkach, także per blok. | Znacznik dostawcy to informacja o prywatności na poziomie spotkania, nie autorstwo bloku. `NoteBlockProvenance` bez zmian. |
 | Właściciel 2026-11-19, decyzja 2 | Fable ocenia notatki ze wszystkich spotkań właściciela. | To harness (`scripts/meeting-eval`), nie produkt. Zgoda w aplikacji nie obejmuje harnessu, a uchylenie M-Q5 nie włącza niczego w aplikacji. Wspólna może być wiedza (flagi, wyniki kanarka), nie kod. Narzędzie sędziego i jego kolejne przebiegi są wstrzymane do odwołania (właściciel 2026-11-19: chodziło o jednorazową ocenę z zaleceniami), więc **żadna bramka tego specu nie zależy od sędziego**. |
 | Epik DICT, nie-cel | Kontekst dyktowania nie opuszcza Maca. | Dyktowanie poza v1; Faza 4 ma własny test „żaden kontekst DICT”. |
+| Właściciel 2026-11-20 (auto-nauka słownika, decyzja P12; spec `.ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md`) | **Zatwierdzone terminy słownika dyktowania mogą iść do dostawcy, gdy użytkownik go włączył.** Niezatwierdzone propozycje, kandydaci, odrzucone pary i fragmenty zdań zostają lokalnie. Lokalny model może oceniać propozycje (to nie jest wysyłka). | Nowy rodzaj danych w „Co opuszcza Maca" i w oknie zgody; nowa `textVersion`. Zakres (w których żądaniach) jest **do potwierdzenia przez właściciela** i do tego czasu żaden kod niczego nie wysyła. Zmienia regułę 4 ADR 0010 (plik propozycji poprawki, zmiana 9). |
 
 ## ❓ Open Questions
 
@@ -277,10 +278,22 @@ Do dostawcy trafia wyłącznie:
 - (b) etykiety mówców, **w tym imiona nadane przez użytkownika i `selfName`** (dane osobowe uczestników; decyzja właściciela, powiedziane w oknie zgody);
 - (c) tylko dla spotkania powyżej budżetu: szkice notatek części w wywołaniu scalającym (tekst, który ten sam dostawca napisał z tego transkryptu);
 - (d) statyczne prompty Lintela, w tym syntetyczny przykład few-shot.
+- (e) **zatwierdzone terminy słownika dyktowania** (decyzja właściciela 2026-11-20; warunki i zakres w podsekcji niżej, zakres do potwierdzenia).
 
-**Nigdy:** audio i spool, tytuł spotkania, `source_bundle_id`, notatki użytkownika z notatnika (MEET-4.1), słownik (MEET-5.2), treść dyktowania i kontekst DICT (`FocusContext`, schowek, zaznaczenie, tytuł okna, ścieżki), nazwy i treść innych spotkań, ścieżki plików.
+**Nigdy:** audio i spool, tytuł spotkania, `source_bundle_id`, notatki użytkownika z notatnika (MEET-4.1), słownik spotkań (MEET-5.2), **niezatwierdzone propozycje słownika, kandydaci pod progiem, odrzucone pary i fragmenty zdań z auto-nauki**, usłyszane formy (warianty) terminów, treść dyktowania i kontekst DICT (`FocusContext`, schowek, zaznaczenie, tytuł okna, ścieżki, treść pola czytana przy obserwacji poprawek), nazwy i treść innych spotkań, ścieżki plików.
 
-Test: wiadomości zbudowane z fixture dla dostawcy zawierają tylko pola (a)–(d); fixture ma tytuł, `source_bundle_id` i notatkę z notatnika z ciągami-kanarkami, których nie może być w stdin.
+Test: wiadomości zbudowane z fixture dla dostawcy zawierają tylko pola (a)–(d); fixture ma tytuł, `source_bundle_id` i notatkę z notatnika z ciągami-kanarkami, których nie może być w stdin. Dodatkowo (auto-nauka): fixture ma propozycję, fragment zdania, kandydata i odrzuconą parę z ciągami-kanarkami oraz termin słownika z kanarkiem w usłyszanej formie; żadnego z tych ciągów nie ma w stdin. Zatwierdzony termin może być w stdin tylko wtedy, gdy zgoda ma bieżącą `textVersion`, która wymienia terminy słownika.
+
+### Nowy rodzaj danych: zatwierdzone terminy słownika (decyzja właściciela 2026-11-20)
+
+Źródło: decyzja P12 specu auto-nauki. Dotąd słownik był na liście „Nigdy", a ADR 0010 (reguła 4) zabraniał dodawania słownika użytkownika do żądania, które opuszcza proces.
+
+- **Co to jest.** Terminy z `Plugins/dictation/vocabulary.json`, czyli zapis docelowy („Zapisz jako") każdego wpisu. Zatwierdzona propozycja z auto-nauki staje się zwykłym wpisem słownika i nie da się jej odróżnić od wpisu dodanego ręcznie, więc ten rodzaj danych obejmuje **cały słownik**, nie tylko terminy z auto-nauki. Usłyszane formy (warianty) nie są wysyłane (robocze, do potwierdzenia razem z zakresem).
+- **Co zostaje lokalnie, zawsze.** Niezatwierdzone propozycje, kandydaci pod progiem, odrzucone pary i fragmenty zdań. Żaden z nich nie jest częścią żadnego żądania do dostawcy ani do „Mojego serwera".
+- **Warunek.** Użytkownik włączył dostawcę i zaakceptował okno zgody w wersji, która wymienia terminy słownika. Dodanie tego rodzaju danych zmienia `textVersion`, więc zgoda udzielona wcześniej przestaje być ważna i okno pojawia się ponownie (istniejąca reguła `providerConsent`).
+- **Dlaczego to dane wrażliwe.** Słownik zawiera to, czego dyktowanie nie zna: nazwiska klientów i współpracowników, nazwy projektów i produktów. Po wysłaniu podlegają zasadom dostawcy i nie da się ich cofnąć. Termin trafia do słownika jednym kliknięciem ✓ na propozycji.
+- **Model lokalny.** Ocena propozycji przez model wbudowany (decyzja P12.2 = B) dzieje się na Macu, nie przechodzi przez `LintelProviders` i nie jest wysyłką.
+- **Do potwierdzenia przez właściciela (punkt Z6 specu auto-nauki), zanim powstanie kod:** (1) w których żądaniach terminy są dołączane: w notatkach ze spotkań (jedyna funkcja dostawcy w v1, `meetings.notes`; terminy jako lista pisowni nazw) czy dopiero w przyszłym dyktowaniu przez dostawcę (Faza 4, własna zgoda `dictation.cleanup`); (2) czy wysyłany jest cały słownik, czy tylko terminy pasujące do danego tekstu; (3) czy „Mój serwer" też dostaje terminy; (4) czy zmiana reguły 4 ADR 0010 wymaga nowego numeru ADR, jak ta reguła mówi. Do odpowiedzi PR-y tego specu nie dołączają terminów do żadnego żądania, a test „Co opuszcza Maca" trzyma słownik na liście zakazanej.
 
 **Wysyłka w całości a wcześniejsze brzmienie.** Zakres danych się nie zmienił: transkrypt z imionami i znacznikami czasu, tak jak rozstrzygnięto 2026-11-19. Zmienił się sposób: zamiast kilku małych kawałków w kolejnych procesach idzie cały transkrypt w pierwszym. Skutek dla użytkownika jest jeden i jest nazwany w Risks: powrót na „Built-in” w trakcie zadania nie ogranicza już tego, co wyszło.
 
@@ -352,6 +365,7 @@ Port nie ma metody „podaj kawałki”: generator dostaje gotowe wiadomości i 
   - dotyczy to także **starszych spotkań**, nagranych przed tą zmianą, gdy użyjesz na nich „Regenerate Notes” (w bibliotece, w oknie spotkania albo w Notes);
   - wysyłka dzieje się także **automatycznie, bez Twojego kliknięcia**: po zakończeniu nagrania, przy dokończeniu przerwanego spotkania (także w tle po ponownym uruchomieniu Lintela) i przy ponownym pisaniu notatek po zmianie imienia mówcy albo Twojego imienia, a także przy **automatycznych ponowieniach** (ponowna próba po błędzie albo przekroczeniu czasu wysyła transkrypt jeszcze raz);
   - razem z tekstem idą **znaczniki czasu segmentów** (`[mm:ss]`);
+  - (po potwierdzeniu zakresu, decyzja właściciela 2026-11-20) razem z tekstem idą **terminy z Twojego słownika dyktowania** (nazwy, które dodałeś albo zatwierdziłeś z propozycji); propozycje, których nie zatwierdziłeś, nie są wysyłane;
   - audio, tytuły spotkań i inne dane nie są wysyłane;
   - tekst podlega zasadom dostawcy i Twojej subskrypcji; dostawca może go przechowywać według swoich zasad;
   - **uczestnicy spotkań nie są o tym informowani przez Lintela; poinformowanie ich należy do Ciebie**;
