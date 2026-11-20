@@ -97,6 +97,29 @@ import Testing
         #expect(issues.first?.sourceLocation?.line == line)
     }
 
+    @MainActor @Test func aChangeBellConditionCanReadMainActorStateAndThrow() async throws {
+        let model = Model()
+        let bell = ChangeBell()
+        Task { @MainActor in
+            await Task.yield()
+            model.value = 1
+            bell.ring()
+        }
+        #expect(await bell.wait { model.value == 1 })
+        struct Boom: Error {}
+        await #expect(throws: Boom.self) {
+            _ = try await bell.wait { throw Boom() }
+        }
+    }
+
+    @Test func anIssueFromAWaitInAChildTaskLandsInTheCallingTest() async {
+        let issues = await recordedIssues {
+            await Task { await Latch().wait(guard: .milliseconds(30), "a child task's latch") }.value
+            await OtherActor().expire()
+        }
+        #expect(issues.count == 2)
+    }
+
     // MARK: waitForObserved
 
     @Observable @MainActor final class Model {
@@ -132,6 +155,16 @@ import Testing
     }
 
     // MARK: pollUntil
+
+    @MainActor @Test func pollUntilCanReadMainActorState() async throws {
+        let model = Model()
+        Task { @MainActor in
+            await Task.yield()
+            model.value = 3
+        }
+        #expect(await pollUntil("the value to reach 3") { model.value == 3 })
+        #expect(try await pollUntil("a throwing condition") { model.value == 3 })
+    }
 
     @Test func pollUntilReturnsWhenTheConditionHolds() async {
         let counter = CountLatch()
@@ -177,13 +210,17 @@ import Testing
     }
 
     @Test func theSpinGuardStopsALoopThatSleepsWithoutEndAndReportsOnce() async {
-        let clock = ImmediateClock(maxSleeps: 50)
+        var line = 0
+        var clock = ImmediateClock()
         let issues = await recordedIssues {
+            line = #line + 1
+            clock = ImmediateClock(maxSleeps: 50)
             var calls = 0
             while (try? await clock.sleep(for: .milliseconds(1))) != nil, calls < 10_000 { calls += 1 }
             #expect(calls == 50)
         }
         #expect(issues.count == 1)
+        #expect(issues.first?.sourceLocation?.line == line)
     }
 
     @Test func aNeverClockEndsOnlyByCancellationAndLeavesNothingRegistered() async {
@@ -194,4 +231,8 @@ import Testing
         #expect(await task.value == .cancelled)
         #expect(clock.sleeperCount == 0)
     }
+}
+
+private actor OtherActor {
+    func expire() async { await Latch().wait(guard: .milliseconds(30), "another actor's latch") }
 }

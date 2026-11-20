@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 
 /// A point on a test clock: an offset from the clock's start.
@@ -32,6 +33,7 @@ public final class TestClock: Clock, Sendable {
         var sleepers: [Int: Sleeper] = [:]
         var sleepCalls = 0
         var cancelledSleeps = 0
+        var finished = false
         var wokenDeadlines: [TestInstant] = []
     }
 
@@ -57,20 +59,21 @@ public final class TestClock: Clock, Sendable {
     public var wokenDeadlines: [TestInstant] { state.read { $0.wokenDeadlines } }
 
     public func sleep(until deadline: TestInstant, tolerance: Duration? = nil) async throws {
-        let id = state.mutate { state -> Int in
-            state.nextID += 1
-            return state.nextID
-        }
+        enum Decision { case suspend, due, cancelled }
+        // Set under the state lock when the sleeper is stored; the cancel handler reads it under the same lock.
+        let registered = Mutex<Int?>(nil)
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
-                enum Decision { case suspend, due, cancelled }
                 let decision = state.mutate { state -> Decision in
                     state.sleepCalls += 1
-                    if Task.isCancelled {
+                    if state.finished || Task.isCancelled {
                         state.cancelledSleeps += 1
                         return .cancelled
                     }
                     if deadline <= state.now { return .due }
+                    state.nextID += 1
+                    let id = state.nextID
+                    registered.withLock { $0 = id }
                     state.sleepers[id] = Sleeper(id: id, deadline: deadline, continuation: continuation)
                     return .suspend
                 }
@@ -81,8 +84,12 @@ public final class TestClock: Clock, Sendable {
                 }
             }
         } onCancel: {
+            // Read under the state lock, which also serialises the registration: either the sleeper is stored, or
+            // the registration has not run yet and will see `Task.isCancelled`.
             let continuation = state.mutate { state -> CheckedContinuation<Void, any Error>? in
-                guard let sleeper = state.sleepers.removeValue(forKey: id) else { return nil }
+                guard let id = registered.withLock({ $0 }), let sleeper = state.sleepers.removeValue(forKey: id) else {
+                    return nil
+                }
                 state.cancelledSleeps += 1
                 return sleeper.continuation
             }
@@ -90,8 +97,13 @@ public final class TestClock: Clock, Sendable {
         }
     }
 
-    /// Moves time forward and wakes every sleeper that is now due, earliest deadline first (ties in the order they
-    /// went to sleep).
+    /// Moves time forward by `duration` in ONE step and wakes every sleeper that is now due.
+    ///
+    /// - Time jumps straight to the end: `advance(by: .seconds(5))` is not five advances of one second. A loop
+    ///   that sleeps 1 s and is woken sleeps again until `now + 1 s`, so it ticks once, not five times; call
+    ///   `advance` once per tick to drive such a loop.
+    /// - The sleepers are RESUMED in deadline order (ties in the order they went to sleep; see `wokenDeadlines`),
+    ///   but the woken tasks then run concurrently, in no guaranteed order.
     public func advance(by duration: Duration) {
         let due = state.mutate { state -> [Sleeper] in
             state.now = state.now.advanced(by: duration)
@@ -107,17 +119,38 @@ public final class TestClock: Clock, Sendable {
         for sleeper in due { sleeper.continuation.resume() }
     }
 
+    /// Ends the clock: every sleeper wakes with `CancellationError`, every later `sleep` throws it at once, and
+    /// the number of sleepers that were still asleep is returned (a leak check for the end of a test).
+    @discardableResult
+    public func finish() -> Int {
+        let left = state.mutate { state -> [Sleeper] in
+            state.finished = true
+            let left = state.sleepers.values.sorted { $0.id < $1.id }
+            state.sleepers.removeAll()
+            state.cancelledSleeps += left.count
+            return left
+        }
+        for sleeper in left { sleeper.continuation.resume(throwing: CancellationError()) }
+        return left.count
+    }
+
     // MARK: Bounded waits
 
     /// Waits until at least `count` sleepers are asleep. A sleeper that was cancelled does not count.
+    ///
+    /// With `dueWithin`, only sleepers whose deadline is at most `dueWithin` after the clock's current time are
+    /// counted, so a short timer is not mistaken for a long idle one.
     @discardableResult
     public func waitForSleepers(
         _ count: Int,
+        dueWithin horizon: Duration? = nil,
         guard limit: Duration = .seconds(60),
         sourceLocation: SourceLocation = #_sourceLocation
     ) async -> Bool {
-        await state.wait("\(count) sleeper(s) to be asleep", guard: limit, sourceLocation: sourceLocation) {
-            $0.sleepers.count >= count
+        await state.wait("\(count) sleeper(s) to be asleep", guard: limit, sourceLocation: sourceLocation) { state in
+            guard let horizon else { return state.sleepers.count >= count }
+            let edge = state.now.advanced(by: horizon)
+            return state.sleepers.values.filter { $0.deadline <= edge }.count >= count
         }
     }
 
@@ -185,8 +218,13 @@ public struct ImmediateClock: Clock, Sendable {
 
     private let state = Waitable(State())
     public let maxSleeps: Int
+    private let sourceLocation: SourceLocation
 
-    public init(maxSleeps: Int = 20_000) { self.maxSleeps = maxSleeps }
+    /// `sourceLocation` is where the spin guard's issue points: the test that built the clock.
+    public init(maxSleeps: Int = 20_000, sourceLocation: SourceLocation = #_sourceLocation) {
+        self.maxSleeps = maxSleeps
+        self.sourceLocation = sourceLocation
+    }
 
     public var now: TestInstant { state.read { $0.now } }
     public var minimumResolution: Duration { .nanoseconds(1) }
@@ -207,7 +245,9 @@ public struct ImmediateClock: Clock, Sendable {
         }
         if verdict.spin {
             if verdict.first {
-                Issue.record("ImmediateClock: more than \(maxSleeps) sleeps; stopping the loop that spins on it")
+                Issue.record(
+                    "ImmediateClock: more than \(maxSleeps) sleeps; stopping the loop that spins on it",
+                    sourceLocation: sourceLocation)
             }
             throw CancellationError()
         }
@@ -217,7 +257,7 @@ public struct ImmediateClock: Clock, Sendable {
     }
 }
 
-/// Sleeps that end only by cancellation. Nothing real is waited on: a sleeper is a stored continuation, so a
+/// Sleeps that end only by cancellation (a zero or past deadline still returns at once, as on `TestClock`). Nothing real is waited on: a sleeper is a stored continuation, so a
 /// forgotten one is cleaned up when its task is cancelled and costs no timer.
 public struct NeverClock: Clock, Sendable {
     public typealias Instant = TestInstant
@@ -229,6 +269,10 @@ public struct NeverClock: Clock, Sendable {
     public var now: TestInstant { inner.now }
     public var minimumResolution: Duration { .nanoseconds(1) }
     public var sleeperCount: Int { inner.sleeperCount }
+
+    /// Cancels every sleeper and makes later sleeps throw; returns how many were asleep.
+    @discardableResult
+    public func finish() -> Int { inner.finish() }
 
     public func sleep(until deadline: TestInstant, tolerance: Duration? = nil) async throws {
         try await inner.sleep(until: deadline, tolerance: tolerance)

@@ -52,6 +52,15 @@ import Testing
         }
     }
 
+    @Test func noProductExposesTheSupportTarget() throws {
+        let manifest = try String(contentsOf: root.appending(path: "Package.swift"), encoding: .utf8)
+        let start = try #require(manifest.range(of: "products:"), "Package.swift declares products")
+        let end = try #require(manifest.range(of: "dependencies:", range: start.upperBound..<manifest.endIndex))
+        #expect(
+            !manifest[start.upperBound..<end.lowerBound].contains("LintelTestSupport"),
+            "a product must not ship LintelTestSupport")
+    }
+
     @Test func theSupportTargetDependsOnNoRepositoryTargetAndNoPackage() throws {
         let text = try #require(try declarations().first { $0.text.contains("name: \"LintelTestSupport\"") }).text
         #expect(!text.contains("dependencies:"), "LintelTestSupport takes no dependency")

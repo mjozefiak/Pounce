@@ -72,17 +72,21 @@ public final class ChangeBell: Sendable {
         await state.waitOutcome(guard: limit, until: { $0 > seen })
     }
 
+    /// Waits until `condition` holds, re-checking it after every `ring()`. The condition runs on the caller's
+    /// actor (`isolation`), so a `@MainActor` test can read main-actor state; it may be async and may throw (the
+    /// error is rethrown).
     @discardableResult
     public func wait(
+        isolation: isolated (any Actor)? = #isolation,
         guard limit: Duration = .seconds(60),
         _ what: String = "the condition to hold",
         sourceLocation: SourceLocation = #_sourceLocation,
-        until condition: () -> Bool
-    ) async -> Bool {
+        until condition: () async throws -> Bool
+    ) async rethrows -> Bool {
         let deadline = ContinuousClock.now.advanced(by: limit)
         while true {
             let seen = state.read { $0 }
-            if condition() { return true }
+            if try await condition() { return true }
             let remaining = ContinuousClock.now.duration(to: deadline)
             guard remaining > .zero else { break }
             switch await waitForRing(after: seen, guard: remaining) {
@@ -90,7 +94,7 @@ public final class ChangeBell: Sendable {
             case .cancelled: return false
             }
         }
-        if condition() { return true }
+        if try await condition() { return true }
         recordTimeout(what, limit, sourceLocation)
         return false
     }
@@ -100,7 +104,8 @@ public final class ChangeBell: Sendable {
 ///
 /// The condition is evaluated again after every change notification. `onChange` fires on `willSet`, so the
 /// re-evaluation is reliable for state that is changed on the main actor (the case this is for): the main actor
-/// is busy with the mutation until it has finished.
+/// is busy with the mutation until it has finished. A mutation made OFF the main actor can be missed until the
+/// next change (`onChange` may run before the new value is visible), so ring a `ChangeBell` from such code instead.
 @MainActor
 @discardableResult
 public func waitForObserved(
@@ -131,15 +136,16 @@ public func waitForObserved(
 /// `ChangeBell` or `waitForObserved`.
 @discardableResult
 public func pollUntil(
+    isolation: isolated (any Actor)? = #isolation,
     _ what: String,
     guard limit: Duration = .seconds(60),
     every interval: Duration = .milliseconds(10),
     sourceLocation: SourceLocation = #_sourceLocation,
-    _ condition: () async -> Bool
-) async -> Bool {
+    _ condition: () async throws -> Bool
+) async rethrows -> Bool {
     let deadline = ContinuousClock.now.advanced(by: limit)
     while true {
-        if await condition() { return true }
+        if try await condition() { return true }
         if Task.isCancelled { return false }
         guard ContinuousClock.now < deadline else { break }
         do { try await Task.sleep(for: interval) } catch { return false }

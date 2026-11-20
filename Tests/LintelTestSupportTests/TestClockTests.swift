@@ -144,6 +144,51 @@ import Testing
         #expect(issues.count == 1)
     }
 
+    @Test func waitForSleepersCanCountOnlyTheSleepersDueWithinAHorizon() async {
+        let clock = TestClock()
+        let long = Task { await sleepEnd { try await clock.sleep(for: .seconds(3600)) } }
+        #expect(await clock.waitForSleepers(1))
+        let issues = await recordedIssues {
+            let seen = await clock.waitForSleepers(1, dueWithin: .seconds(10), guard: .milliseconds(30))
+            #expect(!seen)
+        }
+        #expect(issues.count == 1)
+        let short = Task { await sleepEnd { try await clock.sleep(for: .seconds(2)) } }
+        #expect(await clock.waitForSleepers(1, dueWithin: .seconds(10)))
+        #expect(await clock.waitForSleepers(2))
+        clock.advance(by: .seconds(2))
+        #expect(await short.value == .woken)
+        #expect(clock.finish() == 1)
+        #expect(await long.value == .cancelled)
+    }
+
+    @Test func finishCancelsEverySleeperCountsThemAndMakesLaterSleepsThrow() async {
+        let clock = TestClock()
+        let tasks = (0..<3).map { _ in Task { await sleepEnd { try await clock.sleep(for: .seconds(60)) } } }
+        #expect(await clock.waitForSleepers(3))
+        #expect(clock.finish() == 3)
+        for task in tasks { #expect(await task.value == .cancelled) }
+        #expect(clock.sleeperCount == 0)
+        #expect(await sleepEnd { try await clock.sleep(for: .seconds(1)) } == .cancelled)
+        #expect(clock.finish() == 0)
+        #expect(clock.cancelledSleeps == 4)
+    }
+
+    @Test func advanceJumpsInOneStepSoALoopTicksOnce() async {
+        let clock = TestClock()
+        let ticks = CountLatch()
+        let loop = Task {
+            while (try? await clock.sleep(for: .seconds(1))) != nil { ticks.increment() }
+        }
+        #expect(await clock.waitForSleepers(1))
+        clock.advance(by: .seconds(5))
+        #expect(await ticks.wait(atLeast: 1))
+        #expect(await clock.waitForSleepers(1))
+        #expect(ticks.count == 1)
+        loop.cancel()
+        await loop.value
+    }
+
     @Test func waitForSleepCallsCountsEveryCall() async throws {
         let clock = TestClock()
         try await clock.sleep(for: .zero)

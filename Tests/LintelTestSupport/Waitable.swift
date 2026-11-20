@@ -130,6 +130,9 @@ final class Waitable<Value: Sendable>: Sendable {
     }
 }
 
+/// The issue belongs to the test of the task that is waiting (`Test.current` follows task-local state), so a wait
+/// run from a child `Task {}` or another actor is reported in the calling test. A wait run from `Task.detached` or
+/// a GCD callback has no test: the issue would be recorded outside any test, so await the wait from the test.
 func recordTimeout(_ what: String, _ limit: Duration, _ sourceLocation: SourceLocation) {
     Issue.record("Timed out after \(limit) waiting for \(what)", sourceLocation: sourceLocation)
 }
