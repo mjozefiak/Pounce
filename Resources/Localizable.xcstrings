@@ -25255,24 +25255,6 @@
         }
       }
     },
-    "Another copy of Lintel is running from Applications. Quit it, then open this copy again." : {
-      "comment" : "Move to Applications error: a copy in Applications is running",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Another copy of Lintel is running from Applications. Quit it, then open this copy again."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inna kopia aplikacji Lintel działa z folderu Aplikacje. Zamknij ją, a potem otwórz ponownie tę kopię."
-          }
-        }
-      }
-    },
     "Don't Move" : {
       "comment" : "Move to Applications alert: button that keeps the app",
       "extractionState" : "manual",
@@ -25647,6 +25629,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lintel nie może zapisywać w folderze Aplikacje bez uprawnień administratora. Przenieść go zamiast tego do folderu Aplikacje w Twoim folderze domowym?"
+          }
+        }
+      }
+    },
+    "Another copy of Lintel is running. Quit it and try again." : {
+      "comment" : "Move to Applications error: another copy of Lintel runs, from any location",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another copy of Lintel is running. Quit it and try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Działa inna kopia aplikacji Lintel. Zamknij ją i spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "An older copy stays in Applications; an administrator can remove it." : {
+      "comment" : "Move to Applications alert: added when an existing copy in the system Applications folder stays",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An older copy stays in Applications; an administrator can remove it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starsza kopia pozostaje w folderze Aplikacje; usunąć ją może administrator."
           }
         }
       }

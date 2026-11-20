@@ -211,6 +211,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
     }
 
     func open(_ url: URL, newInstance: Bool) async throws {
+        log.append("open \(url.path)")
         if failing.contains(.open) { throw Failure() }
         opened.append(url.path)
         openedAsNewInstance.append(newInstance)
@@ -311,7 +312,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         let before = disk.items
         try await Self.mover(disk).openInstalledCopy()
         #expect(disk.items == before)
-        #expect(disk.log.isEmpty)
+        #expect(disk.log == ["open \(Self.destination)"], "nothing but the open")
         #expect(disk.opened == [Self.destination])
         #expect(disk.openedAsNewInstance == [true], "this copy has the same bundle identifier, so it starts a new one")
         #expect(disk.quitCalls == 1)
@@ -350,10 +351,37 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         #expect(!disk.log.contains { $0.hasPrefix("remove ") && $0.contains("Downloads") })
         let rename = disk.log.firstIndex(of: "move \(Self.staging) -> \(Self.destination)")
         let trash = disk.log.firstIndex(of: "trash \(Self.downloads.path)")
-        #expect((rename ?? .max) < (trash ?? .min), "after the new copy is in place")
+        let open = disk.log.firstIndex(of: "open \(Self.destination)")
+        #expect((rename ?? .max) < (open ?? .min), "the copy is in place before it is opened")
+        #expect((open ?? .max) < (trash ?? .min), "the original goes to the Trash only after the open succeeded")
         #expect(disk.items[Self.destination]?.identity == "new")
         #expect(disk.opened == [Self.destination])
         #expect(disk.quitCalls == 1)
+    }
+
+    @Test func aFailedOpenKeepsTheOriginalAndTheLaunchGoesOn() async {
+        let disk = Self.makeDisk(runningFrom: Self.downloads)
+        disk.failing = [.open]
+        await #expect(throws: MoveToApplications.Failure.openFailed) {
+            try await Self.mover(disk).run(from: Self.downloads)
+        }
+        #expect(disk.items[Self.downloads.path]?.identity == "new", "the original stays where it is")
+        #expect(!disk.log.contains("trash \(Self.downloads.path)"))
+        #expect(disk.quitCalls == 0)
+        // Through the prompt: the failure is reported and the launch continues.
+        var reported: [MoveToApplications.Failure] = []
+        let second = Self.makeDisk(runningFrom: Self.downloads)
+        second.failing = [.open]
+        var offer = MoveToApplicationsPrompt(settings: InMemorySettingsStore(), mover: Self.mover(second))
+        offer.ask = { _ in .init(move: true, dontAskAgain: false) }
+        offer.report = { reported.append($0) }
+        let outcome = await offer.offerIfNeeded(
+            bundleURL: Self.downloads, home: URL(filePath: "/Users/tester", directoryHint: .isDirectory))
+        #expect(outcome == .failed(.openFailed))
+        #expect(outcome.continuesLaunch)
+        #expect(reported == [.openFailed])
+        #expect(second.items[Self.downloads.path]?.identity == "new")
+        #expect(MoveToApplicationsPrompt.failureMessage(.openFailed).contains("could not be opened"))
     }
 
     @Test func theOriginalStaysWhenTheNewCopyDoesNotVerify() async throws {
@@ -363,6 +391,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         #expect(disk.items[Self.downloads.path]?.identity == "new")
         #expect(!disk.log.contains("trash \(Self.downloads.path)"))
         #expect(disk.quitCalls == 1, "the move itself still succeeded")
+        #expect(!disk.log.contains { $0.hasPrefix("trash") && $0.contains("Downloads") }, "never opened-then-trashed")
     }
 
     @Test(arguments: ["mounted", "translocated", "readOnly"])
@@ -739,7 +768,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         ).offerIfNeeded(bundleURL: MoveToApplicationsFlowTests.source, home: Self.home)
         #expect(refused == .failed(.destinationRunning))
         #expect(reported == [.destinationRunning])
-        #expect(!MoveToApplicationsPrompt.failureMessage(.destinationRunning).isEmpty)
+        #expect(!MoveToApplicationsPrompt.failureMessage(.destinationRunning).contains("from Applications"))
     }
 
     @Test func aNewerInstalledCopyGetsItsOwnAlertAndOpensInstead() async {
@@ -952,9 +981,27 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
         #expect(
             MoveToApplicationsPrompt.makeAlert(.move(folder: "/Applications")).informativeText.contains("/Applications")
         )
-        let fallback = MoveToApplicationsPrompt.makeAlert(.fallbackToUserApplications)
+        let fallback = MoveToApplicationsPrompt.makeAlert(.fallbackToUserApplications(olderCopyStays: false))
         #expect(fallback.informativeText.contains("administrator"))
         #expect(fallback.buttons.map(\.title) == ["Move", "Don't Move"])
+        #expect(!fallback.informativeText.contains("older copy stays"))
+        let two = MoveToApplicationsPrompt.makeAlert(.fallbackToUserApplications(olderCopyStays: true))
+        #expect(two.informativeText.contains("An older copy stays in Applications; an administrator can remove it."))
+    }
+
+    @Test func theFallbackAlertMentionsAnOlderCopyOnlyWhenOneExists() async {
+        let disk = Self.disk(unwritable: ["/Applications/Lintel.app"], existingCopy: "/Applications/Lintel.app")
+        disk.items["/Applications/Lintel.app"]?.build = "1"
+        disk.items[MoveToApplicationsFlowTests.source.path] = .init(identity: "new", quarantined: true, build: "2")
+        var variants: [MoveToApplicationsPrompt.Variant] = []
+        var prompt = MoveToApplicationsPrompt(
+            settings: InMemorySettingsStore(), mover: MoveToApplicationsFlowTests.mover(disk))
+        prompt.ask = {
+            variants.append($0)
+            return .init(move: false, dontAskAgain: false)
+        }
+        _ = await prompt.offerIfNeeded(bundleURL: MoveToApplicationsFlowTests.source, home: Self.home)
+        #expect(variants == [.fallbackToUserApplications(olderCopyStays: true)])
     }
 
     @Test func theOfferUsesTheChosenFolderAndTheFallback() async {
@@ -965,7 +1012,7 @@ final class FakeInstallDisk: InstallFileManaging, RunningAppListing, QuarantineR
                 "/Users/tester/Applications/Lintel.app"
             ),
             (
-                Self.disk(unwritable: ["/Applications"]), .fallbackToUserApplications,
+                Self.disk(unwritable: ["/Applications"]), .fallbackToUserApplications(olderCopyStays: false),
                 "/Users/tester/Applications/Lintel.app"
             ),
         ] {

@@ -11,7 +11,9 @@ struct MoveToApplicationsPrompt {
         /// (`/Applications` or `~/Applications`).
         case move(folder: String)
         /// `/Applications` cannot be written without an administrator: offer `~/Applications` instead.
-        case fallbackToUserApplications
+        /// `olderCopyStays`: a copy in the system Applications folder exists and cannot be replaced, so two copies
+        /// will exist.
+        case fallbackToUserApplications(olderCopyStays: Bool)
         /// A copy with a higher build number is already in Applications: Open Installed Copy, Don't Move. Nothing
         /// is replaced.
         case newerInstalled
@@ -79,9 +81,12 @@ struct MoveToApplicationsPrompt {
             variant = .move(folder: InstallDestination.displayPath(folder, home: home))
         case .fallbackToUserApplications(let folder), .needsAuthorization(let folder):
             _ = folder
+            let stays = mover.files.itemExists(
+                at: InstallDestination.systemApplications.appending(
+                    path: ApplicationLocation.bundleName, directoryHint: .isDirectory))
             let user = InstallDestination.userApplications(home: home)
             mover.destination = user.appending(path: ApplicationLocation.bundleName, directoryHint: .isDirectory)
-            variant = .fallbackToUserApplications
+            variant = .fallbackToUserApplications(olderCopyStays: stays)
         }
         // A newer copy in either Applications folder is never replaced or shadowed by an older one in the other
         // (the chosen folder first); the alert offers to open that copy.
@@ -139,11 +144,16 @@ struct MoveToApplicationsPrompt {
             comment: "Move to Applications alert: title when the system Applications folder is not writable")
     }
 
-    static var fallbackMessage: String {
-        String(
+    static func fallbackMessage(olderCopyStays: Bool) -> String {
+        let base = String(
             localized:
                 "Lintel cannot write to the Applications folder without an administrator. Move it to the Applications folder in your home folder instead?",
             comment: "Move to Applications alert: explanation when the system Applications folder is not writable")
+        guard olderCopyStays else { return base }
+        let note = String(
+            localized: "An older copy stays in Applications; an administrator can remove it.",
+            comment: "Move to Applications alert: added when an existing copy in the system Applications folder stays")
+        return base + " " + note
     }
 
     static var newerInstalledTitle: String {
@@ -167,9 +177,9 @@ struct MoveToApplicationsPrompt {
         case .move(let folder):
             alert.messageText = title
             alert.informativeText = message(folder: folder)
-        case .fallbackToUserApplications:
+        case .fallbackToUserApplications(let olderCopyStays):
             alert.messageText = fallbackTitle
-            alert.informativeText = fallbackMessage
+            alert.informativeText = fallbackMessage(olderCopyStays: olderCopyStays)
         case .newerInstalled:
             alert.messageText = newerInstalledTitle
             alert.informativeText = newerInstalledMessage
@@ -227,8 +237,8 @@ struct MoveToApplicationsPrompt {
         switch failure {
         case .destinationRunning:
             String(
-                localized: "Another copy of Lintel is running from Applications. Quit it, then open this copy again.",
-                comment: "Move to Applications error: a copy in Applications is running")
+                localized: "Another copy of Lintel is running. Quit it and try again.",
+                comment: "Move to Applications error: another copy of Lintel runs, from any location")
         case .installedCopyIsNewer:
             String(
                 localized: "The copy in Applications is newer than this one, so it was not replaced.",
@@ -303,7 +313,10 @@ struct QAInstallFakes: InstallFileManaging, RunningAppListing, QuarantineRemovin
         url.path == "/Applications/Lintel.app" || url.path == userApplications.appending(path: "Lintel.app").path
     }
 
-    func itemExists(at url: URL) -> Bool { scenario == .newer && isInstalledCopy(url) }
+    func itemExists(at url: URL) -> Bool {
+        (scenario == .newer && isInstalledCopy(url))
+            || (scenario == .unwritable && url.path == "/Applications/Lintel.app")
+    }
     func childNames(in folder: URL) -> [String] { [] }
     func directoryExists(at url: URL) -> Bool {
         url.path == "/Applications" || (scenario == .userApplications && url.path == userApplications.path)

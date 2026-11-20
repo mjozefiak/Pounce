@@ -202,20 +202,23 @@ struct MoveToApplications {
             guard let trashed else { throw .installFailedNothingReplaced }
             throw .installFailed(restored: restore(trashed))
         }
-        trashOriginalIfVerified(source)
+        // Order: verify the new copy on disk, open it, and only when the open reported success move the original to
+        // the Trash, then quit. A failed open leaves the original where it is and this launch goes on.
+        let verified = newCopyIsVerified(source)
         do {
             try await relauncher.open(destination, newInstance: true)
         } catch {
             log("Cannot open the moved copy", error)
             throw .openFailed
         }
+        if verified { trashOriginal(source) }
         relauncher.quit()
     }
 
-    /// Moves the original to the Trash (reversible, never deleted) once the new copy is verified: it exists and has the
-    /// source's bundle identifier and build number. Never for a source on a read-only volume, a disk image or an App
+    /// `newCopyIsVerified`: the new copy exists and has the source's bundle identifier and build number, read from disk.
+    /// `trashOriginal` moves the original to the Trash (reversible, never deleted), only after a successful open. Never for a source on a read-only volume, a disk image or an App
     /// Translocation path (nothing to trash there), nor inside an Applications folder. A failure is only logged.
-    private func trashOriginalIfVerified(_ source: URL) {
+    private func newCopyIsVerified(_ source: URL) -> Bool {
         guard files.itemExists(at: destination),
             let identifier = versions.bundleIdentifier(ofBundleAt: source),
             let build = versions.buildNumber(ofBundleAt: source),
@@ -223,8 +226,12 @@ struct MoveToApplications {
             versions.buildNumber(ofBundleAt: destination) == build
         else {
             logger.error("The new copy could not be verified; the original stays where it is")
-            return
+            return false
         }
+        return true
+    }
+
+    private func trashOriginal(_ source: URL) {
         let location = ApplicationLocation.classify(
             bundleURL: source, allowedFolders: ApplicationLocation.allowedFolders(home: home))
         // Defence in depth: `classify` resolves links, case and firmlinks for paths that exist, but a source path that
