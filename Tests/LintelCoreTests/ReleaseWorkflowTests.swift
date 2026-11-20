@@ -105,7 +105,7 @@ import Testing
         #expect(
             signSecrets == [
                 "DEVELOPER_ID_P12", "DEVELOPER_ID_P12_PASSWORD", "NOTARY_KEY_P8", "NOTARY_KEY_ID",
-                "NOTARY_ISSUER_ID",
+                "NOTARY_ISSUER_ID", "SPARKLE_ED_PRIVATE_KEY",
             ])
         let publishSecrets = code(try #require(jobs["publish"])).joined().matches(of: /secrets\.([A-Z0-9_]+)/)
             .map { String($0.1) }
@@ -250,6 +250,82 @@ import Testing
         #expect(order.lowerBound < create.lowerBound)
         #expect(publish.contains("fetch-depth: 0"))
         #expect(publish.contains("persist-credentials: false"))
+    }
+
+    // MARK: Appcast (spec Step 4.7)
+
+    @Test func theSparkleKeyExistsOnlyInTheSignJob() throws {
+        let jobs = try jobs()
+        for name in ["build", "publish"] {
+            #expect(
+                !(try #require(jobs[name])).joined(separator: "\n").contains("SPARKLE_ED_PRIVATE_KEY"),
+                "\(name) must not see the Sparkle key")
+        }
+        let header = try workflow().components(separatedBy: "\njobs:\n")[0]
+        #expect(!code(header.components(separatedBy: "\n")).joined().contains("SPARKLE_ED_PRIVATE_KEY"))
+        // In sign the secret is read through env: only, never in a run: text, and nothing traces the shell.
+        let sign = code(try #require(jobs["sign"]))
+        for line in sign where line.contains("SPARKLE_ED_PRIVATE_KEY") {
+            #expect(
+                line.trimmingCharacters(in: .whitespaces)
+                    == "SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}",
+                "The key may only be passed as a step env entry: \(line)")
+        }
+        #expect(!(try workflow()).contains("set -x"))
+        #expect(!(try workflow()).contains("--ed-key-file"), "Only scripts/sparkle-sign.sh calls sign_update")
+        let executable = code(try workflow().components(separatedBy: "\n")).joined(separator: "\n")
+        #expect(!executable.contains("sign_update"), "Only scripts/sparkle-sign.sh calls sign_update")
+    }
+
+    @Test func theKeyPairIsCheckedBeforeAnythingIsSignedOrUploaded() throws {
+        let sign = code(try #require(try jobs()["sign"])).joined(separator: "\n")
+        let check = try #require(
+            sign.range(of: "scripts/sparkle-sign.sh check-key dist/Lintel.app/Contents/Info.plist"))
+        let firstUpload = try #require(sign.range(of: "actions/upload-artifact@"))
+        let importCertificate = try #require(sign.range(of: "- name: Import the Developer ID certificate"))
+        let notarize = try #require(sign.range(of: "scripts/notarize.sh"))
+        let signDMG = try #require(sign.range(of: "scripts/sparkle-sign.sh sign-file"))
+        #expect(check.lowerBound < importCertificate.lowerBound)
+        #expect(check.lowerBound < notarize.lowerBound)
+        #expect(check.lowerBound < signDMG.lowerBound)
+        #expect(check.lowerBound < firstUpload.lowerBound)
+        // The tools are fetched (checksum-verified) before the check and nothing else installs them.
+        let fetch = try #require(sign.range(of: "scripts/fetch-sparkle-tools.sh"))
+        #expect(fetch.lowerBound < check.lowerBound)
+        // publish only runs after sign succeeded, which includes the check.
+        #expect(try workflow().contains("    needs: [build, sign]"))
+    }
+
+    @Test func theFeedIsBuiltSignedAndVerifiedBeforeItIsUploaded() throws {
+        let sign = code(try #require(try jobs()["sign"])).joined(separator: "\n")
+        let steps = [
+            "scripts/previous-release.sh", "scripts/sparkle-sign.sh verify-feed appcast-previous/appcast.xml",
+            "scripts/make-appcast.sh", "scripts/sparkle-sign.sh sign-feed appcast/appcast.xml",
+            "scripts/sparkle-sign.sh verify-feed appcast/appcast.xml", "name: Lintel-appcast",
+        ]
+        var position = sign.startIndex
+        for step in steps {
+            let found = try #require(sign.range(of: step, range: position..<sign.endIndex), "\(step) out of order")
+            position = found.upperBound
+        }
+        // The feed is made from the finished DMG: after the checksum and the bundle verification.
+        let checksum = try #require(sign.range(of: "- name: Checksum"))
+        let make = try #require(sign.range(of: "scripts/make-appcast.sh"))
+        #expect(checksum.lowerBound < make.lowerBound)
+    }
+
+    @Test func publishAttachesTheFeedAndChecksItWasBuiltOnTheNewestRelease() throws {
+        let publish = code(try #require(try jobs()["publish"])).joined(separator: "\n")
+        #expect(publish.contains("name: Lintel-appcast"))
+        let create = try #require(publish.range(of: "gh release create"))
+        let upload = String(publish[create.lowerBound...])
+        #expect(upload.contains("appcast/appcast.xml"))
+        let guardStep = try #require(publish.range(of: "scripts/previous-release.sh"))
+        #expect(guardStep.lowerBound < create.lowerBound)
+        // The poll of the live feed only warns.
+        let poll = try #require(publish.range(of: "https://lintelapp.com/appcast.xml"))
+        #expect(poll.lowerBound > create.lowerBound)
+        #expect(publish.contains("::warning::https://lintelapp.com/appcast.xml"))
     }
 
     @Test func entitlementsFilesDifferOnlyInLibraryValidation() throws {

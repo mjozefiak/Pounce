@@ -9,7 +9,6 @@ and releasing: what agents never do"). Design: `docs/decisions/0012-distribution
 These are named in the spec (`.ai/specs/2026-11-19-updates-and-open-source-hygiene.md`) but do not exist, so a release
 does not do them:
 
-- The appcast (`appcast.xml`) and Sparkle. Lintel has no in-app updates; users install each DMG by hand.
 - The Homebrew tap (`mjozefiak/homebrew-lintel`).
 - The site rebuild token `LINTEL_WEB_DISPATCH_TOKEN` and the Environment `publish`. `publish` still tries the dispatch, but
   without the token it prints "the website is not rebuilt" and goes on. Rebuild `lintel-web` by hand if needed.
@@ -51,12 +50,38 @@ git push origin v0.1.0-beta.1
   (tags only), takes only the `.app` from `Lintel-app`, imports the Developer ID certificate into a temporary keychain,
   re-signs, notarizes and staples the app, builds the DMG from the stapled app, notarizes and staples the DMG, writes the
   checksum, verifies (`scripts/verify-release-bundle.sh`), compares the requirement with `Resources/designated-requirement.txt`,
-  and deletes the keychain. It uploads `Lintel-dmg` and `Lintel-requirement`.
+  and deletes the keychain. It also checks the Sparkle key, signs the DMG and builds the signed `appcast.xml` (below). It uploads
+  `Lintel-dmg`, `Lintel-appcast` and `Lintel-requirement`.
 - `publish` (tags only): checks the release order again, creates the GitHub Release (a `-beta` tag is marked pre-release; assets:
-  `Lintel.dmg`, `Lintel.dmg.sha256`, `CHANGELOG.md`; body: install text, the checksum, the changelog section), then tries the
-  website dispatch.
+  `Lintel.dmg`, `Lintel.dmg.sha256`, `CHANGELOG.md`, `appcast.xml`; body: install text, the checksum, the changelog section),
+  tries the website dispatch, then waits up to ten minutes for `https://lintelapp.com/appcast.xml` to equal the new feed.
 
 Tag runs queue one after another (`release-tags` group) and are never cancelled.
+
+## The update feed
+
+Every signed run builds `appcast.xml` (what installed apps check). You will see, in the `sign` job:
+
+1. **Check the Sparkle signing key against the app's public key** (early, before the certificate import). It signs a probe
+   with the secret `SPARKLE_ED_PRIVATE_KEY` and verifies it against `SUPublicEDKey` in the app's `Info.plist`. If it fails,
+   the secret is not the partner of the public key in the app (a wrong or re-generated key, or a changed `Info.plist`).
+   Nothing was signed or published. Do not paste the key into the log or an issue; fix the secret in the Environment
+   `release` (export the right key with `generate_keys -x`) or restore `SUPublicEDKey`, then run again. Never "fix" it by
+   changing `SUPublicEDKey` after apps with the old key have shipped: they would reject every update.
+2. **Fetch the previous appcast** (tags only) and **Sign the DMG and build the appcast**. The previous feed is the newest
+   published release's `appcast.xml`. No previous release, or one without the file, means the feed starts fresh. A previous feed
+   that is present but does not verify fails the job: the other channel's item would otherwise vanish. The feed holds this
+   release and the other channel's item (a stable, or a beta only while it is newer than the stable), kept as it was.
+3. In `publish`, before the release is created, **Check the appcast is built on the newest release**. It fails when another
+   release was published while this run waited in the queue; the feed would then lack that release. Nothing is published; tag
+   the next version after the newer release.
+4. After the release and the website dispatch, **Wait for the site to serve the new feed** warns (it never fails) when
+   `https://lintelapp.com/appcast.xml` is not the new file after ten minutes. The release is valid and the live feed stays at
+   the previous, validly signed one. The site is another repository (`lintel-web`): redeploy it by hand.
+
+A manual signed run does steps 1 and 2 with no previous feed, uploads the feed as the `Lintel-appcast` artifact and
+publishes nothing. On the first signed run, open that artifact and check that `appcast.xml` has one item with the
+`Lintel.dmg` size and a `sparkle:edSignature`.
 
 ## Approving the `release` deployment
 
@@ -111,7 +136,7 @@ The first signed build after the ad-hoc ones is the one time the grants are lost
 
 Publish the next version from `main` (a new commit, a new changelog section, a new tag). Never move, delete and re-push
 or reuse a tag: build numbers and the order check depend on it. If a release must be deleted on GitHub, redeploy
-`lintel-web` by hand afterwards so the site does not point at the deleted DMG. There is no feed to correct yet.
+`lintel-web` by hand afterwards so the site does not point at the deleted DMG. The bad release stays in the feed until the next release replaces it; apps that already updated are not rolled back.
 
 ## Beta to stable
 

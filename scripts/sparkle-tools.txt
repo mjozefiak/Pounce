@@ -1,0 +1,5 @@
+# The Sparkle command-line tools the release `sign` job runs (sign_update). Read by scripts/fetch-sparkle-tools.sh.
+# VERSION is Sparkle's release; it must equal the exact version in Package.swift (scripts/tests/test_appcast.zsh checks).
+# SHA256 is the checksum of Sparkle-for-Swift-Package-Manager.zip: the same value Sparkle's Package.swift pins for SwiftPM.
+VERSION=2.10.1
+SHA256=4c2e48a3e50ebcc2c88a58a4c7264a1a99c3c31857ce754357afb9cdb323022a
