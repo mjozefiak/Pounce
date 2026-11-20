@@ -310,7 +310,7 @@ final class VocabularyPanelModel {
     var canSubmit: Bool { editor != nil && shortAliasesAreConfirmed }
 
     /// The example under the variants (D5), built by the real replacer; `nil` without a term and a variant.
-    var example: (heard: String, inserted: String, term: String)? {
+    var example: (heard: String, inserted: String, term: String, phrase: String)? {
         guard let form = editor else { return nil }
         return VocabularyRules.example(
             term: form.term, aliases: effectiveAliases, sentence: VocabularyText.exampleSentence)

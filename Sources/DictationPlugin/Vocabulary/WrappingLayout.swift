@@ -31,17 +31,27 @@ struct WrappingLayout: Layout {
         return result
     }
 
+    /// The sizes the lines are broken by; the growing last child counts with its own ideal width.
+    private func measure(_ subviews: Subviews, width: CGFloat?) -> [CGSize] {
+        subviews.enumerated().map { index, subview in
+            let grows = lastFillsLine && index == subviews.count - 1
+            return subview.sizeThatFits(.init(width: grows ? nil : width, height: nil))
+        }
+    }
+
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? .infinity
-        let sizes = subviews.map { $0.sizeThatFits(.init(width: width.isFinite ? width : nil, height: nil)) }
+        let sizes = measure(subviews, width: width.isFinite ? width : nil)
         let arranged = lines(for: sizes, width: width)
         let height = arranged.map(\.height).reduce(0, +) + CGFloat(max(arranged.count - 1, 0)) * verticalSpacing
         let used = arranged.map(\.width).max() ?? 0
+        // A field that fills its line takes the whole width offered, not the width of its content.
+        if lastFillsLine, let offered = proposal.width { return CGSize(width: offered, height: height) }
         return CGSize(width: proposal.width.map { _ in min(used, width) } ?? used, height: height)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let sizes = subviews.map { $0.sizeThatFits(.init(width: bounds.width, height: nil)) }
+        let sizes = measure(subviews, width: bounds.width)
         var y = bounds.minY
         let arranged = lines(for: sizes, width: bounds.width)
         for (lineIndex, line) in arranged.enumerated() {

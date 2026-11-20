@@ -156,11 +156,11 @@ struct VocabularyFormView: View {
 
     // MARK: Example (D5)
 
-    private func exampleBox(_ example: (heard: String, inserted: String, term: String)) -> some View {
+    private func exampleBox(_ example: (heard: String, inserted: String, term: String, phrase: String)) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             exampleLine(
                 Text("Heard", comment: "Vocabulary form: label of the example sentence as spoken"),
-                Text(example.heard))
+                Text(struck(example.heard, phrase: example.phrase)))
             exampleLine(
                 Text("Inserted", comment: "Vocabulary form: label of the example sentence after the replacement"),
                 Text(marked(example.inserted, term: example.term)))
@@ -182,6 +182,14 @@ struct VocabularyFormView: View {
                 .frame(width: 92 * textSize.scale, alignment: .leading)
             text.font(textSize.font(.body))
         }
+    }
+
+    private func struck(_ text: String, phrase: String) -> AttributedString {
+        var result = AttributedString(text)
+        if let found = text.range(of: phrase), let range = Range(found, in: result) {
+            result[range].strikethroughStyle = .single
+        }
+        return result
     }
 
     private func marked(_ text: String, term: String) -> AttributedString {
@@ -236,7 +244,7 @@ private struct FieldFrame: ViewModifier {
         content
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .frame(minHeight: 28, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
             .background(LintelBrand.card, in: RoundedRectangle(cornerRadius: 7))
             .overlay {
                 RoundedRectangle(cornerRadius: 7)

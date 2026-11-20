@@ -176,7 +176,7 @@ enum VocabularyRules {
     /// real `TermReplacer` with this one entry. `nil` while there is no term or no usable variant.
     static func example(
         term rawTerm: String, aliases: [String], sentence: (_ phrase: String) -> String
-    ) -> (heard: String, inserted: String, term: String)? {
+    ) -> (heard: String, inserted: String, term: String, phrase: String)? {
         let term = tidy(rawTerm)
         guard !key(term).isEmpty else { return nil }
         let usable = cleanedAliases(aliases, term: term).filter {
@@ -186,6 +186,6 @@ enum VocabularyRules {
         guard let first = usable.first else { return nil }
         let heard = sentence(first)
         let replacer = TermReplacer(entries: [.init(term: term, aliases: usable)])
-        return (heard, replacer.apply(to: heard), term)
+        return (heard, replacer.apply(to: heard), term, first)
     }
 }

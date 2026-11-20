@@ -58,7 +58,7 @@ struct FormTextField: NSViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: FocusReportingTextField, context: Context) -> CGSize? {
         CGSize(
-            width: idealWidth.map { min($0, proposal.width ?? $0) } ?? proposal.width ?? 140, height: ceil(size * 1.35))
+            width: proposal.width ?? idealWidth ?? 140, height: ceil(size * 1.35))
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }

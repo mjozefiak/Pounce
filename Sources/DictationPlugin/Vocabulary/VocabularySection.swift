@@ -452,7 +452,9 @@ struct VocabularyRowView: View {
             }
         }
         .padding(.vertical, 7)
-        .padding(.horizontal, 2)
+        // The leading inset keeps the selection bar off the first letter.
+        .padding(.leading, 10)
+        .padding(.trailing, 2)
         .background {
             if isSelected || isHighlighted {
                 LintelBrand.windowSelectionTint

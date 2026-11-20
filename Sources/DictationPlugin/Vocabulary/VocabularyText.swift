@@ -66,8 +66,13 @@ enum VocabularyText {
 
     // MARK: Short variants (D8)
 
+    /// The user's variant in the quotation marks of the language the app speaks.
+    static func quote(_ text: String) -> String {
+        Bundle.main.preferredLocalizations.first == "pl" ? "„\(text)”" : "“\(text)”"
+    }
+
     static func shortAliasWarning(_ aliases: [String], term: String) -> String {
-        let quoted = aliases.map { "“\($0)”" }.joined(separator: ", ")
+        let quoted = aliases.map(quote).joined(separator: ", ")
         return String(
             localized:
                 "\(quoted) is a short word. Every \(quoted) you dictate will become \(term), also when you mean the letter.",
@@ -77,7 +82,7 @@ enum VocabularyText {
     }
 
     static func shortAliasConfirmation(_ aliases: [String]) -> String {
-        let quoted = aliases.map { "“\($0)”" }.joined(separator: ", ")
+        let quoted = aliases.map(quote).joined(separator: ", ")
         return String(
             localized: "Use \(quoted) anyway",
             comment:

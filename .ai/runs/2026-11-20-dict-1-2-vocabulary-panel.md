@@ -40,3 +40,5 @@ D6 (short-alias confirmation) vs D8 (short variant drawn literally) may conflict
 - Short-variant warning text is the mockup's literal sentence ("also when you mean the letter"), also for variants that are not letters.
 - A term equal to another entry's variant is rejected with its own message (not drawn in the mockup).
 - Parts B and C: nothing implemented, no placeholder UI.
+- Known differences from the mockup (accepted): the section card is the grouped Form's grey card, not white; "Add term" is the section footer under the card; the read-only strip has a padlock instead of "i"; the limit bar and the on/off switch are extra; the unticked "use anyway" box looks faint only in a snapshot of an inactive window.
+- QA fixes (PR #157 report D-1 to D-4): the variants field takes the full width and shows its whole placeholder, the example strikes the heard phrase through, the selection bar has an inset from the text, and the short-variant texts use Polish quotes in pl.
