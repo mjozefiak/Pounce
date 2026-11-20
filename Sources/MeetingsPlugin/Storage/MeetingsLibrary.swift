@@ -47,6 +47,21 @@ final class MeetingsLibrary {
     @ObservationIgnored private var recovery: RecoveryJob?
     @ObservationIgnored private var resumer: (any MeetingResuming)?
     @ObservationIgnored private var resumeTask: Task<Void, Never>?
+    /// The background open in progress, if any (`openInBackground`).
+    /// `close()` does not clear it: the detached database work cannot be cancelled, so a later `open`/`erase`
+    /// waits for it (`settleOpens`) and the task removes itself only if it is still the registered one.
+    @ObservationIgnored private var openTask: OpenTask?
+    @ObservationIgnored private var openSerial = 0
+    /// How many background opens were started (tests: a second open must join or wait, not start another).
+    @ObservationIgnored private(set) var openLaunches = 0
+    /// Reset archive found by an open that `close()` had already discarded; the next applied open reports it.
+    @ObservationIgnored private var carriedResetArchive: URL?
+
+    private struct OpenTask {
+        let serial: Int
+        let generation: Int
+        let task: Task<Void, Never>
+    }
     /// "Dokończ" runs by meeting id; `close()` cancels them.
     @ObservationIgnored private var finishTasks: [Int64: Task<ResumeOutcome, Never>] = [:]
     /// The meetings a recovery or "Dokończ" pass is working on right now (their rows and spools are in use).
@@ -118,46 +133,137 @@ final class MeetingsLibrary {
             keptAudioDays: settings.keptAudioDays)
     }
 
-    /// Opens the library, recovers interrupted meetings and only then starts the retention job.
-    func open() {
-        guard store == nil else { return }
-        let opener = opener
-        let directory = directory
-        var openedKeys: MeetingKeys?
+    /// What opening the database produced. Made off the main actor by `performOpen`, applied on it.
+    private enum OpenResult: Sendable {
+        case opened(MeetingsStore, MeetingKeys, resetArchive: URL?, keyWasMissing: Bool)
+        case unavailable(KeyStoreError)
+        case failed
+    }
+
+    /// The blocking part of opening: the Keychain lookup, the SQLCipher key derivation, the migrations and the
+    /// first durable writes, then the purge of old archives. Touches no library state, so it can run anywhere.
+    /// The reset policy is the opener's: only `errSecItemNotFound` archives; any other Keychain error is
+    /// `.unavailable` and deletes nothing.
+    private nonisolated static func performOpen(
+        opener: EncryptedDatabaseOpener, directory: URL, now: Date, logger: Logger
+    ) -> OpenResult {
+        defer { opener.purgeOldArchives(now: now) }
         do {
-            let (outcome, keyWasMissing) = try opener.openReportingKey(now: now()) { keys in
+            var openedKeys: MeetingKeys?
+            let (outcome, keyWasMissing) = try opener.openReportingKey(now: now) { keys in
                 let meetingKeys = MeetingKeys(keys)
                 openedKeys = meetingKeys
                 return try MeetingsStore.open(in: directory, keys: meetingKeys)
             }
             switch outcome {
             case .opened(let opened, let archive):
-                store = opened
-                storeBox.withLock { $0 = opened }
-                keys = openedKeys
-                resetArchive = archive
-                status = .ready
-                // The key was definitely missing and has been recreated: nothing in the spool can be read with it.
-                if keyWasMissing, spoolStorage.removeAll() > 0 {
-                    logger.notice("The Keychain key was recreated; the unreadable audio spools were deleted")
+                guard let openedKeys else {
+                    try? opened.close()
+                    return .failed
                 }
-                if let openedKeys {
-                    NotesRecovery.run(store: opened, logger: logger)
-                    recoverInterruptedMeetings(store: opened, keys: openedKeys)
-                    refreshCount()
-                    startRetention()
-                } else {
-                    refreshCount()
-                }
+                return .opened(opened, openedKeys, resetArchive: archive, keyWasMissing: keyWasMissing)
             case .unavailable(let error):
-                status = .unavailable(error)
+                return .unavailable(error)
             }
         } catch {
             logger.error(
                 "The meetings library could not be opened: \(String(describing: type(of: error)), privacy: .public)")
+            return .failed
+        }
+    }
+
+    /// Publishes the opened state on the main actor, recovers interrupted meetings and only then starts the
+    /// retention job.
+    private func apply(_ result: OpenResult) {
+        switch result {
+        case .opened(let opened, let openedKeys, let archive, let keyWasMissing):
+            store = opened
+            storeBox.withLock { $0 = opened }
+            keys = openedKeys
+            resetArchive = archive ?? carriedResetArchive
+            carriedResetArchive = nil
+            status = .ready
+            // The key was definitely missing and has been recreated: nothing in the spool can be read with it.
+            if keyWasMissing, spoolStorage.removeAll() > 0 {
+                logger.notice("The Keychain key was recreated; the unreadable audio spools were deleted")
+            }
+            NotesRecovery.run(store: opened, logger: logger)
+            recoverInterruptedMeetings(store: opened, keys: openedKeys)
+            refreshCount()
+            startRetention()
+        case .unavailable(let error):
+            status = .unavailable(error)
+        case .failed:
             status = .failed
         }
-        opener.purgeOldArchives(now: now())
+    }
+
+    /// Opens the library on the calling (main) actor and blocks it for the duration. Kept for callers and tests
+    /// that need the result at once; the plugin uses `openInBackground()`.
+    func open() {
+        guard store == nil, openTask == nil else { return }
+        apply(Self.performOpen(opener: opener, directory: directory, now: now(), logger: logger))
+    }
+
+    /// Opens the library without blocking the main actor: the database work runs on a background task and the
+    /// opened state is published here. Returns when the library is open (or has failed); nothing may use the
+    /// library before that. A second call while one is running waits for it. A `close()` meanwhile discards
+    /// the result (the store is closed again) and the library stays closed.
+    func openInBackground() async {
+        // An open of an earlier generation (after `close()`) is waited for, never overlapped: two opens on the
+        // same files could both create the key. An open of the current generation is simply joined. A `close()`
+        // while this call waits ends it too: the caller asked for the library before the close, not after it.
+        let callGeneration = generation
+        while let running = openTask {
+            await running.task.value
+            if generation != callGeneration || running.generation == generation { return }
+        }
+        guard store == nil else { return }
+        let opener = opener
+        let directory = directory
+        let now = now()
+        let logger = logger
+        let generation = generation
+        openSerial += 1
+        openLaunches += 1
+        let serial = openSerial
+        let task = Task { @MainActor [weak self] in
+            let result = await Task.detached(priority: .userInitiated) {
+                Self.performOpen(opener: opener, directory: directory, now: now, logger: logger)
+            }.value
+            guard let self else { return }
+            if self.openTask?.serial == serial { self.openTask = nil }
+            guard self.generation == generation else {
+                // Discarded by a `close()`. What the open did to the Keychain and the disk still happened, so
+                // the parts that are valid whoever uses the library are kept: a key that had to be recreated
+                // makes every old spool unreadable, and a reset archive is reported by the next applied open.
+                if case .opened(let opened, _, let archive, let keyWasMissing) = result {
+                    try? opened.close()
+                    if keyWasMissing, self.spoolStorage.removeAll() > 0 {
+                        logger.notice("The Keychain key was recreated; the unreadable audio spools were deleted")
+                    }
+                    if let archive { self.carriedResetArchive = archive }
+                }
+                return
+            }
+            self.apply(result)
+        }
+        openTask = OpenTask(serial: serial, generation: generation, task: task)
+        await task.value
+    }
+
+    /// "Erase Data": closes, waits for every background open (also one that `close()` discarded, which would
+    /// recreate the key and the folder), then erases.
+    func eraseAfterOpens() async throws {
+        close()
+        await settleOpens()
+        try erase()
+    }
+
+    /// Waits until no background open is running (also one that `close()` discarded). `erase` needs it: a
+    /// stale open would recreate the key and the folder the erase removed.
+    func settleOpens() async {
+        while let running = openTask { await running.task.value }
     }
 
     /// Closes the library. Background resumes and "Dokończ" runs are cancelled; they find the store closed if
@@ -209,6 +315,8 @@ final class MeetingsLibrary {
 
     /// "Erase Data": closes the library, removes the Keychain item and the plugin's folder (the database, its
     /// archives and the spool). The host removes the folder too; both are idempotent.
+    ///
+    /// Call `close()` and `await settleOpens()` first (the plugin does) so no stale open is still running.
     func erase(fileManager: FileManager = .default) throws {
         close()
         liveMeetingIDs = []

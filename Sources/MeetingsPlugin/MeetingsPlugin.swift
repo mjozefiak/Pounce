@@ -130,7 +130,7 @@ public final class MeetingsPlugin: LintelPlugin {
     // MARK: Lifecycle
 
     public func activate() async throws {
-        library.open()
+        await library.openInBackground()
         await notes.start()
         let detector = makeDetector()
         let workspace = context.workspace
@@ -197,7 +197,7 @@ public final class MeetingsPlugin: LintelPlugin {
     /// archives and the spool). Models live in the shared `Models/` folder and stay.
     public func eraseData() async throws {
         libraryActions.closeWindows()
-        try library.erase()
+        try await library.eraseAfterOpens()
     }
 
     // MARK: Contributions
