@@ -97,12 +97,13 @@ struct MeetingsSettings: Sendable {
 
     /// The external provider the user chose to write the notes, or `nil` for the built-in model (the default).
     /// Choosing a provider is the consent: a transcript leaves the Mac only while this is not `nil`. Read fresh
-    /// on every call. A missing, empty, unknown or malformed value is `nil`, never a guess: it means the built-in
+    /// on every call. A missing, empty, unknown or malformed value, and a model that the provider does not offer (the hidden Haiku, a typed id), is `nil`, never a guess: it means the built-in
     /// model, and `ProviderRunner` starts nothing for it (owner decision 2026-11-20; no UI yet).
     var notesProviderSelection: NotesProviderSelection? {
         guard let id = settings.string(Key.notesProvider), !id.isEmpty,
             let descriptor = Self.knownProviders.first(where: { $0.id.rawValue == id }),
-            let model = settings.string(Key.notesProviderModel), ProviderDescriptor.isValidModelID(model)
+            let model = settings.string(Key.notesProviderModel), ProviderDescriptor.isValidModelID(model),
+            descriptor.models.contains(where: { $0.id == model })
         else { return nil }
         return NotesProviderSelection(provider: descriptor.id, model: model)
     }

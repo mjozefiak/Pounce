@@ -147,7 +147,7 @@ final class MeetingsSettingsModel {
         microphone = authorizer.status()
         await speech.refresh()
         provider.reload()
-        provider.refreshStatus()
+        provider.refreshStatus(force: false)
     }
 
     // MARK: Speech engine

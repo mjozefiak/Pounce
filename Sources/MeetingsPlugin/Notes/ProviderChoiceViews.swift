@@ -154,6 +154,7 @@ struct NotesWrittenByRows: View {
                     provider.choose(entry.id)
                 }
             }
+            .onAppear { openForQA("menu") { providerMenuOpen = true } }
         } label: {
             Text("Notes are written by", comment: "Settings → Meetings: provider menu label").font(textSize.font(.body))
         }
@@ -190,6 +191,12 @@ struct NotesWrittenByRows: View {
         ]
     }
 
+    /// DEBUG QA only (`plugins.meetings.qaProviderScenario=menu|modelMenu`): opens a menu so a screenshot can show it.
+    private func openForQA(_ name: String, _ open: @escaping () -> Void) {
+        guard provider.qaScenario == name else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { open() }
+    }
+
     private var modelRow: some View {
         LabeledContent {
             if let chosen = provider.chosen {
@@ -213,6 +220,7 @@ struct NotesWrittenByRows: View {
                     selection: provider.selection?.model ?? "", isOpen: $modelMenuOpen,
                     accessibilityLabel: Text("Model", comment: "Settings → Meetings: model menu label")
                 ) { provider.chooseModel($0) }
+                .onAppear { openForQA("modelMenu") { modelMenuOpen = true } }
                 .onChange(of: provider.modelMenuRequested) { _, requested in
                     if requested {
                         modelMenuOpen = true
@@ -352,7 +360,8 @@ struct NotesWrittenByNotices: View {
         if provider.status == .notSignedIn || provider.failure?.reason == .notSignedIn { signInCard }
         if provider.confirmingUseLocal { confirmCard }
         if let failure = provider.failure { lastMeetingRow(failure) }
-        noticeCard
+        if let mark = provider.earlierMark { earlierMarkRow(mark) }
+        if !provider.isLocal { noticeCard }
     }
 
     private var signInCard: some View {
@@ -394,6 +403,23 @@ struct NotesWrittenByNotices: View {
                 Text("Use Local", comment: "Settings → Meetings banner button: back to the built-in model")
             }
             .buttonStyle(.borderedProminent)
+        }
+    }
+
+    /// After "Use Local" (D6): the notes a provider wrote earlier stay, with their mark.
+    private func earlierMarkRow(_ mark: ProviderChoiceModel.EarlierMark) -> some View {
+        LabeledContent {
+            Text(verbatim: mark.chip)
+                .font(textSize.font(.callout)).foregroundStyle(LintelBrand.accentText)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: mark.title).font(textSize.font(.body))
+                Text(
+                    "Notes written earlier by \(mark.provider) stay.",
+                    comment: "Settings → Meetings: after Use Local, the notes a provider wrote earlier stay marked"
+                )
+                .font(textSize.font(.callout)).foregroundStyle(LintelBrand.secondaryText)
+            }
         }
     }
 

@@ -203,6 +203,9 @@ public final class MeetingsPlugin: LintelPlugin {
     /// archives and the spool). Models live in the shared `Models/` folder and stay.
     public func eraseData() async throws {
         libraryActions.closeWindows()
+        // Erase Data also forgets the provider choice and the hand-picked CLI (spec: "Cykl życia wyboru").
+        settings.clearNotesProvider()
+        settings.setNotesProviderBinary(nil)
         try await library.eraseAfterOpens()
     }
 

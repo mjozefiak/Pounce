@@ -17,8 +17,12 @@ final class ProviderChoiceRig {
     let report = Cell(ProviderStatusReport(status: .ready, version: "2.1.329"))
     let tryResult = Cell(TryOutResult.worked)
     let pickedFile = Cell<URL?>(nil)
+    let clock = Cell(Date(timeIntervalSince1970: 1_700_000_000))
 
-    init(settings: MeetingsSettings, service: NotesService) {
+    init(
+        settings: MeetingsSettings, service: NotesService,
+        lastMarked: @escaping @MainActor () -> ProviderChoiceModel.EarlierMark? = { nil }
+    ) {
         let probes = probes
         let tryOuts = tryOuts
         let urls = urls
@@ -27,6 +31,7 @@ final class ProviderChoiceRig {
         let report = report
         let tryResult = tryResult
         let pickedFile = pickedFile
+        let clock = clock
         model = ProviderChoiceModel(
             settings: settings, service: service,
             probe: { _ in
@@ -40,7 +45,7 @@ final class ProviderChoiceRig {
             openURL: { url in urls.withLock { $0.append(url) } },
             copyText: { text in copied.withLock { $0.append(text) } },
             chooseFile: { pickedFile.withLock { $0 } },
-            changed: { changes.withLock { $0 += 1 } })
+            changed: { changes.withLock { $0 += 1 } }, now: { clock.withLock { $0 } }, lastMarked: lastMarked)
     }
 }
 

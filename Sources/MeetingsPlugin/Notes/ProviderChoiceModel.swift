@@ -65,6 +65,11 @@ final class ProviderChoiceModel {
     @ObservationIgnored private let chooseFile: @MainActor () -> URL?
     /// `PluginContext.openModels`: "Write on This Mac" without the built-in model leads to its download.
     @ObservationIgnored private let changed: @Sendable () -> Void
+    var earlierMark: EarlierMark?
+    @ObservationIgnored private let lastMarked: @MainActor () -> EarlierMark?
+    @ObservationIgnored private var lastProbe: Date?
+    @ObservationIgnored private let now: @MainActor () -> Date
+    static let probeInterval: TimeInterval = 600
     @ObservationIgnored private var checkTask: Task<Void, Never>?
     @ObservationIgnored private var tryTask: Task<Void, Never>?
 
@@ -74,8 +79,12 @@ final class ProviderChoiceModel {
         probe: @escaping @MainActor @Sendable (ProviderDescriptor) async -> ProviderStatusReport,
         tryOut: @escaping @MainActor @Sendable (ProviderID, String) async -> TryOutResult,
         openURL: @escaping @MainActor (URL) -> Void, copyText: @escaping @MainActor (String) -> Void,
-        chooseFile: @escaping @MainActor () -> URL?, changed: @escaping @Sendable () -> Void
+        chooseFile: @escaping @MainActor () -> URL?, changed: @escaping @Sendable () -> Void,
+        now: @escaping @MainActor () -> Date = { Date() },
+        lastMarked: @escaping @MainActor () -> EarlierMark? = { nil }
     ) {
+        self.lastMarked = lastMarked
+        self.now = now
         self.settings = settings
         self.service = service
         self.descriptors = descriptors
@@ -93,6 +102,11 @@ final class ProviderChoiceModel {
     var entries: [Entry] { [.local] + descriptors.map { .provider($0.id) } }
 
     var isLocal: Bool { selection == nil }
+
+    /// The section, its notice and the banner are shown whenever notes are written automatically OR a provider is
+    /// chosen: "Regenerate" and "Try Again" send to the provider even with automatic notes off, so the notice and
+    /// "Use Local" must be reachable then.
+    static func surfacesProvider(notesEnabled: Bool, isLocal: Bool) -> Bool { notesEnabled || !isLocal }
 
     /// The descriptor of the chosen provider, `nil` for Local.
     var chosen: ProviderDescriptor? {
@@ -113,8 +127,20 @@ final class ProviderChoiceModel {
     /// Opus and Fable use more of the subscription limit and take longer: the note under the menu.
     var showsHeavierNote: Bool { model?.heavier ?? false }
 
+    /// The latest meeting whose notes a provider wrote: after "Use Local" its mark stays (mockup state 7).
+    struct EarlierMark: Equatable {
+        var title: String
+        var chip: String
+        var provider: String
+    }
+
     func reload() {
         selection = settings.notesProviderSelection
+        earlierMark = selection == nil ? lastMarked() : nil
+        if selection == nil, settings.qaProviderScenario == "earlier" {
+            earlierMark = EarlierMark(
+                title: "Orchard weekly sync", chip: "Sent to: Claude · Sonnet", provider: "Claude Code")
+        }
         let snapshot = service.board.snapshot
         failure = snapshot.providerFailure
         jobRunning = snapshot.jobRunning
@@ -125,6 +151,9 @@ final class ProviderChoiceModel {
             confirmingUseLocal = false
         }
     }
+
+    /// DEBUG QA only: the scenario name (`nil` in a release build).
+    var qaScenario: String? { settings.qaProviderScenario }
 
     /// DEBUG QA only: shows a state no test run can reach without a real CLI (`plugins.meetings.qaProviderScenario`).
     private func applyQAScenario() {
@@ -196,6 +225,7 @@ final class ProviderChoiceModel {
         service.board.update { $0.providerFailure = nil }
         checkTask?.cancel()
         tryTask?.cancel()
+        service.selectionChanged()
         didChange()
     }
 
@@ -204,12 +234,13 @@ final class ProviderChoiceModel {
         changed()
     }
 
-    /// A different model of the same provider: no question, and what is sent does not change. A job that already
-    /// runs keeps the model it started with; the next one uses the new one (spec: notes are never put together
-    /// from two models).
+    /// A different model of the same provider: no question. A job that already runs is stopped (SIGTERM) and the
+    /// meeting is written again once with the new model; its result is dropped (spec: notes are never put
+    /// together from two models; the transcript goes out a second time).
     func chooseModel(_ id: String) {
         guard let selection, selection.model != id, models.contains(where: { $0.id == id }) else { return }
         settings.setNotesProvider(NotesProviderSelection(provider: selection.provider, model: id))
+        service.selectionChanged()
         testState = .idle
         didChange()
     }
@@ -218,8 +249,14 @@ final class ProviderChoiceModel {
 
     /// Looks whether the CLI is installed, signed in and of a known version. Only while a provider is chosen; no
     /// content. DEBUG only: `plugins.meetings.qaProviderStatus` replaces the process.
-    func refreshStatus() {
+    func refreshStatus(force: Bool = true) {
         guard let chosen else { return }
+        // The app becoming active again is not a reason to start two processes each time: a working CLI is looked
+        // at again after `probeInterval` (a problem is looked at every time, so a fix shows at once).
+        if !force, status == .ready, let last = lastProbe, now().timeIntervalSince(last) < Self.probeInterval {
+            return
+        }
+        lastProbe = now()
         if let forced = settings.qaProviderStatus {
             check = .known(forced)
             version = forced == .ready ? "2.1.329" : nil

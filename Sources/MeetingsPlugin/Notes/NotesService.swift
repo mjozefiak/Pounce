@@ -133,6 +133,8 @@ final class NotesService {
     private var current: Job?
     private var worker: Task<Void, Never>?
     private var jobTask: Task<Void, Never>?
+    /// The provider choice the running job started with (`nil` for a built-in job).
+    private var runningSelection: NotesProviderSelection?
     /// Meetings whose notes must be written again right after the running job (a regenerate request, or a rename
     /// that made the finished notes `stale`).
     private var rerun: Set<Int64> = []
@@ -238,6 +240,18 @@ final class NotesService {
         board.update { $0.providerFailure = nil }
         deps.changed()
         enqueue(Job(meetingID: id, requested: true, local: true))
+    }
+
+    /// The provider choice changed (Use Local, another model; spec: "Powrót na Lokalnie" and "Zmiana modelu w
+    /// trakcie zadania"). The running provider job is cancelled (the process group gets SIGTERM), its result is
+    /// dropped and the meeting is written again once, with the choice as it is now. Notes are never put together
+    /// from two models. What was already sent stays with the provider.
+    func selectionChanged() {
+        guard let started = runningSelection, let running = current,
+            deps.settings.notesProviderSelection != started
+        else { return }
+        rerun.insert(running.meetingID)
+        jobTask?.cancel()
     }
 
     private func enqueue(_ job: Job) {
@@ -357,6 +371,8 @@ final class NotesService {
             if $0.providerFailure?.meetingID == id { $0.providerFailure = nil }
         }
         setPhase(.mapping(done: 0, total: 1), for: id)
+        runningSelection = selection
+        defer { runningSelection = nil }
 
         guard let runner = deps.providerRunner,
             let descriptor = MeetingsSettings.knownProviders.first(where: { $0.id == selection.provider })

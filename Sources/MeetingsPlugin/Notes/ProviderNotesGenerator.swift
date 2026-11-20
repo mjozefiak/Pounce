@@ -58,10 +58,12 @@ struct ProviderNotesGenerator: NotesGenerating {
                 ChatMessage(role: "user", content: serialized.input),
             ], timeout: timeout)
         let provider = selection.provider
+        let model = selection.model
         let current = currentSelection
         let authorization: ProviderAuthorization = {
             guard let chosen = current() else { return .denied(.noConsent) }
-            return chosen.provider == provider ? .allowed : .denied(.otherProvider)
+            guard chosen.provider == provider else { return .denied(.otherProvider) }
+            return chosen.model == model ? .allowed : .denied(.otherModel)
         }
         // The time limit of the pipeline counts from here (it counts only a request that is running).
         onPhase?(.running)

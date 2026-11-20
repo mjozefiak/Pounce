@@ -313,7 +313,7 @@ import Testing
         let settings = harness.meetingsSettings
         #expect(settings.notesProviderSelection == nil)
         settings.setNotesProvider(NotesProviderSelection(provider: .claudeCode, model: "haiku"))
-        #expect(settings.notesProviderSelection == NotesProviderSelection(provider: .claudeCode, model: "haiku"))
+        #expect(settings.notesProviderSelection == nil, "a model the provider does not offer is no choice")
         settings.setNotesProvider(NotesProviderSelection(provider: .claudeCode, model: "sonnet"))
         #expect(settings.notesProviderSelection?.model == "sonnet", "a model change needs no question")
         settings.clearNotesProvider()

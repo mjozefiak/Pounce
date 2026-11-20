@@ -66,7 +66,18 @@ final class MeetingsUI {
             },
             openURL: { url in Task { try? await workspace.open(url) } },
             copyText: { pasteboard.setString($0) },
-            chooseFile: { MeetingsUI.chooseProviderBinary() }, changed: context.resultsChanged)
+            chooseFile: { MeetingsUI.chooseProviderBinary() }, changed: context.resultsChanged,
+            lastMarked: { [library] in
+                guard let store = library.store,
+                    let entries = try? store.libraryEntries(matching: nil, filter: .all, limit: 100),
+                    let entry = entries.first(where: { $0.notesProvider != nil }),
+                    let id = entry.notesProvider,
+                    let chip = ProviderMark.chip(provider: id, model: entry.notesProviderModel),
+                    let name = MeetingsSettings.knownProviders.first(where: { $0.id.rawValue == id })?.displayName
+                else { return nil }
+                return ProviderChoiceModel.EarlierMark(
+                    title: MeetingLibraryPresentation.title(entry), chip: chip, provider: name)
+            })
         _ = providerSettings
         model = MeetingsSettingsModel(
             settings: settings, library: library,

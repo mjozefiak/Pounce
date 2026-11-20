@@ -132,7 +132,7 @@ public struct ProviderDescriptor: Sendable {
         // gate G was measured on `sonnet` ONLY: `opus` and `fable` passed only the short canary (alias, JSON shape,
         // time, budget) and their input budgets are an ASSUMPTION (not above sonnet's). HAIKU IS HIDDEN until its own
         // gate G has a result: to offer it, add `ProviderModel(id: "haiku", displayName: "Haiku")` to this list and
-        // nothing else (the menu, the argv check and the marker all read `models`). There is no per-model minimum CLI
+        // nothing else (the menu and `MeetingsSettings.notesProviderSelection` read `models`; a stored model outside the list is "no provider chosen", so nothing starts for it). There is no per-model minimum CLI
         // version: a CLI that does not know an alias fails the run (never a silent switch to another model).
         models: [
             ProviderModel(id: "sonnet", displayName: "Sonnet"),

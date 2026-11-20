@@ -27018,6 +27018,24 @@
           }
         }
       }
+    },
+    "Notes written earlier by %@ stay." : {
+      "comment" : "Settings → Meetings: after Use Local, the notes a provider wrote earlier stay marked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes written earlier by %@ stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki napisane wcześniej przez %@ zostają."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

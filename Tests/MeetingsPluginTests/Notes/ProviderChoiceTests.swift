@@ -27,14 +27,14 @@ import Testing
         #expect(models.filter(\.heavier).map(\.id) == ["opus", "fable"])
     }
 
-    @Test func aStoredHiddenModelStillShowsAsItIs() throws {
+    @Test func aStoredHiddenModelIsTreatedAsNoChoice() throws {
         let (notes, choice) = try rig([
             "plugins.meetings.notesProvider": .string("claude-code"),
             "plugins.meetings.notesProviderModel": .string("haiku"),
         ])
         _ = notes
         choice.model.reload()
-        #expect(choice.model.model?.displayName == "haiku")
+        #expect(choice.model.isLocal, "a hidden model is no provider choice")
         #expect(!choice.model.models.contains { $0.id == "haiku" })
     }
 

@@ -29,7 +29,8 @@ extension MeetingsPlugin {
             })
         // Notes written by a provider: its states (not found, not signed in, a failed job, ...) come before the
         // recording's own "things to do" only when they need attention; Ready and "writing" give way to those.
-        guard notesOn, let base, library.status == .ready || library.status == .closed,
+        guard ProviderChoiceModel.surfacesProvider(notesEnabled: notesOn, isLocal: model.provider.isLocal), let base,
+            library.status == .ready || library.status == .closed,
             let chosen = model.provider.chosen, let provider = model.provider.model
         else { return base }
         let banner = ProviderStatusBanner.status(
