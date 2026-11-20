@@ -344,12 +344,11 @@ probe without the configuration flags and with the product flags. Both calls kep
 - `docs/perf.md` has the measured rows and the rows still "not yet measured".
 - The built-in model path and every existing setting are unchanged.
 
-## Amendment of 2026-11-20: choosing the provider is the consent (owner decision; draft pending mock-up acceptance)
+## Amendment of 2026-11-20: choosing the provider is the consent (owner decision; mock-up v2 fully accepted 2026-11-20)
 
 Source: the owner's notes on the provider/model selection mock-up v2 (2026-11-20, with the addendum), the owner's
-condition on the core pull request (#205) and the owner's decision D15. Status of this amendment: **draft on a
-branch**; it is opened as a pull request only after the owner accepts the mock-up and settles the open points
-below. It **supersedes decisions 2 and 3 in the parts marked "superseded"** and adds the conditions below to decision 8. Nothing here
+condition on the core pull request (#205) and the owner's decision D15. Status of this amendment: **the owner fully accepted mock-up v2 on 2026-11-20 and
+settled D5–D10 and D12–D15 (recorded below as "owner decision 2026-11-20")**; the mitigations stay undecided options. It **supersedes decisions 2 and 3 in the parts marked "superseded"** and adds the conditions below to decision 8. Nothing here
 softens a limit on the owner's behalf: mitigations are listed as undecided options.
 
 ### Decisions (owner, 2026-11-20)
@@ -364,7 +363,7 @@ softens a limit on the owner's behalf: mitigations are listed as undecided optio
 2. **Provider, then model; it must scale** to several providers and ways of connecting: local models; CLI tools
    on a subscription (Claude Code today; Codex/ChatGPT, Pi, OpenCode are a direction, **not a commitment**); an API
    key (Phase 2). The notice is one shared sentence pattern with the chosen company's name.
-3. **D15: Claude Code models are the aliases `haiku`, `sonnet`, `opus`, `fable`; the default is `sonnet`.** Quality
+3. **D15 = B (owner decision 2026-11-20): Claude Code models are the four aliases `sonnet`, `haiku`, `opus`, `fable`, each only after its canary/measurement; the default is `sonnet`.** A model that has not passed is neither shown nor selectable in the menu until it does (wording ambiguity: the mock-up said "canary and gate G" for B, the owner chose "canary/measurement"; whether "measurement" for `opus`/`fable` includes G is to be confirmed, this text takes the narrower reading). Quality
    gate G is measured only for `sonnet`; the other three are "not measured" in the docs, and the input budgets for
    `opus` and `fable` are an assumption. The UI notes the higher use of the subscription limit and the longer time
    for `opus` and `fable`. An alias points to the newest model known to the CLI version and changes over time.
@@ -375,8 +374,8 @@ softens a limit on the owner's behalf: mitigations are listed as undecided optio
    its pinned test, is refused. (Decision 8 above is read together with this.)
 5. **The prompt version `whole1+cli1` is stored in the existing `notes_prompt_version` column** (technical; no
    migration).
-6. **No fallback to the local model after a refusal or an error.** Whether the job should be queued again, and on
-   what, is open (D7 of the mock-up).
+6. **No fallback to the local model after a refusal or an error. D7 = C (owner decision 2026-11-20):** after a failure the UI asks "Write it on this Mac?" explicitly; there is no silent fallback. In the code without UI (#205) it stays "no fallback"; the explicit question arrives with the UI (A6). Whether the job is queued again, and the fate of PR 7 and `notesProviderFallback`, stay open.
+7. **Other owner decisions on the accepted mock-up (2026-11-20):** D5 = A ("Try it" sends a fixed, signed Lintel example, only after a provider is chosen); D6 = A plus one sentence that what was sent cannot be taken back; D8 = B (one line in "Details": uses your subscription limit); D9 = A plus a sentence that a missing marker does not mean "not sent"; D10 = B (no quality caption for "Local" before gate G is measured); D12 = B (confirmation only while a job runs); D13 = neutral tone, the sentence "Choosing this provider means your consent" stays, company name in bold; D14 = C (only working providers plus "Add a provider…"). The `isolationVerified` condition of decision 4 is an owner decision; the enforcement mechanism (a `CODE_REVIEW.md` rule and a source test tying the change to the provider-choice UI files) is a PROPOSAL to be confirmed.
 
 ### What replaces what
 
@@ -438,16 +437,14 @@ Until the owner decides, the behaviour is the one without a mitigation.
 
 1. The spec's Problem Statement says sending must be impossible "without a conscious consent: not through ... an old
    setting". After this decision an old setting with a chosen provider is the consent.
-2. D15 against "the canary is repeated for every new scope" and "G is repeated for a new prompt version": `opus` and
-   `fable` are accepted as not measured. Open: should the isolation canary be repeated for them before they appear
-   in the menu, although G will not be.
+2. **[Settled 2026-11-20: D15 = B]** D15 against "the canary is repeated for every new scope" and "G is repeated for a new prompt version": `opus` and
+   `fable` are accepted as not measured for quality; each alias appears in the menu only after its canary/measurement.
 3. The spec offers a "custom identifier" model entry; decision 3 lists four aliases. Open (D15): does the entry stay.
-4. "No fallback" against PR 7 and the key `notesProviderFallback` (default off, provider to built-in only). PR 7 is
-   on hold until D7; nothing of it is built.
+4. "No fallback" against PR 7 and the key `notesProviderFallback` (default off, provider to built-in only). Open; D7 = C
+   adds the explicit question from the UI. PR 7 is on hold; nothing of it is built.
 5. Decision 8 said setting the flag stays the owner's decision; the spec said it is set after the canary of PR 1;
    decision 4 above adds that it happens only in the UI pull request and after a real-CLI measurement. Until then
    nothing can be sent from the app, not even "Try it".
 6. "A model is not a gate" against the authorization closure comparing the request's model with the current choice:
    it makes a model change in the menu apply from the next process, at the price of a restart (see above).
-7. Whether the second sentence "Choosing this provider means your consent" stays in the notice (D13) decides whether
-   the act is stated in words anywhere.
+7. **[Closed 2026-11-20: D13]** The second sentence "Choosing this provider means your consent" stays in the notice.

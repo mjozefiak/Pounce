@@ -5,7 +5,7 @@
   applied below. The scope is the **minimum** the owner chose; every extension of it is a separate decision of
   the owner (and a change of this ADR).
 - Date: 2026-11-20
-- **Amendment of 2026-11-20 (draft pending the owner's acceptance of the provider-choice mock-up):** the owner
+- **Amendment of 2026-11-20 (the owner fully accepted the provider-choice mock-up v2 the same day):** the owner
   replaced the provider's consent window with the choice of the provider in Settings (ADR 0011, amendment). Every
   place below that spoke of the consent window or the consent text version is rewritten to the actual state, and
   **one consequence is stated plainly and marked as a point for the owner's decision: a user who has already
