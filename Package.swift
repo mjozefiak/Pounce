@@ -190,6 +190,9 @@ let package = Package(
             name: "DictationPluginTests",
             dependencies: [
                 "DictationPlugin", "LintelSpeech", "LintelKit", "LintelCore", "LintelPersistence",
+                // Only the measurement harness of the span-selection prototype (grammar-constrained decoding)
+                // links llama.cpp directly; no product code does.
+                "llama",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
