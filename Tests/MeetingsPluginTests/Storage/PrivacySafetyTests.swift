@@ -26,7 +26,7 @@ private let words: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         let handle = try #require(library.finish(meetingID: busy.id))
         let finishing = Task { await handle.outcome }
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
         #expect(library.isProcessing)
         #expect(library.activeResumes == [busy.id])
 
