@@ -88,8 +88,7 @@ back with a spoken marker is removed together with the marker, the replacement s
 versions (with the marker between them) when it is not sure. `FormatterGuard` has two paths. A chunk without a
 listed marker that has a word after it is checked exactly as before (length range and language). A chunk with
 one is accepted only if the output is the whole input with the marker kept, or the input minus one span that
-ends at the marker and starts at the beginning of the chunk or on a word parallel to the first word of the
-replacement; the only edits allowed besides that span are free ones (case, punctuation, a filler, digits of
+ends at the marker and starts on the NEAREST word parallel to the first word of the replacement (the same word, two number words with a whole number taken together, "w"/"we"), or at the beginning of the chunk only when a disjunction word ("albo", "lub", "a", "or") stands right before the marker and the span holds no negation ("A albo jednak B"); the only edits allowed besides that span are free ones (case, punctuation, a filler, digits of
 equal value, a contraction of two spoken words). Anything else, a lost or swapped word, a changed number, a
 dropped or moved marker, is rejected and the raw text is pasted (ADR 0010, "The guard"). The rule gives up some
 correct results on purpose (a replacement in another word of the same slot, an inflection) because the earlier,

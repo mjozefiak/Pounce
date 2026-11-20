@@ -181,8 +181,7 @@ the raw text to a risk (the raw text is always available, see above). It has two
   lower bound 0.6 and the language. Nothing is relaxed for fillers either;
 - a chunk **with** such a marker (found by code, not on the model's word) is accepted only if the output is
   (1) the whole input with the marker kept, or (2) the input minus ONE contiguous span that ends at the first
-  marker that has words after it and starts at the beginning of the chunk or on a word parallel to the first
-  word of the replacement, with everything else unchanged. Only rewrites that cost nothing are allowed: case
+  marker that has words after it and starts on the NEAREST word parallel to the first word of the replacement (the same word, two number words with a whole number taken together, "w"/"we"), or at the beginning of the chunk only when a disjunction word ("albo", "lub", "a", "or") stands right before the marker and the span holds no negation ("A albo jednak B"), with everything else unchanged. Only rewrites that cost nothing are allowed: case
   and punctuation, a filler dropped, digits of equal value for number words, a contraction of two spoken
   words. Anything else gives the raw text.
 
@@ -428,17 +427,25 @@ DICT-2.2, which is the first story that uses their values.
 
 `CleanupPrompt.version` is 2 and `FormatterGuard` follows Decision 2. Numbers come from the synthetic corpus
 (79 cases, 38 of them withdrawals, 21 negatives), both built-in catalog models, greedy decoding, on an Apple
-silicon Mac, measured on the guard of round 4 (below). "Pass" means the output keeps the `must_keep` words
+silicon Mac, measured on the guard of round 5 (below). "Pass" means the output keeps the `must_keep` words
 and drops the `must_drop` words. The prompt is the one of round 3; the guard changed, so every number was
-measured again.
+measured again (one run per model on the final head).
 
 | Model | Pass, all (79) | Pass, withdrawals (38) | Pass, negatives (21) | Fell back to raw | of which a correct rejection | of which a false alarm | Final version lost (accepted) | Both versions kept (accepted) | `known_bad` returned | Negatives that lost a `must_keep` word |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Qwen3 4B Instruct 2507 Q4_K_M | 65 | 28 | 20 | 14 | 6 (`pl-ret-9`, `pl-cor-9`, `pl-neg-10`: only the withdrawn version or over-removal; `pl-rth-3`, `pl-rth-4`, `pl-cor-7`: marker dropped, both versions kept) | 8 (`pl-rth-5`, `pl-cor-4`, `en-rth-1`, `en-rth-3`, `en-cor-4`: see below; `pl-fil-1`, `pl-fil-7`: a filler pair without a marker, the ordinary 0.6 bound; `pl-neg-12`: "no to" dropped before a content "właściwie") | 0 | 0 (the report also lists `pl-fil-4`, a heuristic false flag on a filler case) | 0 | 1 (`en-neg-7`, accepted) |
-| Qwen3 30B-A3B Instruct 2507 Q4_K_M | 65 | 28 | 21 | 10 | 4 (`pl-ret-9` meaning inverted, `pl-rth-1`, `pl-rth-2`, `pl-rth-5`: marker dropped) | 6 (`pl-cor-4`, `en-cor-4`, `en-rth-3`, `pl-fil-1`, `pl-fil-7`, `pl-neg-12`) | 0 | 3 with the marker kept, which rule (1) allows (`pl-rth-3`, `pl-rth-4`, `en-rth-1`) | 0 | 0 |
+| Qwen3 4B Instruct 2507 Q4_K_M | 66 | 28 | 21 | 15 | 7 (`pl-ret-9`, `pl-cor-9`, `pl-neg-10`, `en-neg-7`: only the withdrawn version or over-removal; `pl-rth-3`, `pl-rth-4`, `pl-cor-7`: marker dropped, both versions kept) | 8 (`pl-rth-5`, `pl-cor-4`, `en-rth-1`, `en-rth-3`, `en-cor-4`: see below; `pl-fil-1`, `pl-fil-7`: a filler pair without a marker, the ordinary 0.6 bound; `pl-neg-12`: "no to" dropped before a content "właściwie") | 0 | 0 (the report also lists `pl-fil-4`, a heuristic false flag on a filler case) | 0 | 0 |
+| Qwen3 30B-A3B Instruct 2507 Q4_K_M | 65 | 28 | 21 | 10 | 4 (`pl-ret-9` meaning inverted, `pl-rth-1`, `pl-rth-2`, `pl-rth-5`: marker dropped) | 6 (`pl-cor-4`, `en-cor-4`, `en-rth-3`, `pl-fil-1`, `pl-fil-7`, `pl-neg-12`) | 0 | 3 with the marker kept, which rule (1) allows (`pl-rth-3`, `pl-rth-4`, `en-rth-1`; the report counts 4 with the `pl-fil-4` false flag) | 0 | 0 |
 
-Round 3 measured 70 (4B) and 68 (30B) passes on a guard that accepted more; the difference is the price of the
-narrower rule (fewer passes, no known hole).
+**Variant (iii), not adopted (guard level, no model run).** The owner's first choice for round 5 was the length
+floor of `main` (0.6) for a chunk with a marker unless the removed span is short, plus a negation ban. The guard
+alone decides the outcome on the 79 `expected` texts, whatever the model says: with a short-span exemption of
+3 words it rejects 24 of them (at most 55 of 79 and 15 of 38 withdrawals can pass), with 4 words 22 (57 and 15),
+with 5 words 22. Below the owner's limits (60 of 79, 24 of 38), and the "reversed meaning" probes only stopped
+at 3 words (at 4 words "tell her i am sorry about the delay" and at 5 words two more were accepted). So the
+rule moved to variant (ii), narrowed further (nearest parallel word, number runs, the disjunction idiom).
+
+Round 3 measured 70 (4B) and 68 (30B) passes on a guard that accepted more; round 4 measured 65 and 65. The
+difference is the price of the narrower rule (fewer passes, no known hole).
 
 - "Fell back" is split by the report itself: the rejected answer is generated again (greedy decoding gives the
   same text) and counted as a false alarm when it satisfies the case, else as a correct rejection. A fallback
@@ -448,17 +455,20 @@ narrower rule (fewer passes, no known hole).
   this for every possible output, but the property test (`GuardMutationTests`) rejects every one of 1410
   mutations of the 38 correct withdrawal results (a word after the marker swapped for another input word or
   an invented word, the marker dropped with both versions kept, with or without its joining word, the marker
-  moved by one word, a number changed), and none of the probes with a marker in the tables of the four
+  moved by one word, a number changed), and none of the probes with a marker in the tables of the five
   reviews (`GuardProbeTable`) is accepted when it is a bad output.
 - The 30B model keeps both versions WITH the marker word between them in three cases. Rule (1) accepts that:
   nothing is lost and the reader can see which version is final. It is the shape the prompt asks for when the
   model is unsure.
-- Over-removal is the risk that remains: on 4B one negative lost a word of the text and was accepted
-  (`en-neg-7`: a marker word used as content, "I mean what ..."). Since review round 4 a span must hold a word
-  of the chunk that is not a filler, so a marker that opens the chunk is never dropped and that answer now
-  falls back (the table above was measured before this change). Rule (2) still accepts the removal of up to
-  `min(words after the marker + 2, 8)` words before a marker word used as content, a negation included ("to
-  nie jest właściwie gotowe" to "Gotowe."), which `main` rejects by its length bound.
+- Over-removal: no negative lost a word on either model (the `en-neg-7` answer of 4B now falls back). A span
+  holds a word that is not a filler, starts on the nearest parallel word, and from the start of the chunk only
+  after a disjunction word and without a negation. The probes that main rejects by length ("to nie jest
+  właściwie gotowe do wysyłki", "we should not actually ship it today", "we meet on monday and the review is on
+  friday sorry on thursday ...", "napisz Piotrkowi nie czekaj na mnie z kolacją", "tell her i am sorry about the
+  delay") are all rejected too (`GuardProbeTable.round6`, 38 invented rows, 0 holes). What remains: a
+  removal of the words between the nearest parallel word and the marker that the speaker did not mean to
+  withdraw ("send it to anna and bob sorry to carol" to "Send it to Carol."), which the prompt and the raw text
+  cover.
 - The prompt's examples are not corpus cases. `CleanupPromptCorpusSeparationTests` fails when an example or a
   quoted sample of the system prompt shares three consecutive words, once markers and fillers are removed, or
   content-word Jaccard of 0.3 or more with a corpus text. The examples still teach the same shapes, so the
@@ -473,10 +483,17 @@ narrower rule (fewer passes, no known hole).
 marker of the closed list (`retractionMarkers`) that has a word after it that is not a filler; without one the
 chunk is judged by the length range and the language only. With one, `isDerivable` accepts the output when
 `aligns(spoken, written)` holds for the whole input, or for the input without a span that ends at that marker
-and starts at the beginning of the chunk or on a word that is parallel to the first word of the replacement
-(the same word after folding case and diacritics, two number words, "w"/"we", "z"/"ze", "o"/"ob"), at most
-`min(words after the marker + 2, 8)` words long, and holding a word that is not a filler (a marker that opens the
-chunk stays). `aligns` is a plain alignment at no cost: each spoken word is
+and starts on the NEAREST word that is parallel to the first word of the replacement (the same word after folding
+case and diacritics, two number words, "w"/"we", "z"/"ze", "o"/"ob"; a run of number words, with an "and" inside
+it, counts as one number), or at the beginning of the chunk when a disjunction word (`albo`, `lub`, `a`, `or`)
+stands right before the marker, the span fits the cap and holds no negation (`nie`, `not`, `no`, `never`, `n't`
+and the like): "A albo jednak B". The span is at most `min(words after the marker + 2, 8)` words long and holds a
+word that is not a filler (a marker that opens the chunk stays). Round 5 (the owner's decision, variant iii then
+ii): a span that could start at the beginning of the chunk or on ANY parallel word deleted a negation or an
+unwithdrawn fact before a marker word used as content, which `main` rejects by length. Variant (iii), the
+length floor of 0.6 with a short-span exemption and a negation ban, closed it only at a 3-word exemption and
+turned 18 more corpus `expected` texts into raw fallbacks (24 of 79 false alarms, at most 15 of 38 withdrawals
+passable), so it was dropped for the narrowed start. `aligns` is a plain alignment at no cost: each spoken word is
 written as the same word, as digits of EQUAL value (`NumberWords`: Polish and English cardinals and ordinals as
 a stem plus a closed set of number endings, 0 to 999 999, "25 000" and "2 100" only as one number; anything it
 cannot parse is not a number), or merged with the next into a contraction ("we are", "we're"; "will not", "won't"); only a
@@ -488,10 +505,11 @@ marker, the end rule with units, trailing particles and "OK", the novel-word sha
 exact (rule 1 and 2) or fall back.
 
 **What the guard rejects although the result is right** (false alarms; the raw text is pasted, which is safe).
-`GuardProbeTests.falseAlarms` lists the 30 of 102 correct cleanups in the probe tables, `GuardMutationTests` the
+`GuardProbeTests.falseAlarms` lists the 32 of 122 correct cleanups in the probe tables, `GuardMutationTests` the
 6 of 79 corpus `expected` texts:
 - the replacement is another word of the same slot, so the retracted span does not start on a word parallel
-  to it ("czerwoną" and "szarą", "Nowak" and "Nowicki", "Smith" and "Smythe", "use" and "stay");
+  to it, or the nearest parallel word is not the start of what was withdrawn, or the fragment is withdrawn with
+  a negation at the start of the chunk ("nie wysyłaj tego albo jednak wyślij to jutro") ("czerwoną" and "szarą", "Nowak" and "Nowicki", "Smith" and "Smythe", "use" and "stay");
 - the model changes anything else in a chunk with a marker: an inflection, a recognition fix, a dropped weak
   word ("just"), a dropped "no to" before a content marker, "cannot" written "can't", a unit written as a
   symbol ("15%"), a clock time written "15:00", a year, "półtora", a currency sign, a chained correction;
@@ -506,9 +524,6 @@ so these were accepted before the self-correction work and still are; none is a 
 - an unlisted marker ("a nie", "or rather", "znaczy", "nie nie", a bare "no") that drops the final version;
 - a number or clock time changed in the middle of a 40 to 60 word chunk, the words before a content marker, a
   short correction made of number words ("twenty chairs correction thirty chairs" to "20 chairs") (B10 to B13);
-- (not shared with `main`, which rejects it by its length bound) a negated imperative used as content,
-  "napisz Piotrkowi nie czekaj na mnie z kolacją" to "Na mnie z kolacją.", which rule (2) accepts as a span
-  that ends at the marker: only the prompt (keep both versions when unsure) and the raw text protect the user.
 
 **Condition.** Version 2 accepted no answer that kept the withdrawn version and lost the final one, on either
 catalog model, on this corpus (the models did produce such answers; the guard turned them into raw text). Should
