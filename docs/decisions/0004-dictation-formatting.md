@@ -81,16 +81,15 @@ transcript in tags under a fixed "transcription editor" system prompt [9].
 - [8] https://superwhisper.userjot.com/board/p/ability-to-have-language-model-ignore-questions.
 - [9] https://tryvoiceink.com/docs/prompt-management
 
-## Addendum (2026-11-19): CleanupPrompt version 2
+## Addendum (2026-11-20): CleanupPrompt version 2
 
 `CleanupPrompt.version` is 2 (owner decision 7, ADR 0010 decision 2): a fragment the speaker explicitly takes
 back with a spoken marker is removed together with the marker, the replacement stays, and the model keeps both
-versions (with the marker between them) when it is not sure. `FormatterGuard` has two paths. A chunk without a
-listed marker that has a word after it is checked exactly as before (length range and language). A chunk with
-one is accepted only if the output is the whole input with the marker kept, or the input minus one span that
-ends at the marker and starts on the NEAREST word parallel to the first word of the replacement (the same word, two number words with a whole number taken together, "w"/"we"), or at the beginning of the chunk only when a disjunction word ("albo", "lub", "a", "or") stands right before the marker and the span holds no negation ("A albo jednak B"); the only edits allowed besides that span are free ones (case, punctuation, a filler, digits of
-equal value, a contraction of two spoken words). Anything else, a lost or swapped word, a changed number, a
-dropped or moved marker, is rejected and the raw text is pasted (ADR 0010, "The guard"). The rule gives up some
-correct results on purpose (a replacement in another word of the same slot, an inflection) because the earlier,
-more permissive rule let a variant through in each of three reviews. Both formatters (server and built-in)
-share the prompt and the guard. The prompt's examples are not corpus cases (`CleanupPromptCorpusSeparationTests`).
+versions (with the marker between them) when it is not sure. This is a best effort, not a guarantee.
+`FormatterGuard` is exactly the guard of `main` (the length range 0.6 to 1.15 of the input's words, the
+language, "answered") plus ONE rule (owner decision 2026-11-20, variant A): when the input holds a listed
+spoken retraction marker and any negation stands before the FIRST one, the model's answer is dropped and the
+raw text is pasted (`negationBeforeMarker`). The guard does not compare the words of the answer with the words
+that were spoken; what it does not see is listed, with numbers, in ADR 0010 "What the guard does not see". Both
+formatters (server and built-in) share the prompt and the guard. The prompt's examples are not corpus cases
+(`CleanupPromptCorpusSeparationTests`).
