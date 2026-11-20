@@ -23,6 +23,7 @@ struct MeetingsSettings: Sendable {
         static let notesProviderBinary = "notesProviderBinary"
         static let qaProviderStatus = "qaProviderStatus"
         static let qaProviderScenario = "qaProviderScenario"
+        static let qaAccountName = "qaAccountName"
         static let notesChunkTokens = "notesChunkTokens"
         static let notesReduceInputTokens = "notesReduceInputTokens"
         static let suggestMeetings = "suggestMeetings"
@@ -281,6 +282,16 @@ struct MeetingsSettings: Sendable {
         } else {
             settings.removeValue(for: Key.notesProviderBinary)
         }
+    }
+
+    /// DEBUG only (`--qa-setting plugins.meetings.qaAccountName=<name>`): the macOS account's full name as the
+    /// "Your name" suggestion reads it, so a screenshot shows an invented name, never the tester's.
+    var qaAccountName: String? {
+        #if DEBUG
+        settings.string(Key.qaAccountName)
+        #else
+        nil
+        #endif
     }
 
     /// DEBUG only (`--qa-setting plugins.meetings.qaProviderScenario=running|confirm|details|ready|<failure reason>`; any value puts the provider banner first): a job

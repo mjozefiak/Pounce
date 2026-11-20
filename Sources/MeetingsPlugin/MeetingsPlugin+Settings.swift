@@ -87,7 +87,8 @@ final class MeetingsUI {
             speech: speech, diarization: diarization,
             systemAudioTest: SystemAudioTestModel(makeTest: makeSelfTest, blocked: { activity.isActive }),
             notes: NotesSettingsModel(settings: settings, service: service, manager: llmManager), provider: provider,
-            authorizer: authorizer, openURL: { url in Task { try? await workspace.open(url) } })
+            authorizer: authorizer, openURL: { url in Task { try? await workspace.open(url) } },
+            accountName: { providerSettings.qaAccountName ?? NSFullUserName() })
         let countersStore = CaptureCountersStore(directory: context.storageDirectory)
         model.captureCounters = { countersStore.load() }
         model.copyText = { pasteboard.setString($0) }
