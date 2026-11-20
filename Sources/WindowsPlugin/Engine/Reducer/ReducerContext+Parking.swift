@@ -54,6 +54,7 @@ extension ReducerContext {
 
     mutating func displaysChanged(_ displays: [DisplayInfo], now: Double) {
         state.diagnostics.displayChanges += 1
+        state.displaySettleUntil = now + Self.displaySettleDuration
         // No display at all (the only display is asleep): keep the model and move nothing; the list that comes
         // back is the one that counts.
         guard !displays.isEmpty else {

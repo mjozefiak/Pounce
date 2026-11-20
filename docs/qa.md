@@ -17,7 +17,7 @@ swift build
 .build/debug/Lintel --qa --qa-appearance dark --qa-show-menu --qa-quit-after 8
 ```
 
-Or build a bundle (ad-hoc signed, never with the "Lintel Release" identity locally) and run its binary:
+Or build a bundle (ad-hoc signed, never with the release identity locally) and run its binary:
 
 ```bash
 CONFIGURATION=debug scripts/make-app.sh
@@ -363,8 +363,8 @@ isolates the Keychain; audio permissions are per app, not per `--qa` data folder
   Audio Recording" list. If it does not, record the correct id in the ADR and in the Permissions deep link.
 - **Permission lost after an ad-hoc rebuild.** With ad-hoc signing the code signature changes on every build, so macOS
   forgets the system-audio consent: after rebuilding, the self-test goes back to "no audio" until the prompt is accepted
-  again (remove the stale Lintel entry first if the prompt does not come back). Release builds signed with the stable
-  "Lintel Release" certificate keep it.
+  again (remove the stale Lintel entry first if the prompt does not come back). Release builds signed with the
+  Developer ID certificate keep it.
 - **Default shortcut and VoiceOver (manual).** The default ⌃⌥M is also VoiceOver's modifier (⌃⌥ = VO). With
   VoiceOver on, ⌃⌥M may be consumed by VoiceOver instead of reaching Lintel. Check once with VoiceOver running
   that the command starts and stops a recording, and if it does not, record the finding in the PR (the shortcut
@@ -668,7 +668,7 @@ picker are scripted by the verbs above (`plugins.windows.qaScriptedFiles`, on in
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.
 - No toggling Launch at Login (`SMAppService`).
-- No signing with the "Lintel Release" identity on a developer machine (see `docs/signing.md`).
+- No signing with the Developer ID release identity on a developer machine (see `docs/signing.md`).
 - Quit every Lintel process you started.
 
 Checks that need TCC grants (Accessibility for paste, a real Full Disk Access grant, the privacy prompt

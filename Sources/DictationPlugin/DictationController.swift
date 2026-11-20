@@ -215,6 +215,9 @@ final class DictationController {
             status = .partial
         }
         let raw = output.rawText
+        // The history keeps what was pasted: formatted text, or text the vocabulary changed.
+        let cleaned = mode == .clean && status != .failed && status != .none
+        let pastedTextDiffers = output.text != raw
         let languages: String
         switch Language.dominant(in: raw) {
         case .polish: languages = "pl"
@@ -226,7 +229,7 @@ final class DictationController {
         deps.recordHistory(
             DictationEntry(
                 createdAt: deps.wallClock(), durationMs: Int(output.duration * 1000), rawText: raw,
-                formattedText: mode == .clean && status != .failed && status != .none ? output.text : nil,
+                formattedText: cleaned || pastedTextDiffers ? output.text : nil,
                 formatMode: mode, formatStatus: status, detectedLanguages: languages,
                 speechModelID: deps.speechModelID(), formatterModel: mode == .clean ? deps.formatterModel() : nil,
                 targetBundleID: pasted ? target : nil, pasteResult: pasted ? .pasted : .copied))

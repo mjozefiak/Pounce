@@ -248,17 +248,19 @@ actor MeetingSession {
         for input in inputs {
             let channel = input.channel
             let continuation = continuation
-            let onLevel = { @Sendable (level: Float) in _ = continuation.yield(.level(channel, level)) }
+            let levelGate = LevelGate()
+            let onLevel = { @Sendable (level: Float) in
+                if levelGate.isOpen { _ = continuation.yield(.level(channel, level)) }
+            }
             do {
                 let stream = try await input.audio.start(onLevel: onLevel)
                 let track = TrackState(channel: channel, audio: input.audio, vad: makeVAD())
+                track.levelGate = levelGate
+                track.onLevel = onLevel
                 track.spool = writers[channel]
                 track.lastAudioAt = now()
                 tracks[channel] = track
-                track.consume = Task { [weak self] in
-                    for await chunk in stream { await self?.receive(track, chunk) }
-                    await self?.streamEnded(track)
-                }
+                consume(track, stream)
             } catch {
                 logger.error("Audio track \(channel.rawValue, privacy: .public) did not start")
                 continuation.yield(.trackUnavailable(channel))
@@ -268,6 +270,15 @@ actor MeetingSession {
         if tracks.isEmpty { throw MeetingSessionError.noAudioInput }
         startedAt = now()
         lastDiskCheckAt = startedAt
+    }
+
+    private func consume(_ track: TrackState, _ stream: AsyncStream<[Float]>) {
+        track.generation += 1
+        let generation = track.generation
+        track.consume = Task { [weak self] in
+            for await chunk in stream { await self?.receive(track, chunk) }
+            await self?.streamEnded(track, generation: generation)
+        }
     }
 
     /// Undoes a start that failed: nothing stays in the library or in the spool. The event stream stays open
@@ -329,10 +340,7 @@ actor MeetingSession {
         }
         let stall = MeetingSessionLimits.seconds(limits.stallTimeout)
         for track in tracks.values where track.alive && current.timeIntervalSince(track.lastAudioAt) >= stall {
-            logger.error("Audio track \(track.channel.rawValue, privacy: .public) stalled")
-            track.consume?.cancel()
-            await track.audio.stop()
-            lose(track)
+            await recoverOrLose(track, reason: "no audio for \(Int(stall)) s")
         }
         if finishTask == nil,
             current.timeIntervalSince(lastDiskCheckAt) >= MeetingSessionLimits.seconds(limits.diskCheckEvery)
@@ -388,20 +396,88 @@ actor MeetingSession {
         Int16(max(-1, min(1, sample)) * 32_767)
     }
 
-    private func streamEnded(_ track: TrackState) {
-        guard tracks[track.channel] === track, track.alive else { return }
+    private func streamEnded(_ track: TrackState, generation: Int) async {
+        guard tracks[track.channel] === track, track.alive, track.generation == generation, !track.resuming
+        else { return }
         guard finishTask == nil, state == .recording || state == .idle else {
             track.alive = false
             return
         }
-        logger.notice("Audio track \(track.channel.rawValue, privacy: .public) ended")
-        lose(track)
+        await recoverOrLose(track, reason: "stream ended")
+    }
+
+    /// The stream of a track ended or stalled while recording (the input device or its format changed, the
+    /// Mac slept, the permission went). The input is started again a few times; only when that fails does
+    /// the track count as lost. The gap is filled with silence so the track stays on the common timeline.
+    private func recoverOrLose(_ track: TrackState, reason: String) async {
+        let channel = track.channel
+        guard track.alive, !track.resuming else { return }
+        logger.notice(
+            "Audio track \(channel.rawValue, privacy: .public) interrupted: \(reason, privacy: .public)")
+        let attempts = limits.resumeAttempts
+        guard attempts > 0, state == .recording else {
+            await track.audio.stop()
+            lose(track, reason: reason)
+            return
+        }
+        track.resuming = true
+        track.levelGate.close()
+        continuation.yield(.trackInterrupted(channel))
+        track.consume?.cancel()
+        await track.audio.stop()
+        for attempt in 1...attempts {
+            if limits.resumeDelay > .zero {
+                // Unstructured on purpose: when the stream ended, this runs inside the track's own consume
+                // task, which was just cancelled, and a cancelled sleep would return at once.
+                let delay = limits.resumeDelay
+                await Task { try? await Task.sleep(for: delay) }.value
+            }
+            guard tracks[channel] === track, track.alive, finishTask == nil, state == .recording else {
+                track.resuming = false
+                return
+            }
+            do {
+                let stream = try await track.audio.start(onLevel: track.onLevel ?? { _ in })
+                guard tracks[channel] === track, finishTask == nil, state == .recording else {
+                    await track.audio.stop()
+                    track.resuming = false
+                    return
+                }
+                let gap = min(
+                    max(0, now().timeIntervalSince(track.lastAudioAt)),
+                    MeetingSessionLimits.seconds(limits.longestGapFill))
+                let silence = Int(gap * Double(AudioFormat.sampleRate))
+                track.resuming = false
+                if silence > 0 { await receive(track, [Float](repeating: 0, count: silence)) }
+                guard finishTask == nil, state == .recording else {
+                    await track.audio.stop()
+                    return
+                }
+                track.lastAudioAt = now()
+                track.levelGate.open()
+                consume(track, stream)
+                logger.notice(
+                    "Audio track \(channel.rawValue, privacy: .public) resumed after attempt \(attempt, privacy: .public)"
+                )
+                continuation.yield(.trackResumed(channel))
+                return
+            } catch {
+                logger.error(
+                    "Audio track \(channel.rawValue, privacy: .public) restart \(attempt, privacy: .public) of \(attempts, privacy: .public) failed"
+                )
+            }
+        }
+        track.resuming = false
+        lose(track, reason: "\(reason); \(attempts) restarts failed")
     }
 
     /// A track is gone while recording (or while starting): its open speech is closed, the other track carries
     /// on, and when none is left the meeting ends.
-    private func lose(_ track: TrackState) {
+    private func lose(_ track: TrackState, reason: String) {
+        logger.error(
+            "Audio track \(track.channel.rawValue, privacy: .public) lost: \(reason, privacy: .public)")
         track.alive = false
+        track.levelGate.close()
         continuation.yield(.trackLost(track.channel))
         if let start = track.speechStart {
             closeSegment(track, start..<track.store.count)
@@ -961,12 +1037,26 @@ private final class TrackState: @unchecked Sendable {
     var backlogSamples = 0
     var worker: Task<Void, Never>?
     var consume: Task<Void, Never>?
+    /// Bumped on every (re)start; a stream that ends after a newer one began is ignored.
+    var generation = 0
+    var resuming = false
+    var levelGate = LevelGate()
+    var onLevel: (@Sendable (Float) -> Void)?
 
     init(channel: AudioChannel, audio: any AudioInput, vad: any VoiceActivityDetector) {
         self.channel = channel
         self.audio = audio
         self.vad = vad
     }
+}
+
+/// Lets the meter of a track go dark while the track is interrupted or lost, even when the old capture still
+/// delivers a last level.
+private final class LevelGate: Sendable {
+    private let flag = Mutex(true)
+    var isOpen: Bool { flag.withLock { $0 } }
+    func open() { flag.withLock { $0 = true } }
+    func close() { flag.withLock { $0 = false } }
 }
 
 private final class LoadFlag: Sendable {

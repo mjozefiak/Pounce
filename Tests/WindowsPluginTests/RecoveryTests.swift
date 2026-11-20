@@ -462,7 +462,7 @@ import os
         permissions.set(true)
         center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
         await drainMainQueue()
-        await runtime.settle()
+        await runtime.settleGuarded()
         #expect(client.frame(of: id(1)) == home)
         #expect(hud.shown.last == .restored(restored: 1, onAnotherSpace: 0, failed: 0))
         await plugin.deactivate()
@@ -482,7 +482,7 @@ import os
         client.add(makeWindow(2, frame: parked))
         await runtime.engine.submit([])
         await runtime.engine.ingest(.spaceChanged)
-        await runtime.engine.flushEvents()
+        await runtime.engine.flushGuarded()
         #expect(client.frame(of: id(2)) == home)
         await plugin.deactivate()
     }
@@ -504,7 +504,7 @@ import os
         center.post(name: NSApplication.didBecomeActiveNotification, object: nil)
         await drainMainQueue()
         // The grant starts the re-check, which stops the plugin from inside the runtime's own task.
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         #expect(plugin.runtime == nil)
         #expect(plugin.lastStartError == .unsupported(reason: "scripted"))
     }

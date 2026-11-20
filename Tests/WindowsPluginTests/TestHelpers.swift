@@ -1,5 +1,8 @@
 import Foundation
+import Synchronization
 import Testing
+
+@testable import WindowsPlugin
 
 /// Lets a test hold something (a recovery pass, a queue's work) until it opens the latch.
 actor Latch {
@@ -104,5 +107,123 @@ final class CountGate: @unchecked Sendable {
         watchdog.cancel()
         if !reached { Issue.record("never reached: \(what)", sourceLocation: sourceLocation) }
         return reached
+    }
+}
+
+/// Waits for `condition` on state that has no event to wait on, by looking every few milliseconds of real time. It
+/// ends with an `Issue` at the caller's line after `limit`, and at once when the waiting task is cancelled, so a state
+/// that never comes fails the test instead of hanging it. Returns whether the condition held.
+@discardableResult
+func waitForState(
+    _ what: String, limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation,
+    _ condition: @Sendable () async -> Bool
+) async -> Bool {
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: limit)
+    while !Task.isCancelled {
+        if await condition() { return true }
+        if clock.now >= deadline { break }
+        try? await clock.sleep(for: .milliseconds(5))
+    }
+    if !Task.isCancelled { Issue.record("never reached within \(limit): \(what)", sourceLocation: sourceLocation) }
+    return false
+}
+
+/// The first of two outcomes (work finished, or gave up) decides; the waiter gets it once.
+private final class Rendezvous: Sendable {
+    private struct State {
+        var result: Bool?
+        var waiter: CheckedContinuation<Bool, Never>?
+    }
+    private let state = Mutex(State())
+
+    func finish(_ value: Bool) {
+        let waiter = state.withLock { state -> CheckedContinuation<Bool, Never>? in
+            guard state.result == nil else { return nil }
+            state.result = value
+            defer { state.waiter = nil }
+            return state.waiter
+        }
+        waiter?.resume(returning: value)
+    }
+
+    func wait() async -> Bool {
+        await withCheckedContinuation { continuation in
+            let result = state.withLock { state -> Bool? in
+                if let result = state.result { return result }
+                state.waiter = continuation
+                return nil
+            }
+            if let result { continuation.resume(returning: result) }
+        }
+    }
+}
+
+/// Runs `work` and waits for it at most `limit` of real time. A `work` that never finishes (an await that ignores
+/// cancellation, a wake-up that never comes) records an `Issue` at the caller's line and returns `false`; the stuck
+/// task is left behind. The waiting task being cancelled (`.timeLimit`) returns at once too. This is what keeps a
+/// missing wake-up from hanging the whole run.
+@discardableResult
+func guardedAwait(
+    _ what: String, limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation,
+    _ work: @escaping @Sendable () async -> Void
+) async -> Bool {
+    let outcome = Rendezvous()
+    Task {
+        await work()
+        outcome.finish(true)
+    }
+    let watchdog = Task {
+        try? await ContinuousClock().sleep(for: limit)
+        outcome.finish(false)
+    }
+    let finished = await withTaskCancellationHandler {
+        await outcome.wait()
+    } onCancel: {
+        outcome.finish(false)
+    }
+    watchdog.cancel()
+    if !finished && !Task.isCancelled {
+        Issue.record("\(what) did not finish within \(limit)", sourceLocation: sourceLocation)
+    }
+    return finished
+}
+
+extension WindowEngine {
+    /// `flushEvents()` that cannot hang the run.
+    @discardableResult
+    func flushGuarded(limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation) async -> Bool {
+        await guardedAwait("flushEvents()", limit: limit, sourceLocation: sourceLocation) { await self.flushEvents() }
+    }
+
+    /// `waitForWork()` that cannot hang the run.
+    @discardableResult
+    func waitForWorkGuarded(limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation) async
+        -> Bool
+    {
+        await guardedAwait("waitForWork()", limit: limit, sourceLocation: sourceLocation) { await self.waitForWork() }
+    }
+
+    /// `settle()` that cannot hang the run. `settle()` waits for the flush tick too, and a tick armed by an event that
+    /// reached the coalescer after the flush would sleep on a virtual clock nobody advances. `flushEvents()` first
+    /// waits until the engine's pump has taken every event the client emitted (`waitForPump()`, which ends when the
+    /// task is cancelled), so one flush leaves no event behind; the guard still turns any other stall into a named
+    /// failure after `limit`.
+    @discardableResult
+    func settleGuarded(limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation) async -> Bool
+    {
+        await guardedAwait("settle()", limit: limit, sourceLocation: sourceLocation) {
+            await self.flushEvents()
+            await self.settle()
+        }
+    }
+}
+
+extension WindowsRuntime {
+    /// `settle()` that cannot hang the run.
+    @discardableResult
+    func settleGuarded(limit: Duration = .seconds(20), sourceLocation: SourceLocation = #_sourceLocation) async -> Bool
+    {
+        await guardedAwait("settle()", limit: limit, sourceLocation: sourceLocation) { await self.settle() }
     }
 }

@@ -47,11 +47,11 @@ import Testing
         #expect(result.droppedCount == 0)
         #expect(result.failedChunks.isEmpty)
         #expect(!result.reduceFailed)
-        #expect(result.promptVersion == "3")
+        #expect(result.promptVersion == "6")
         let markdown = try #require(result.markdown)
         #expect(markdown.contains("### Decyzje"))
         #expect(markdown.contains("Zatwierdzamy ten budżet bez zmian."))
-        #expect(markdown.contains("\\(osoba\\: Marek, termin\\: piątek\\)"))
+        #expect(markdown.contains("- [ ] ") && markdown.contains(" — osoba\\: Marek, termin\\: piątek"))
         #expect(markdown.contains("Kto zajmie się umową z dostawcą?"))
         #expect(markdown.contains("### Uczestnicy"))
 
@@ -233,11 +233,11 @@ import Testing
         #expect(result.status == .partial)
         #expect(result.reduceFailed)
         #expect(rig.llm.calls.filter { NotesFake.isReduce($0.messages) }.map(\.maxTokens) == [1500, 3000])
-        // The sections are still there, composed in time order by the code, with a summary from the points.
+        // The sections are still there, in time order by the code; no summary is composed from the points.
         let markdown = try #require(result.markdown)
         #expect(markdown.contains("### Decyzje"))
         #expect(markdown.contains("### Zadania"))
-        #expect(markdown.contains("### Podsumowanie"))
+        #expect(!markdown.contains("### Podsumowanie"))
     }
 
     // MARK: REDUCE levels
@@ -321,7 +321,9 @@ import Testing
         let markdown = try #require(result.markdown)
         #expect(!markdown.contains("Kowalski"))
         #expect(!markdown.contains("p99"))
-        #expect(markdown.contains("Przejdźmy do budżetu"))
+        // No summary is composed in place of the refused one.
+        #expect(!markdown.contains("### Podsumowanie"))
+        #expect(!markdown.contains("Przejdźmy do budżetu"))
     }
 
     @Test func instructionsInTheTranscriptAreOnlyEverText() async throws {

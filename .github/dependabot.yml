@@ -1,0 +1,42 @@
+# Dependabot version updates (spec 2026-11-19-updates-and-open-source-hygiene, step 1.5).
+#
+# github-actions: keeps the commit-pinned `uses:` lines in .github/workflows current (it rewrites the SHA and the
+# trailing version comment).
+# swift: reads the root Package.swift and Package.resolved. The local wrapper package Packages/GRDBCipher is a
+# path dependency (a git submodule), so it is not listed here; its pinned SQLCipher.swift version is updated by
+# hand. The llama.cpp binary target is pinned by URL and checksum and is not covered either.
+# Load on the macOS runners: one grouped pull request per ecosystem, once a week (Monday), and no major-version
+# bumps of Swift packages (they are pinned exactly and approved one by one; a major bump is a decision, not an update).
+# Pull requests are never merged automatically; every update goes through the normal review and QA gate.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - dependencies
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    groups:
+      swift-packages:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies

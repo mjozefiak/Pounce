@@ -203,7 +203,9 @@ nonisolated final class AXObservationHub: @unchecked Sendable {
                 self.perform { [self] in unobserve(pid) }
             }, to: center)
         let delayed = delayedResync
+        let systemLogger = Logger(subsystem: "com.lintelapp", category: "windows")
         let emit: @Sendable (SystemNotificationKind) -> Void = { kind in
+            systemLogger.info("system notification: \(String(describing: kind), privacy: .public)")
             for event in SystemEventTable.events(for: kind) { buffer.append(event) }
             if SystemEventTable.needsFollowUp(kind) { delayed.schedule() }
         }

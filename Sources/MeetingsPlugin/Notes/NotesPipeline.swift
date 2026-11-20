@@ -53,17 +53,15 @@ struct NotesResult: Equatable, Sendable {
     var rejectedIDs: Int
     var language: NotesLanguage
     var promptVersion: String
-    /// Points whose text said more than the quote and was replaced by the transcript's own words.
-    var repairedCount = 0
-    /// Decisions and tasks that were questions in the transcript and became open questions.
+    /// Decisions, tasks and findings that were questions in the transcript and became open questions.
     var downgradedCount = 0
     /// Verified points the REDUCE answer left out that were added back.
     var backfilledCount = 0
     /// The decisions, tasks and open questions that stand in the notes, with their quotes (for the regression
     /// tests; nothing stores or shows them).
     var points: [NotesPoint] = []
-    /// The summary points that stand in the notes as key points, in time order (for the regression tests;
-    /// nothing stores or shows them).
+    /// The summary points that stand in the notes as topics discussed, in REDUCE's order (for the regression
+    /// tests; nothing stores or shows them).
     var keyPoints: [NotesPoint] = []
 }
 
@@ -72,6 +70,8 @@ enum NotesFailure: Error, Equatable {
     case modelUnavailable
     /// Another model kept the memory for the whole waiting time.
     case modelBusy
+    /// The whole-transcript track: the transcript needs more parts than the track allows. Nothing was sent.
+    case transcriptTooLong
 }
 
 /// MAP → REDUCE over the transcript on the built-in model (spec: Architecture → Notatki).
@@ -187,14 +187,14 @@ struct NotesPipeline: Sendable {
 
         func result(
             status: NotesResult.Status, markdown: String?, dropped: Int = 0, points: Int = 0,
-            reduceFailed: Bool = false, replaced: Bool = false, rejected: Int = 0, repaired: Int = 0,
+            reduceFailed: Bool = false, replaced: Bool = false, rejected: Int = 0,
             downgraded: Int = 0, backfilled: Int = 0, kept: [NotesPoint] = [], keyPoints: [NotesPoint] = []
         ) -> NotesResult {
             NotesResult(
                 status: status, markdown: markdown, droppedCount: dropped, failedChunks: failed,
                 chunkCount: chunks.count, verifiedPointCount: points, reduceFailed: reduceFailed,
                 summaryReplaced: replaced, rejectedIDs: rejected, language: verifier.language,
-                promptVersion: String(NotesPrompt.version), repairedCount: repaired, downgradedCount: downgraded,
+                promptVersion: String(NotesPrompt.version), downgradedCount: downgraded,
                 backfilledCount: backfilled, points: kept, keyPoints: keyPoints)
         }
         if failedWhole == chunks.count { return result(status: .failed, markdown: nil) }
@@ -229,8 +229,7 @@ struct NotesPipeline: Sendable {
                 decisions: [], tasks: [], questions: [], summary: nil, summaryReplaced: false, rejectedIDs: 0)
             let markdown = NotesComposer.markdown(verdict: empty, participants: participants, labels: labels)
             return result(
-                status: .ok, markdown: markdown, dropped: verdict.dropped, repaired: verdict.repaired,
-                downgraded: verdict.downgraded)
+                status: .ok, markdown: markdown, dropped: verdict.dropped, downgraded: verdict.downgraded)
         }
 
         let reduced = try await reduce(points: points, lease: lease, recorder: recorder)
@@ -250,7 +249,7 @@ struct NotesPipeline: Sendable {
         return result(
             status: reduced.failed ? .partial : flowStatus, markdown: markdown, dropped: verdict.dropped,
             points: points.count, reduceFailed: reduced.failed, replaced: final.summaryReplaced,
-            rejected: final.rejectedIDs, repaired: verdict.repaired, downgraded: verdict.downgraded,
+            rejected: final.rejectedIDs, downgraded: verdict.downgraded,
             backfilled: final.backfilled, kept: final.decisions + final.tasks + final.questions,
             keyPoints: final.keyPoints)
     }
@@ -275,15 +274,16 @@ struct NotesPipeline: Sendable {
         points.enumerated().sorted { ($0.element.timeMs, $0.offset) < ($1.element.timeMs, $1.offset) }.map(\.element)
     }
 
+    /// The names of the people who spoke, in order of appearance. A generic label ("Mówca 1", "Speaker 2", "Ja")
+    /// names nobody, so it is not listed: the diarization may have put several people under one of them.
     static func participants(of utterances: [NotesUtterance]) -> [String] {
         var seen = Set<String>()
-        return utterances.map(\.speaker).filter { seen.insert($0).inserted }
+        return utterances.map(\.speaker).filter { !NotesGuard.isGenericLabel($0) && seen.insert($0).inserted }
     }
 
     // MARK: Semantic verifier
 
-    /// Asks the verifier about every point the guard kept or repaired in a way it may undo
-    /// (`NotesGuard.PointReview.claim`), one at a time on the notes' lease, within `verifierBudget` of generation
+    /// Asks the verifier about every point the guard kept, one at a time on the notes' lease, within `verifierBudget` of generation
     /// time, and applies the answers (`NotesGuard.applyingVerifications`). Only the points the deduplication keeps
     /// are asked (it does not depend on the text). Cancelling the run throws; running out of time, a failed or
     /// malformed answer leave a point as the guard left it.
@@ -293,9 +293,9 @@ struct NotesPipeline: Sendable {
     ) async throws -> (verdict: NotesGuard.PointVerdict, trace: NotesTraceVerifier) {
         let kept = Set(Self.deduplicated(verdict.verified).map(\.id))
         var requests: [NotesVerifierRequestItem] = []
-        for (point, review) in zip(verdict.verified, verdict.reviews) where kept.contains(point.id) {
-            guard let claim = review.claim(of: point) else { continue }
-            requests.append(.init(id: point.id, request: notesGuard.verificationRequest(for: point, claim: claim)))
+        for point in verdict.verified where kept.contains(point.id) {
+            requests.append(
+                .init(id: point.id, request: notesGuard.verificationRequest(for: point, claim: point.text)))
         }
         var trace = NotesTraceVerifier(promptVersion: NotesVerifierPrompt.version, eligible: requests.count)
         guard !requests.isEmpty else { return (verdict, trace) }
@@ -333,8 +333,7 @@ struct NotesPipeline: Sendable {
         }
         trace.notAsked = requests.count - trace.asked
         let applied = NotesGuard.applyingVerifications(results, to: verdict)
-        trace.restoredModelText = applied.effect.restoredModelText
-        trace.rejectedKept = applied.effect.rejectedKept
+        trace.rejectedKept = applied.effect.rejected
         return (applied.verdict, trace)
     }
 
@@ -420,14 +419,21 @@ struct NotesPipeline: Sendable {
     ) async throws -> Reduced {
         var merged = Reduced()
         var summaries: [String] = []
+        var questions: [[String]] = []
+        var keyPoints: [[String]] = []
         for batch in batches {
             let part = try await reduceSingle(batch, lease: lease, recorder: recorder)
             merged.output.decisions.append(contentsOf: part.output.decisions)
             merged.output.tasks.append(contentsOf: part.output.tasks)
-            merged.output.questions.append(contentsOf: part.output.questions)
+            questions.append(part.output.questions)
+            keyPoints.append(part.output.keyPoints)
             if let summary = part.output.summary { summaries.append(summary) }
             merged.failed = merged.failed || part.failed
         }
+        // The guard keeps the first `maxQuestions` and `maxKeyPoints` in this order, so the batches take turns:
+        // one that comes first in the meeting must not use up the whole limit.
+        merged.output.questions = Self.interleaved(questions)
+        merged.output.keyPoints = Self.interleaved(keyPoints)
         let summary = try await mergeSummaries(summaries, lease: lease, recorder: recorder)
         merged.output.summary = summary.text
         merged.failed = merged.failed || summary.failed
@@ -462,12 +468,50 @@ struct NotesPipeline: Sendable {
         }
     }
 
-    /// REDUCE could not be had: every point of a kind, in time order, and no paragraph (the guard composes it).
+    /// REDUCE could not be had: every decision and task in time order, the questions and the topics picked evenly
+    /// over the WHOLE meeting (not the first ones: the middle is where the main decision usually is), and no
+    /// paragraph (nothing is composed without REDUCE). Without the topics a meeting of findings only would read
+    /// as one with nothing in it.
     static func codeOrder(_ points: [NotesPoint]) -> NotesReduceOutput {
         NotesReduceOutput(
             decisions: points.filter { $0.kind == .decision }.map(\.id),
             tasks: points.filter { $0.kind == .task }.map(\.id),
-            questions: points.filter { $0.kind == .question }.map(\.id), summary: nil)
+            questions: spread(points.filter { $0.kind == .question }, count: NotesGuard.maxQuestions).map(\.id),
+            keyPoints: spread(points.filter { $0.kind == .summary }, count: NotesGuard.maxKeyPoints).map(\.id),
+            summary: nil)
+    }
+
+    /// At most `count` of the points, spread over the time they cover: the first one, then each time the one
+    /// whose nearest chosen neighbour is farthest away in time (ties go to the earlier one), returned in their
+    /// original order (the points are in time order, as MAP finds them). All of them when there are no more than `count`. Pure and deterministic.
+    static func spread(_ points: [NotesPoint], count: Int) -> [NotesPoint] {
+        guard count > 0 else { return [] }
+        guard points.count > count else { return points }
+        var chosen: [Int] = [0]
+        var nearest = points.map { abs($0.timeMs - points[0].timeMs) }
+        while chosen.count < count {
+            var best = -1
+            for index in points.indices where !chosen.contains(index) {
+                if best < 0 || nearest[index] > nearest[best] { best = index }
+            }
+            guard best >= 0 else { break }
+            chosen.append(best)
+            for index in points.indices {
+                nearest[index] = min(nearest[index], abs(points[index].timeMs - points[best].timeMs))
+            }
+        }
+        return chosen.sorted().map { points[$0] }
+    }
+
+    /// The lists' first items, then their second items and so on.
+    static func interleaved(_ lists: [[String]]) -> [String] {
+        var result: [String] = []
+        var index = 0
+        while lists.contains(where: { index < $0.count }) {
+            for list in lists where index < list.count { result.append(list[index]) }
+            index += 1
+        }
+        return result
     }
 
     static func batches(_ points: [NotesPoint], budget: Int, cost: (NotesPoint) -> Int) -> [[NotesPoint]] {
@@ -493,8 +537,8 @@ struct NotesPipeline: Sendable {
     private static let maxMergeDepth = 8
 
     /// Merges partial summaries into one paragraph, a level at a time while they do not fit one request. When
-    /// two of them do not fit together (or the levels run out) it gives up with `failed`, and the guard composes
-    /// the paragraph from the points.
+    /// two of them do not fit together (or the levels run out) it gives up with `failed`, and the notes have no
+    /// paragraph.
     private func mergeSummaries(
         _ summaries: [String], lease: NotesLease, recorder: NotesTraceRecorder?, depth: Int = 0
     ) async throws -> (text: String?, failed: Bool) {
@@ -635,9 +679,17 @@ struct NotesPipeline: Sendable {
                 retried = true
                 switch error as? AttemptError {
                 case .truncated?:
+                    // Greedy decoding gives the same loop for the same prompt, so the retry also asks for the
+                    // format again (a changed prompt), not only for more room.
+                    let changedPrompt = !reminder
+                    reminder = true
                     let larger = min(limit * 2, room)
-                    if larger <= limit { return .failed }
-                    limit = larger
+                    // No room to grow: a changed prompt at the same limit is still worth one try.
+                    if larger > limit {
+                        limit = larger
+                    } else if !changedPrompt {
+                        return .failed
+                    }
                 case .malformed?: reminder = true
                 default: break
                 }

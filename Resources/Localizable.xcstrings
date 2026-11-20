@@ -19,42 +19,6 @@
         }
       }
     },
-    "Author bars" : {
-      "comment" : "Inspector, Details: toggle for the author bars",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Author bars"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paski autorów"
-          }
-        }
-      }
-    },
-    "Author legend" : {
-      "comment" : "Accessibility label of the legend of the author bars",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Author legend"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legenda autorów"
-          }
-        }
-      }
-    },
     "Details" : {
       "comment" : "Inspector: tab with the view toggles and the note's facts",
       "extractionState" : "manual",
@@ -4231,24 +4195,6 @@
         }
       }
     },
-    "Source quotes" : {
-      "comment" : "Inspector, Details: toggle for the quote chips",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Source quotes"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cytaty ze źródła"
-          }
-        }
-      }
-    },
     "Speaker model" : {
       "comment" : "Settings → Meetings label of the model that tells the speakers apart",
       "extractionState" : "manual",
@@ -4911,24 +4857,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Transkrypt, notatki i zapisany dźwięk zostaną usunięte z tego Maca. Tej operacji nie można cofnąć."
-          }
-        }
-      }
-    },
-    "Timestamps that open the transcript." : {
-      "comment" : "Inspector, Details: what the quote chips do",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Timestamps that open the transcript."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Znaczniki czasu otwierające transkrypt."
           }
         }
       }
@@ -7485,24 +7413,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Whisper słucha w wybranym przez ciebie języku."
-          }
-        }
-      }
-    },
-    "Who wrote each block: AI, You, STT." : {
-      "comment" : "Inspector, Details: what the author bars show",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Who wrote each block: AI, You, STT."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kto napisał każdy blok: AI, Ty, STT."
           }
         }
       }
@@ -14415,60 +14325,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zamiana mowy na tekst"
-          }
-        }
-      }
-    },
-    "Show %@ in the transcript" : {
-      "comment" : "Accessibility: a quote chip",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show %@ in the transcript"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pokaż %@ w transkrypcie"
-          }
-        }
-      }
-    },
-    "Switches to the transcript" : {
-      "comment" : "Accessibility hint of a quote chip",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Switches to the transcript"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Przełącza na transkrypt"
-          }
-        }
-      }
-    },
-    "Quoted from %@" : {
-      "comment" : "Accessibility: a quote time",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quoted from %@"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cytat z %@"
           }
         }
       }

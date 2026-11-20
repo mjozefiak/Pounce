@@ -6,7 +6,7 @@ import Testing
 /// Spec step 6.2: the revise run through the lease, with a scripted lease and model, a real store and the injected
 /// clock. No sleeping, no real model: every wait is a latch or a gate.
 @MainActor
-@Suite(.timeLimit(.minutes(2))) struct ReviseServiceTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(2))) struct ReviseServiceTests {
     private let answer = ReviseRig.unit("- Pricing page moves to the next sprint (owner: Marek).")
 
     // MARK: Happy path

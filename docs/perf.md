@@ -301,6 +301,113 @@ Measurement checklist (copy into the PR that records the numbers):
 - [ ] Dictation tail with a notes job running.
 - [ ] If a figure differs from the table above by a large factor, change `notesChunkTokens` / `notesReduceInputTokens` here and in `MeetingsSettings`, and record why.
 
+## External AI providers (spec: Zewnętrzni dostawcy AI, steps 0.1 and 0.2; ADR 0011)
+
+Measured by the manual canary `scripts/provider-canary/canary.py` on 2026-11-19: Claude Code 2.1.328, Sonnet,
+macOS 27.0.1, Apple M4 Max (128 GB), subscription login, synthetic text only, answers of 212 to 450 tokens, one run
+of each row. Nothing in the app calls the provider yet; these are inputs for `ProviderNotesGenerator` limits.
+
+| Budget | Target | Measured | How to measure |
+|---|---|---|---|
+| `claude -p` tiny prompt, first call of a run ("cold") | no target; input for the timeout | 3.76 s wall, 2.31 s API; 812 input tokens | `canary.py --only timings` |
+| One call with about 3 000 estimator tokens (Polish) | no target | 4.57 s wall, 3.53 s API; 4 834 input tokens | same |
+| One call with about 3 000 estimator tokens (English) | no target | 3.99 s wall, 2.92 s API; 6 288 input tokens | same |
+| One call with about 40 000 estimator tokens (Q12 part size, Polish) | well under the working limit of 600 s per call | 6.02 s wall, 4.93 s API; 56 408 input tokens | `canary.py --only timings --large-tokens 40000` |
+| One call with 100 000 estimator tokens (Q12 budget) | under 600 s | not yet measured | `canary.py --only timings --large-tokens 100000` |
+| One-hour and three-hour synthetic transcript in one call | under 600 s | not yet measured | same, with a size from `NotesText.estimateTokens` |
+| Largest input the CLI takes on stdin without error or cut | sets `inputBudgetTokens` | not yet measured (56 408 tokens accepted) | grow `--large-tokens` until an error |
+| Reported tokens over the app's estimator | a ratio near 1 | 1.34 (Polish 3 000), 1.39 (Polish 40 000), 1.82 (English 3 000), after about 810 fixed tokens | `reportedOverEstimator` in the report, minus the 812 of the tiny call |
+| SIGTERM to the process group during generation | exit within the 2 s grace, no process left | exit 143 after 0.69 s, 0 processes left | `canary.py --only failures` |
+| Notes written by the provider, 1 h meeting end to end (`ProviderNotesGenerator`) | to be set from the above | not yet measured | spec step 1.16 |
+
+### Quality gate G: whole-transcript track on the provider model (spec step 1.7e)
+
+Measured by hand with `RealWholeNotesTests` (`LINTEL_WHOLE_NOTES_CLAUDE=1`, never in CI) on 2026-11-19: Claude Code
+2.1.328, `--model sonnet`, the isolation flags of ADR 0011, `WholeNotesPrompt` `whole1`. Input: the synthetic corpus
+(6 made-up meetings, Polish and English; 3 runs each, 18 notes) and, for the owner's two real meetings, one run each
+(numbers only; the content stays on the encrypted evaluation image). Working thresholds: at least 80% and 0 false
+sentences. The local track (4B) is not part of this measurement; the comparison of models is a separate run.
+
+**Recount with the current guard (2026-11-20, guard of `main` at d599242, after the review of PR #147).** The first
+table below was measured with the guard from before that review. The row figures were recounted this way: the
+owner's two real meetings offline, by running the stored model answers again through the current parser and guard
+(`theGuardOverStoredAnswers`; no model call, nothing sent); the planted-fault and correct-answer rows by running the
+current tests; the synthetic corpus **with one new provider run**, because the model answers of that corpus were
+never stored (the harness kept only the notes after the guard, and the evaluation image holds none): one harness
+pass, 3 runs of the 6 made-up meetings, the same model, prompt and flags as above. A new run is a new sample of the
+model, so the synthetic figures differ from the first ones by the model's spread as well as by the guard; the
+real-meeting figures differ by the guard alone. The "Before" column keeps the earlier figures.
+
+| Measure | Threshold | Before (guard before the review) | Now (guard of d599242) |
+|---|---|---|---|
+| Decisions and tasks of the reference list found (synthetic, 18 notes) | at least 80% | 52 of 54 (96%); one miss is a wording the automatic stem match does not see, one is a note without a decision | 53 of 54 (98%); the one miss is a decision not found in one run of the one-sided English meeting; new sample |
+| Tasks whose owner is right (a real name, or "Do przypisania" when only generic labels were said) | at least 80% | 36 of 36 (100%) | 36 of 36 (100%) |
+| False sentences after the guard (read by hand, synthetic) | 0 | 0 clearly false; 3 speculative open questions or hedges ("appears to have agreed") read as borderline | 0 clearly false among what was read: only the 7 open points outside the reference list were read, and 4 of them are borderline (1 hedge about a missing reply, 3 times a question that nobody asked, derived from a condition). The notes of this pass were not stored, so the other lines (decisions, tasks, summaries) were matched to the reference list by the automatic stem match and **not read by hand**; this row is therefore only partly re-verified |
+| Lines the guard removed from the model's answer (synthetic, 18 notes) | no target | 1 summary (a wrong number: 40 instead of 41) | 0 of 18 (no line, no owner and no due date removed) |
+| Guard on planted faults (synthetic corpus, offline in CI) | 100% of the hard classes | 32 of 32 at the time of the measurement (number, weekday, owner outside the meeting, generic label as owner, link/HTML/image, injection); 38 of 38 since the review added the number spelled out in words; 0 false removals on the 6 correct answers. Every case plants the same values (7400, Zenon, Kwantoris), so the count is classes times cases, not 38 different faults | 38 of 38 hard cases caught (all classes above plus the number in words); 0 false removals on the 6 correct answers (`aCorrectAnswerLosesNothing`); same plant values, so not 38 different faults |
+| One call, 1 h-class synthetic meeting (about 3 000 input tokens) | under 600 s | 4.2 to 11.9 s wall, 2 550 to 3 065 input and 320 to 560 output tokens | 4.2 to 12.1 s wall, 2 549 to 3 064 input and 327 to 600 output tokens (new run) |
+| Real meeting A (4 776 words, 273 utterances, 15 051 estimator tokens, 1 call) | no target | 16.2 s; 19 384 input and about 1 480 output tokens; notes of 441 words with 5 decisions, 5 tasks (all with an owner), 3 topics, 4 open points; 0 lines removed | stored answer through the current guard: 5 decisions, 5 tasks, 3 topics, 4 open points; 0 lines removed, 0 owners reset, 0 due dates removed. No change. Time and tokens are from the original call; the words of the composed notes were not recomputed |
+| Real meeting B (1 760 words, 199 utterances, 6 341 estimator tokens, 1 call) | no target | 10.3 s; 10 078 input tokens; notes of 208 words with 0 decisions, 2 tasks (none with an owner), 2 topics, 2 open points; 1 line removed (a name not in the recording) | stored answer through the current guard: 0 decisions, 2 tasks, 2 topics, 2 open points; 1 line removed (rule: names), 0 owners reset, 0 due dates removed. No change. Time and tokens are from the original call |
+
+Result against the working thresholds (80% and 0 false facts): the 98% and 100% rows meet them; the "0 false
+facts" row has no clearly false sentence in what was read, but, as the row says, not every note of the new pass was
+read by hand. The recount did not change the real-meeting figures.
+
+Two findings of the measurement changed the track before this row: the Polish example made the model answer an
+English meeting in Polish (the code now names the language of the notes in the request), and a product name the speech
+recognition garbled and the model corrected was removed by a too strict guard (an edit distance of
+two is allowed from five letters, as the spec says).
+
+Limits of this measurement:
+
+- One run per real meeting, so the spread between runs on real meetings is unknown; the synthetic corpus has 3
+  runs per meeting. The real meetings were not scored against a reference list (numbers only).
+- The synthetic corpus, its reference lists and the prompt were written by the same author in the same PR, so the
+  96% may be higher than on meetings nobody tuned for; the reference match is an automatic stem match.
+- "0 false sentences" was read by hand on the synthetic notes only; the real notes were not read here.
+- The review of PR #147 changed the guard after the first measurement (a weekday such as "piątek" no longer counts
+  as a clock hour, the Polish pronoun "ten" no longer as the number 10, a time inside a line is removed). The
+  recount above uses the changed guard; for the real meetings the stored answers gave the same counts as before.
+- The synthetic model answers are still not stored (only the real ones are), so the synthetic row cannot be
+  recounted offline after a future guard change; it needs a new run each time.
+
+### Which model writes the whole-transcript notes: provider and local (decision no. 14)
+
+Same generator (`whole1`), same inputs (6 synthetic meetings; the owner's two real meetings, numbers only), greedy
+sampling, no thinking, one request per meeting, measured on 2026-11-19 on an Apple M4 Max with 128 GB through the
+test harness (`RealWholeNotesTests`, `LINTEL_WHOLE_NOTES_LLAMA_URL`, a hand-started `llama-server`, `n_ctx` 40 960
+for every local model, input budget 24 000 estimator tokens). Local models are deterministic at temperature 0, so
+their 3 runs were identical; Claude was run 3 times on the synthetic corpus and once on each real meeting.
+
+| Model | Licence | Synthetic: decisions + tasks found (18 notes) | Owner right | Real A / B: decisions, tasks, notes words | Time A / B (warm; first call after load) | Peak resident memory | A Mac needs |
+|---|---|---|---|---|---|---|---|
+| Claude Code, sonnet | provider | 52 of 54 (96%) | 36 of 36 | 5, 5, 441 / 0, 2, 208 | 16.2 s / 10.3 s | not local | any |
+| Local 4B (`Qwen3-4B-Instruct-2507` Q4_K_M, 2.5 GB, installed) | Apache-2.0 | 45 of 54 (83%) | 33 of 36 | 2, 2, 197 / 1, 1, 128 | 7.0 s / 3.3 s (21.9 s / 9.7 s) | 8.5 GB | 16 GB |
+| Local 30B-A3B (`Qwen3-30B-A3B-Instruct-2507` Q4_K_M, 18.6 GB, installed) | Apache-2.0 | 48 of 54 (89%) | 30 of 36 | 2, 3, 171 / 1, 2, 130 | 6.0 s / 3.5 s (23.2 s / 9.8 s) | 21.9 GB | 32 GB |
+| Local 122B-A10B (`Qwen3.5-122B-A10B` Q3_K_M by unsloth, 56.4 GB, downloaded for the test) | Apache-2.0 | 48 of 54 (89%) | 33 of 36 | 3, 2, 254 / 1, 2, 196 | 23.9 s / 16.9 s (58.7 s / 31.8 s) | 36.3 GB resident (weights are memory-mapped, so this is below the 56 GB file) | 96 GB |
+
+Why the larger model: the current model cards on Hugging Face list `Qwen3.5-122B-A10B` as Apache-2.0, with 201
+languages, a native context of 262 144 tokens and a GGUF build by unsloth; 56.4 GB of weights plus a 41k context
+fits the 60 to 80 GB the decision allowed. Files: a local folder outside the repository
+(3 shards, 56.4 GB, SHA-256 of every shard checked against the Hugging Face LFS hashes; revision
+`51eab4d59d53f573fb9206cb3ce613f1d0aa392b`). It is not in `LLMModelCatalog` and the app is unchanged.
+
+Reading of the numbers:
+
+- The local models find most of the reference decisions and tasks of the made-up meetings (83 to 89% against 96%),
+  but on the owner's real meetings every local model writes much thinner notes than the provider (meeting A: 2 to 3
+  decisions and 2 to 3 tasks against 5 and 5; 171 to 254 words against 441).
+- The guard removed 0 to 1 line per local note. Items not matched to the reference list (4B 24, 30B 21, 122B 18 of
+  54) are mostly open questions the model invented or worded loosely; examples from the 4B are open points about
+  things nobody said. They were not scored one by one as false, so a "0 false facts" figure exists only for the
+  provider (synthetic, read by hand) and not for the local models.
+- The 122B at Q3 is no better than the 30B on the synthetic corpus (equal 48 of 54), slightly longer notes on the
+  real meetings, 4 times slower and needs 96 GB. It does not justify a mode of its own.
+- Comparison with the built-in quoted-chunks track on the same inputs was not run.
+- Limits: the 122B was measured only at Q3_K_M (a higher quantisation may score differently), every model had one
+  run per real meeting, the local models had the 24 000-token input budget and Claude 100 000, and false facts of
+  the local models were not scored, so "fewer decisions found" is the only comparison this table supports.
+
 ## Window management (spec `2026-11-09-window-management`)
 
 | Budget | Target | Measured | How |

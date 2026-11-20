@@ -232,19 +232,19 @@ import Testing
         dragged.size.width += 100
         rig.client.moveBehindTheEnginesBack(id(1), to: dragged)
         rig.client.emit([.resized(id(1))])
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
         // Siblings follow; the dragged window keeps what the user made.
         #expect(abs((rig.client.frame(of: id(2))?.width ?? 0) - 590) < 1.5)
         #expect(rig.client.frame(of: id(1)) == dragged)
         #expect(await rig.engine.snapshot.userResize?.window == id(1))
         // 100 ms later the timer has not fired: nothing lands yet.
         rig.clock.advance(0.1)
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         #expect(rig.client.frame(of: id(1)) == dragged)
         rig.clock.advance(0.25)
         // The timer's task hops onto the engine; give it the turns it needs.
         for _ in 0..<200 where await rig.engine.snapshot.userResize != nil { await Task.yield() }
-        await rig.engine.settle()
+        await rig.engine.settleGuarded()
         #expect(await rig.engine.snapshot.userResize == nil)
         let landed = try #require(rig.client.frame(of: id(1)))
         #expect(abs(landed.width - 740) < 1.5)
@@ -262,7 +262,7 @@ import Testing
             frame.size.width += CGFloat(step) * 4
             rig.client.moveBehindTheEnginesBack(id(1), to: frame)
             rig.client.emit([.resized(id(1))])
-            await rig.engine.flushEvents()
+            await rig.engine.flushGuarded()
             rig.clock.advance(0.03)
         }
         let state = await rig.engine.snapshot
@@ -290,7 +290,7 @@ import Testing
             frame.size.width += CGFloat(phase < 30 ? phase : 60 - phase) * 10
             rig.client.moveBehindTheEnginesBack(id(1), to: frame)
             rig.client.emit([.resized(id(1))])
-            await rig.engine.flushEvents()
+            await rig.engine.flushGuarded()
             rig.clock.advance(0.03)
         }
         let state = await rig.engine.snapshot
@@ -311,31 +311,151 @@ import Testing
         dragged.size.width += 100
         rig.client.moveBehindTheEnginesBack(id(1), to: dragged)
         rig.client.emit([.resized(id(1))])
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
+        await rig.engine.settleGuarded()
         rig.clock.advance(0.03)
         dragged.size.width += 60
         rig.client.moveBehindTheEnginesBack(id(1), to: dragged)
         rig.client.emit([.resized(id(1))])
-        await rig.engine.flushEvents()
+        await rig.engine.flushGuarded()
+        await rig.engine.settleGuarded()
         #expect(abs((rig.client.frame(of: id(2))?.width ?? 0) - 590) < 1.5)
         // The user holds still with the button down for two seconds.
+        // Each look waits for the settle timer to be armed before time moves (an advance with nobody asleep moves
+        // the clock and wakes no one), so the looks happen however busy the machine is.
         for _ in 0..<8 {
+            guard await rig.clock.waitForSleepers(1, dueWithin: .seconds(1), limit: .seconds(20)) else { return }
             rig.clock.advance(0.25)
-            for _ in 0..<50 { await Task.yield() }
-            await rig.engine.settle()
         }
+        // The last look has run once the timer is armed again; then the work it started is done.
+        guard await rig.clock.waitForSleepers(1, dueWithin: .seconds(1), limit: .seconds(20)) else { return }
+        await rig.engine.settleGuarded()
         #expect(await rig.engine.snapshot.userResize?.window == id(1))
         #expect(rig.client.frame(of: id(1)) == dragged)
         // The siblings caught up with the last size.
         #expect(abs((rig.client.frame(of: id(2))?.width ?? 0) - 560) < 1.5)
         // The button goes up: the next look ends the drag, and the window lands on its tile.
         button.value = false
-        for _ in 0..<4 where await rig.engine.snapshot.userResize != nil {
-            rig.clock.advance(0.25)
-            for _ in 0..<50 { await Task.yield() }
-            await rig.engine.settle()
-        }
+        guard await rig.clock.waitForSleepers(1, dueWithin: .seconds(1), limit: .seconds(20)) else { return }
+        rig.clock.advance(0.25)
+        // The look that sees the button up ends the drag. Nothing signals that from outside the engine, so this is the
+        // one wait on state: it sleeps on the real clock, ends with an Issue at this line, and stops when cancelled.
+        guard
+            await waitForState(
+                "the drag ended after the button went up", { await rig.engine.snapshot.userResize == nil })
+        else { return }
+        await rig.engine.settleGuarded()
         #expect(await rig.engine.snapshot.userResize == nil)
         await rig.engine.stop()
+    }
+}
+
+/// The system resizes windows by itself while the displays change (a fallback display after a wake): not a resize by hand.
+@Suite(.timeLimit(.minutes(1))) struct DisplaySettleTests {
+    private func id(_ number: UInt32) -> WindowID { WindowID(pid: 100, number: number) }
+    private let t0 = 1_000.0
+    private let placeholder = DisplayInfo(
+        id: 99, uuid: "placeholder", frame: CGRect(x: 0, y: 0, width: 1280, height: 720), isMain: true)
+
+    private func settled() -> EngineState {
+        var state = EngineState(workspaceCount: 4)
+        state.config.layout = LayoutConfig(
+            defaultKind: .tiling, innerGap: 0, outerGap: 0, rootOrientation: .horizontal, overrides: [:])
+        let windows = (1...3).map { makeWindow(UInt32($0)) }
+        var (next, effects) = EngineReducer.reduce(
+            state,
+            .snapshot(
+                windows: windows, displays: [FakeWindowClient.mainDisplay], focused: nil,
+                processStarts: [100: 1_100.0], now: t0))
+        let results = effects.compactMap { effect -> FrameResult? in
+            if case .setFrame(let request) = effect {
+                FrameResult(request: request, outcome: .applied(request.frame))
+            } else {
+                nil
+            }
+        }
+        (next, _) = EngineReducer.reduce(next, .applied(results, now: t0))
+        return next
+    }
+
+    private func widened(_ state: EngineState) -> CGRect {
+        var frame = state.windows[id(1)]!.frame
+        frame.size.width += 100
+        return frame
+    }
+
+    @Test func aResizeRightAfterADisplayChangeIsNotAdoptedAndIsCounted() {
+        var state = settled()
+        let layouts = state.layouts
+        (state, _) = EngineReducer.reduce(state, .displaysChanged([placeholder], now: t0 + 10))
+        let frame = widened(state)
+        let (next, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: frame, now: t0 + 11))
+        #expect(next.userResize == nil)
+        #expect(next.layouts == layouts)
+        #expect(next.diagnostics.resizesIgnoredDuringDisplaySettle == 1)
+    }
+
+    @Test func aResizeAfterTheSettleTimeIsAdopted() {
+        var state = settled()
+        (state, _) = EngineReducer.reduce(state, .displaysChanged([FakeWindowClient.mainDisplay], now: t0 + 10))
+        let frame = widened(state)
+        let at = t0 + 10 + ReducerContext.displaySettleDuration + 0.1
+        let (next, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: frame, now: at))
+        #expect(next.userResize?.window == id(1))
+        #expect(next.diagnostics.resizesIgnoredDuringDisplaySettle == 0)
+    }
+
+    @Test func aFlapToAFallbackDisplayAndBackKeepsTheWorkspaceAndTheWeights() {
+        var state = settled()
+        let layouts = state.layouts
+        let shown = state.model.current
+        (state, _) = EngineReducer.reduce(state, .displaysChanged([placeholder], now: t0 + 10))
+        let squeezed = CGRect(x: 0, y: 0, width: 400, height: 720)
+        // Past the echo window of the engine's own frame requests, so only the settle guard can refuse them.
+        (state, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: squeezed, now: t0 + 10.6))
+        (state, _) = EngineReducer.reduce(state, .displaysChanged([FakeWindowClient.mainDisplay], now: t0 + 11.7))
+        (state, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: squeezed, now: t0 + 12.3))
+        #expect(state.layouts == layouts)
+        #expect(state.model.current == shown)
+        #expect(state.diagnostics.resizesIgnoredDuringDisplaySettle == 2)
+    }
+
+    @Test func aSizeChangeThatWouldNotBeAdoptedAnywayIsNotCounted() {
+        var state = settled()
+        (state, _) = EngineReducer.reduce(state, .displaysChanged([FakeWindowClient.mainDisplay], now: t0 + 10))
+        let floating = id(2)
+        state.floating.insert(floating)
+        let frame = state.windows[floating]!.frame.insetBy(dx: 20, dy: 20)
+        let (next, _) = EngineReducer.reduce(state, .windowMoved(floating, frame: frame, now: t0 + 11))
+        #expect(next.diagnostics.resizesIgnoredDuringDisplaySettle == 0)
+    }
+
+    @Test func theFirstSnapshotDoesNotStartTheSettleTime() {
+        #expect(settled().displaySettleUntil == -.infinity)
+    }
+
+    @Test func aSnapshotWithOtherDisplaysStartsTheSettleTime() {
+        var state = settled()
+        let windows = (1...3).map { makeWindow(UInt32($0)) }
+        (state, _) = EngineReducer.reduce(
+            state,
+            .snapshot(
+                windows: windows, displays: [placeholder], focused: nil, processStarts: [100: 1_100.0], now: t0 + 10))
+        #expect(state.displaySettleUntil == t0 + 10 + ReducerContext.displaySettleDuration)
+        let (next, _) = EngineReducer.reduce(state, .windowMoved(id(1), frame: widened(state), now: t0 + 11))
+        #expect(next.userResize == nil)
+        #expect(next.diagnostics.resizesIgnoredDuringDisplaySettle == 1)
+    }
+
+    @Test func aSnapshotWithTheSameOrNoDisplaysDoesNotStartTheSettleTime() {
+        var state = settled()
+        let windows = (1...3).map { makeWindow(UInt32($0)) }
+        for displays in [[FakeWindowClient.mainDisplay], []] {
+            (state, _) = EngineReducer.reduce(
+                state,
+                .snapshot(
+                    windows: windows, displays: displays, focused: nil, processStarts: [100: 1_100.0], now: t0 + 10))
+            #expect(state.displaySettleUntil == -.infinity)
+        }
     }
 }

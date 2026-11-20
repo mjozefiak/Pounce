@@ -56,7 +56,8 @@ final class NotesTraceLog: Sendable {
     /// task and the second decision.
     private static let misfilingReduce: ScriptedLLM.Handler = { _, messages, _ in
         guard NotesFake.isReduce(messages) else { return .done(NotesFake.answer(messages)) }
-        return .done("SUMMARY: Spotkanie dotyczyło budżetu.\nDECISIONS: p2, p99\nTASKS: p5\nQUESTIONS: -")
+        return .done(
+            "SUMMARY: Spotkanie dotyczyło budżetu.\nDECISIONS: p2, p99\nTASKS: p5\nFINDINGS: p1\nQUESTIONS: -")
     }
 
     private struct Scenario {
@@ -176,34 +177,34 @@ final class NotesTraceLog: Sendable {
         #expect(try JSONDecoder().decode(NotesTraceVerification.self, from: data) == verification)
     }
 
-    @Test func theRepairReasonsAreWrittenAsAnObjectAndAnOlderTraceHasNone() throws {
+    @Test func theRemovalReasonsAreDropReasonsAndAnOlderTraceStillDecodes() throws {
         let verdict = NotesGuard.PointVerdict(
-            verified: [], dropped: 0, reasons: [:], repaired: 3, downgraded: 1,
-            repairReasons: [.driftedFromQuote: 2, .downgradedQuestion: 1])
+            verified: [], dropped: 3, reasons: [.driftedFromQuote: 2, .questionNotAFinding: 1], downgraded: 1)
         let verification = NotesTraceVerification(proposed: 3, verdict: verdict)
         let data = try JSONEncoder().encode(verification)
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let reasons = try #require(object["repairReasons"] as? [String: Int])
-        #expect(reasons == ["driftedFromQuote": 2, "downgradedQuestion": 1])
+        let reasons = try #require(object["reasons"] as? [String: Int])
+        #expect(reasons == ["driftedFromQuote": 2, "questionNotAFinding": 1])
+        #expect(object["repaired"] == nil && object["repairReasons"] == nil)
         #expect(try JSONDecoder().decode(NotesTraceVerification.self, from: data) == verification)
 
-        // Schema 2 had no repair reasons.
+        // A schema 4 trace has the repair fields; they are ignored.
         var older = object
-        older.removeValue(forKey: "repairReasons")
+        older["repaired"] = 3
+        older["repairReasons"] = ["driftedFromQuote": 2]
         let decoded = try JSONDecoder().decode(
             NotesTraceVerification.self, from: JSONSerialization.data(withJSONObject: older))
-        #expect(decoded.repairReasons.isEmpty)
-        #expect(decoded.repaired == 3)
-        // An unknown reason is refused, as an unknown drop reason is.
-        older["repairReasons"] = ["guessed": 1]
+        #expect(decoded == verification)
+        // An unknown drop reason is refused.
+        older["reasons"] = ["guessed": 1]
         let unknown = try JSONSerialization.data(withJSONObject: older)
         #expect(throws: DecodingError.self) {
             try JSONDecoder().decode(NotesTraceVerification.self, from: unknown)
         }
-        #expect(NotesTrace.schemaVersion == 4)
+        #expect(NotesTrace.schemaVersion == 5)
     }
 
-    @Test func theVerifiedEventCountsTheSummaryPointsRepairedForDrift() async throws {
+    @Test func theVerifiedEventCountsTheSummaryPointsRemovedForDrift() async throws {
         let utterances = [
             NotesUtterance(
                 startMs: 0, speaker: "Mówca 1",
@@ -224,11 +225,13 @@ final class NotesTraceLog: Sendable {
         let (result, _) = try await run(Scenario(utterances: utterances, handler: handler), trace: log)
         let verified = try #require(
             log.all.lazy.compactMap { if case .verified(let v) = $0 { v } else { nil } }.first)
-        #expect(verified.repaired == 1)
-        #expect(verified.repairReasons == [.driftedFromQuote: 1])
-        #expect(result.repairedCount == 1)
+        #expect(verified.dropped == 1)
+        #expect(verified.reasons == [.driftedFromQuote: 1])
+        #expect(result.droppedCount == 1)
         let markdown = try #require(result.markdown)
         #expect(!markdown.contains("doświadczenia"))
+        // The quote is not shown in the point's place.
+        #expect(!markdown.contains("generacja programistów"))
         #expect(markdown.contains("Budżet zatwierdzono bez zmian."))
         #expect(log.balance.isBalanced)
     }
@@ -242,13 +245,14 @@ final class NotesTraceLog: Sendable {
 
         #expect(result.verifiedPointCount == 5)
         #expect(result.rejectedIDs == 2)
-        #expect(result.backfilledCount == 2)
+        #expect(result.backfilledCount == 1)
         let points = log.points
-        #expect(points["p1"]?.fate == .rendered(.keyPoints, via: .listedByCode))
+        #expect(points["p1"]?.fate == .rendered(.keyPoints, via: .reduce))
         #expect(points["p2"]?.fate == .rendered(.decisions, via: .reduce))
         #expect(points["p3"]?.fate == .rendered(.tasks, via: .backfilled))
         #expect(points["p4"]?.fate == .notRendered(.nearDuplicateInSection(of: "p2")))
-        #expect(points["p5"]?.fate == .rendered(.questions, via: .backfilled))
+        // A question REDUCE put in the wrong section is not added back.
+        #expect(points["p5"]?.fate == .notRendered(.notChosen))
         #expect(points["p5"]?.misfiledInto == [.tasks])
         #expect(points["p4"]?.timeMs == 47_000)
         #expect(points["p4"]?.kind == .decision)
@@ -256,39 +260,40 @@ final class NotesTraceLog: Sendable {
         let balance = log.balance
         #expect(balance.isBalanced)
         #expect(balance.verified == 5)
-        #expect(balance.rendered == 4)
-        #expect(balance.notRendered == 1)
+        #expect(balance.rendered == 3)
+        #expect(balance.notRendered == 2)
 
         let reduce = try #require(log.reduce)
         #expect(reduce.rejectedIDs == 2)
         #expect(reduce.rejectedUnknown == 1)
         #expect(reduce.rejectedWrongSection == 1)
-        #expect(reduce.backfilled == 2)
+        #expect(reduce.backfilled == 1)
         #expect(reduce.nearDuplicatesSkipped == 1)
-        #expect(reduce.decisions == 1 && reduce.tasks == 1 && reduce.questions == 1)
+        #expect(reduce.decisions == 1 && reduce.tasks == 1 && reduce.questions == 0)
         #expect(reduce.keyPoints == 1)
         #expect(reduce.batches == 1 && reduce.sectionRequests == 1 && !reduce.reduceFailed)
         #expect(log.summary == NotesTraceSummary(origin: .model, present: true, shown: true, sourceIDs: []))
-        #expect(log.all.last == .finished(status: .ok, verified: 5, rendered: 4, notRendered: 1))
+        #expect(log.all.last == .finished(status: .ok, verified: 5, rendered: 3, notRendered: 2))
 
         // The composer shows what the trace says it shows.
         let markdown = try #require(result.markdown)
-        #expect(markdown.contains("### Kluczowe punkty"))
+        #expect(markdown.contains("### Omówione tematy"))
         #expect(markdown.contains("Zatwierdzamy budżet marketingu na ten kwartał."))
         #expect(!markdown.contains("bez zmian"))
     }
 
-    @Test func aRefusedSummaryIsComposedFromTheSummaryPoints() async throws {
+    @Test func aRefusedSummaryIsNotComposedFromTheSummaryPoints() async throws {
         let log = NotesTraceLog()
         let (result, _) = try await run(scenarios()[2], trace: log)
         #expect(result.summaryReplaced)
         let summary = try #require(log.summary)
-        #expect(summary.origin == .composedAfterRefusal)
-        #expect(summary.shown)
-        #expect(summary.sourceIDs == ["p1"])
-        #expect(summary.sourceStartMs == 5_000 && summary.sourceEndMs == 5_000)
+        #expect(summary.origin == .refused)
+        #expect(!summary.present && !summary.shown)
+        #expect(summary.sourceIDs.isEmpty)
+        let markdown = try #require(result.markdown)
+        #expect(!markdown.contains("Podsumowanie"))
         let points = log.points
-        #expect(points["p1"]?.fate == .rendered(.summary, via: .composedSummary))
+        #expect(points["p1"]?.fate == .notRendered(.notChosen))
         #expect(points["p1"]?.misfiledInto == [.questions])
         #expect(points["p2"]?.misfiledInto == [.tasks])
         #expect(log.reduce?.rejectedUnknown == 1)
@@ -310,7 +315,7 @@ final class NotesTraceLog: Sendable {
         #expect(result.keyPoints.isEmpty)
         #expect(log.balance.isBalanced)
         let markdown = try #require(result.markdown)
-        #expect(!markdown.contains("### Kluczowe punkty"))
+        #expect(!markdown.contains("### Omówione tematy"))
     }
 
     @Test func overlappingChunksShowTheDeduplication() async throws {
@@ -355,9 +360,11 @@ final class NotesTraceLog: Sendable {
         #expect(request.pointIDs == ["p1", "p2", "p3", "p4"])
         #expect(log.reduce?.codeOrderBatches == 1)
         #expect(log.reduce?.reduceFailed == true)
-        #expect(log.summary?.origin == .composedWithoutModelParagraph)
+        #expect(log.summary?.origin == .absent)
         let points = log.points
-        #expect(points["p1"]?.fate == .rendered(.summary, via: .composedSummary))
+        // Without REDUCE nothing is composed (no paragraph), but the first topics are kept so that a meeting of
+        // findings only does not read as empty (the code-order fallback of `NotesPipeline.codeOrder`).
+        #expect(points["p1"]?.fate == .rendered(.keyPoints, via: .codeOrder))
         #expect(points["p2"]?.fate == .rendered(.decisions, via: .codeOrder))
         #expect(points["p3"]?.fate == .rendered(.tasks, via: .codeOrder))
         #expect(points["p4"]?.fate == .rendered(.questions, via: .codeOrder))
@@ -395,16 +402,17 @@ final class NotesTraceLog: Sendable {
                 return .done(lines.joined(separator: "\n"))
             }
             if NotesFake.isReduce(messages) {
-                return .done("SUMMARY: \(paragraph)\nDECISIONS: -\nTASKS: -\nQUESTIONS: -")
+                return .done(
+                    "SUMMARY: \(paragraph)\nDECISIONS: -\nTASKS: -\nFINDINGS: p1, p2, p3, p4, p5, p6\nQUESTIONS: -")
             }
             return .done(NotesFake.answer(messages))
         }
     }
 
-    /// The bullets under the key points heading, in order.
+    /// The bullets under the topics heading, in order.
     private static func keyPointLines(_ markdown: String) -> [String] {
         let lines = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        guard let start = lines.firstIndex(of: "### Kluczowe punkty") else { return [] }
+        guard let start = lines.firstIndex(of: "### Omówione tematy") else { return [] }
         return Array(lines[(start + 1)...].drop { $0.isEmpty }.prefix { $0.hasPrefix("- ") })
     }
 
@@ -421,49 +429,44 @@ final class NotesTraceLog: Sendable {
         let markdown = try #require(result.markdown)
         #expect(
             Self.keyPointLines(markdown) == [
-                "- Przejdźmy do budżetu, na marketing zostało czterdzieści tysięcy złotych. \\[00\\:05\\]",
-                "- Kampania w telewizji kosztowała więcej niż zakładaliśmy. \\[00\\:20\\]",
-                "- Klienci chwalą nową aplikację mobilną. \\[00\\:40\\]",
-                "- Konkurencja obniżyła ceny w zeszłym miesiącu. \\[01\\:00\\]",
-                "- Zespół sprzedaży potrzebuje dwóch nowych osób. \\[01\\:20\\]",
-                "- Serwer produkcyjny działał stabilnie przez cały kwartał. \\[01\\:40\\]",
+                "- Przejdźmy do budżetu, na marketing zostało czterdzieści tysięcy złotych.",
+                "- Kampania w telewizji kosztowała więcej niż zakładaliśmy.",
+                "- Klienci chwalą nową aplikację mobilną.",
+                "- Konkurencja obniżyła ceny w zeszłym miesiącu.",
+                "- Zespół sprzedaży potrzebuje dwóch nowych osób.",
+                "- Serwer produkcyjny działał stabilnie przez cały kwartał.",
             ])
         #expect(!markdown.contains("fuzj"))
         #expect(!markdown.contains("### Decyzje"))
         #expect(log.summary?.origin == .model)
-        #expect(log.points.values.allSatisfy { $0.fate == .rendered(.keyPoints, via: .listedByCode) })
+        #expect(log.points.values.allSatisfy { $0.fate == .rendered(.keyPoints, via: .reduce) })
         #expect(log.reduce?.keyPoints == 6)
         let balance = log.balance
         #expect(balance.isBalanced)
         #expect(balance.verified == 6 && balance.rendered == 6 && balance.notRendered == 0 && balance.unexplained == 0)
     }
 
-    /// The measured case: the model's paragraph is refused, the code composes it from the first four summary
-    /// points, and the others stand as key points; nothing is said twice and nothing is lost.
-    @Test func aRefusedParagraphLeavesTheOtherSummaryPointsAsKeyPoints() async throws {
+    /// The model's paragraph is refused and nothing is composed in its place: the notes have no summary, and the
+    /// findings REDUCE chose stand as topics.
+    @Test func aRefusedParagraphLeavesNoSummaryAndTheChosenFindingsAsTopics() async throws {
         let log = NotesTraceLog()
         let (result, _) = try await run(
             Scenario(
                 utterances: podcast(), handler: Self.summaryOnly(paragraph: "Kowalski zgodził się na 50 tysięcy.")),
             trace: log)
         #expect(result.summaryReplaced)
-        #expect(log.summary?.origin == .composedAfterRefusal)
-        #expect(log.summary?.sourceIDs == ["p1", "p2", "p3", "p4"])
-        #expect(result.keyPoints.map(\.id) == ["p5", "p6"])
+        #expect(log.summary?.origin == .refused)
+        #expect(log.summary?.sourceIDs == [])
+        #expect(result.keyPoints.map(\.id) == ["p1", "p2", "p3", "p4", "p5", "p6"])
         let markdown = try #require(result.markdown)
-        #expect(
-            Self.keyPointLines(markdown) == [
-                "- Zespół sprzedaży potrzebuje dwóch nowych osób. \\[01\\:20\\]",
-                "- Serwer produkcyjny działał stabilnie przez cały kwartał. \\[01\\:40\\]",
-            ])
+        #expect(!markdown.contains("Podsumowanie"))
+        #expect(Self.keyPointLines(markdown).count == 6)
         #expect(markdown.components(separatedBy: "Klienci chwalą nową aplikację mobilną.").count == 2)
         #expect(!markdown.contains("fuzj"))
         let points = log.points
-        for id in ["p1", "p2", "p3", "p4"] {
-            #expect(points[id]?.fate == .rendered(.summary, via: .composedSummary), "\(id)")
+        for id in ["p1", "p2", "p3", "p4", "p5", "p6"] {
+            #expect(points[id]?.fate == .rendered(.keyPoints, via: .reduce), "\(id)")
         }
-        for id in ["p5", "p6"] { #expect(points[id]?.fate == .rendered(.keyPoints, via: .listedByCode), "\(id)") }
-        #expect(!points.values.contains { $0.fate == .notRendered(.summaryKindNotInComposedParagraph) })
         let balance = log.balance
         #expect(balance.isBalanced)
         #expect(balance.verified == 6 && balance.rendered == 6 && balance.unexplained == 0)
@@ -587,7 +590,9 @@ final class NotesTraceLog: Sendable {
         // What the scripted REDUCE answers above wrote.
         words.formUnion(Self.words("Spotkanie dotyczyło budżetu. Kowalski zgodził się na 50 tysięcy."))
         // The headings and labels of the notes are the code's, not the transcript's.
-        words.subtract(Self.words("Podsumowanie Decyzje Zadania Otwarte pytania Uczestnicy osoba termin summary"))
+        words.subtract(
+            Self.words(
+                "Podsumowanie Decyzje Zadania Otwarte pytania kwestie Omówione tematy Uczestnicy osoba termin summary"))
         // The line codes and keys of the answer format, and the letters of the ids (`p12`, `c3`).
         words.subtract(["sum", "dec", "task", "ask", "none", "decisions", "tasks", "questions", "p", "c"])
         #expect(!words.isEmpty)

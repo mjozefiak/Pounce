@@ -3,12 +3,13 @@ import LintelCore
 
 /// Writes the notes. The Markdown is composed here from verified points. What is guaranteed:
 /// - the headings, labels, participants and the person and due-date wording are the code's own;
-/// - every bullet is a verified point's text (checked against its quote, or the transcript's own words of the
-///   quote when it was not) with the time of the quote; the key points are the verified summary points in time
-///   order (`NotesGuard.ReduceVerdict.keyPoints`), between the summary and the decisions;
-/// - the summary paragraph is either composed in code from those texts or the model's paragraph, which is the
-///   one piece of model wording that can appear, and only after `NotesGuard.summaryIsFaithful` found no name,
-///   number, date or negation in it that the verified material lacks (a paraphrase is possible);
+/// - every bullet is a verified point's text (checked against its quote; a point that failed is not shown), without
+///   a time; a task is a checklist item with its owner and due date; the order of the sections is Summary,
+///   Decisions, Action items, Topics discussed (the findings REDUCE chose, `NotesGuard.ReduceVerdict.keyPoints`),
+///   Open questions, Participants;
+/// - the summary paragraph is the model's paragraph, which is the one piece of free model wording that can
+///   appear, and only after `NotesGuard.summaryIsFaithful` found no name, number, date or negation in it that the
+///   verified material lacks (a paraphrase is possible); it is never composed from points or quotes;
 /// - everything goes through `NotesMarkdown`, the same allow-list renderer the export uses, so no image, link,
 ///   HTML or network resource can appear, and a leading `#`, `-` or `1.` of the paragraph cannot become a
 ///   heading or a list.
@@ -29,11 +30,11 @@ enum NotesComposer {
         var nothing: String
 
         static let polish = Labels(
-            summary: "Podsumowanie", keyPoints: "Kluczowe punkty", decisions: "Decyzje", tasks: "Zadania",
-            questions: "Otwarte pytania", participants: "Uczestnicy", person: "osoba", due: "termin",
-            nothing: "W nagraniu nie znaleziono decyzji, zadań ani otwartych pytań.")
+            summary: "Podsumowanie", keyPoints: "Omówione tematy", decisions: "Decyzje", tasks: "Zadania",
+            questions: "Otwarte kwestie", participants: "Uczestnicy", person: "osoba", due: "termin",
+            nothing: "W nagraniu nie znaleziono decyzji, zadań ani otwartych kwestii.")
         static let english = Labels(
-            summary: "Summary", keyPoints: "Key points", decisions: "Decisions", tasks: "Action items",
+            summary: "Summary", keyPoints: "Topics discussed", decisions: "Decisions", tasks: "Action items",
             questions: "Open questions", participants: "Participants", person: "owner", due: "due",
             nothing: "No decisions, action items or open questions were found in the recording.")
 
@@ -55,17 +56,13 @@ enum NotesComposer {
             lines.append("## " + title)
             lines.append("")
         }
-        func bullets(_ items: [String]) {
-            lines.append(contentsOf: items.map { "- " + $0 })
+        func bullets(_ items: [String], checklist: Bool = false) {
+            lines.append(contentsOf: items.map { (checklist ? "- [ ] " : "- ") + $0 })
         }
 
         if let summary = shownSummary(of: verdict) {
             heading(labels.summary)
             lines.append(summary)
-        }
-        if !verdict.keyPoints.isEmpty {
-            heading(labels.keyPoints)
-            bullets(verdict.keyPoints.map { item($0, labels: labels) })
         }
         if !verdict.decisions.isEmpty {
             heading(labels.decisions)
@@ -73,17 +70,21 @@ enum NotesComposer {
         }
         if !verdict.tasks.isEmpty {
             heading(labels.tasks)
-            bullets(verdict.tasks.map { item($0, labels: labels) })
+            bullets(verdict.tasks.map { item($0, labels: labels) }, checklist: true)
+        }
+        if !verdict.keyPoints.isEmpty {
+            heading(labels.keyPoints)
+            bullets(verdict.keyPoints.map { item($0, labels: labels) })
         }
         if !verdict.questions.isEmpty {
             heading(labels.questions)
             bullets(verdict.questions.map { item($0, labels: labels) })
         }
         if lines.isEmpty { lines.append(labels.nothing) }
-        let names = participants.map(flat).filter { !$0.isEmpty && $0 != "?" }
+        let names = participants.map(flat).filter { !$0.isEmpty && !NotesGuard.isGenericLabel($0) }
         if !names.isEmpty {
             heading(labels.participants)
-            bullets(names)
+            lines.append(inertParagraph(names.joined(separator: ", ")))
         }
         return NotesMarkdown.render(lines.joined(separator: "\n"))
     }
@@ -94,16 +95,17 @@ enum NotesComposer {
         return summary
     }
 
-    /// The point's text, the person and the date of a task, and the time of the quote, on one line.
+    /// The point's text and, for a task, its owner and due date, on one line. No time: the notes are a summary and
+    /// the times stay in the transcript.
     private static func item(_ point: NotesPoint, labels: Labels) -> String {
-        var line = flat(point.text)
+        var line = withoutTime(withoutCheckbox(flat(point.text)))
         if point.kind == .task {
             var details: [String] = []
             if let person = point.person.map(flat), !person.isEmpty { details.append("\(labels.person): \(person)") }
             if let due = point.due.map(flat), !due.isEmpty { details.append("\(labels.due): \(due)") }
-            if !details.isEmpty { line += " (" + details.joined(separator: ", ") + ")" }
+            if !details.isEmpty { line += " — " + details.joined(separator: ", ") }
         }
-        return line + " [" + NotesText.clock(milliseconds: point.timeMs) + "]"
+        return line
     }
 
     /// The paragraph without a leading marker that the renderer would read as a heading, a list or a quote.
@@ -119,6 +121,18 @@ enum NotesComposer {
                 return String(trimmed)
             }
         }
+    }
+
+    /// A leading `[ ]` or `[x]` the model wrote: the checklist marker is the code's, only on tasks.
+    private static func withoutCheckbox(_ text: String) -> String {
+        var result = Substring(text)
+        while let match = result.prefixMatch(of: /\[[ xX]\][ ]*/) { result = result[match.range.upperBound...] }
+        return String(result)
+    }
+
+    /// A time the model left at the end of a point (`[10:15]`, `(10:15)`): the notes show no times.
+    private static func withoutTime(_ text: String) -> String {
+        text.replacing(/[ ]*[\[(]\d{1,2}(?::\d{2}){1,2}[\])][ ]*$/, with: "")
     }
 
     private static func flat(_ text: String) -> String {

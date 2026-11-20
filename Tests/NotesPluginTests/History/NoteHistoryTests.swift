@@ -6,7 +6,7 @@ import Testing
 
 /// History, Compare and Restore (spec step 4.5).
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct NoteHistoryTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct NoteHistoryTests {
     private func model(_ r: ReconRig, writing: Bool = true) -> NotesWorkspaceModel {
         var environment = NotesWorkspaceModel.Environment(library: r.library, pasteboard: RecordingPasteboard())
         environment.registry = r.registry

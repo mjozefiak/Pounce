@@ -32,7 +32,7 @@ struct FocusMoveBenchmarks {
             await command.run()
             samples.append(Double((ContinuousClock.now - start).components.attoseconds) / 1e15)
         }
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         let median = samples.sorted()[samples.count / 2]
         print("move the focused window (focus read + engine + fake client, 20 windows): median \(median) ms")
         await plugin.deactivate()

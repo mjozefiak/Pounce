@@ -25,26 +25,24 @@ import Testing
     @Test func aTwoSentenceQuoteIsMatchedOnItsFirstSentenceOnly() {
         let result = verify(anna(Self.both), quote: Self.both)
         #expect(result.dropped == 0)
-        #expect(result.repaired == 0)
         // The shown quote (the covered range) ends at the end of the first sentence, terminator included, and
         // holds nothing of the second.
         #expect(result.verified.first?.quote == Self.first)
         #expect(result.verified.first?.quote.contains("won't") == false)
     }
 
-    @Test func aPointThatNeedsTheSecondSentenceIsRepairedToTheFirstOne() {
-        // "next week" is in no word of the first sentence: the usual faithfulness check replaces the text.
+    @Test func aPointThatNeedsTheSecondSentenceIsRemoved() {
+        // "next week" is in no word of the first sentence: the usual faithfulness check removes the point.
         let result = verify(
             anna(Self.both), quote: Self.both, text: "I won't be able to get to it before next week.")
-        #expect(result.dropped == 0)
-        #expect(result.repaired == 1)
-        #expect(result.verified.first?.text == Self.first)
+        #expect(result.verified.isEmpty)
+        #expect(result.dropped == 1)
         // A negation that only the second sentence has is not in the matched quote: the negation check
-        // repairs the text to the first sentence.
+        // removes the point.
         let transcript = anna("We ship on Friday. We will not ship on Monday.")
         let negated = verify(transcript, quote: "We ship on Friday. We will not ship", text: "We will not ship.")
-        #expect(negated.repaired == 1)
-        #expect(negated.verified.first?.text == "We ship on Friday.")
+        #expect(negated.verified.isEmpty)
+        #expect(negated.reasons[.negationChanged] == 1)
     }
 
     @Test func aQuestionTailAndTheNextStatementOfOneSpeakerAreStillNoMatch() {
@@ -72,13 +70,16 @@ import Testing
         #expect(result.reasons[.quoteNotInTranscript] == 1)
         // A gap inside one sentence still matches.
         let inside = verify(
-            anna("I just won't really be able to get to it."), quote: "I just won't be able to get to it")
+            anna("I just won't really be able to get to it."), quote: "I just won't be able to get to it",
+            text: "I just won't be able to get to it.")
         #expect(inside.dropped == 0)
     }
 
     @Test func aSingleSentenceQuoteAndAShortQuoteWorkAsBefore() {
         let transcript = anna("I can take it. I just won't be able to get to it.")
-        #expect(verify(transcript, quote: "I just won't be able to get to it").dropped == 0)
+        #expect(
+            verify(transcript, quote: "I just won't be able to get to it", text: "I just won't be able to get to it.")
+                .dropped == 0)
         #expect(verify(transcript, quote: "take it").reasons[.quoteTooShort] == 1)
     }
 

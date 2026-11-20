@@ -89,23 +89,33 @@ final class SlowStartInput: AudioInput {
 }
 
 /// Wakes tasks that wait for a condition the test cannot observe through events. Whoever changes the state
-/// calls `poke()`. The timeout is only a safety net against a hung test.
+/// calls `poke()`. The timeout is only a safety net against a hung test; a waiter that is woken, cancelled or
+/// expired leaves nothing behind (its timer is cancelled with it).
 final class Signal: Sendable {
     private struct Waiter {
-        let id: Int
         let predicate: @Sendable () -> Bool
         let continuation: CheckedContinuation<Bool, Never>
+        var timer: Task<Void, Never>?
     }
 
-    private let state = Mutex((next: 0, waiters: [Waiter]()))
+    private let state = Mutex((next: 0, waiters: [Int: Waiter]()))
 
     func poke() {
         let ready = state.withLock { state -> [Waiter] in
-            let ready = state.waiters.filter { $0.predicate() }
-            state.waiters.removeAll { waiter in ready.contains { $0.id == waiter.id } }
-            return ready
+            let ids = state.waiters.filter { $0.value.predicate() }.map(\.key)
+            return ids.compactMap { state.waiters.removeValue(forKey: $0) }
         }
-        for waiter in ready { waiter.continuation.resume(returning: true) }
+        for waiter in ready {
+            waiter.timer?.cancel()
+            waiter.continuation.resume(returning: true)
+        }
+    }
+
+    /// Ends the wait with `false` (timeout or cancellation); nothing happens when it was already woken.
+    private func end(_ id: Int) {
+        let waiter = state.withLock { $0.waiters.removeValue(forKey: id) }
+        waiter?.timer?.cancel()
+        waiter?.continuation.resume(returning: false)
     }
 
     func wait(timeout: Duration = .seconds(20), until predicate: @escaping @Sendable () -> Bool) async -> Bool {
@@ -114,34 +124,45 @@ final class Signal: Sendable {
             state.next += 1
             return state.next
         }
-        return await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-            let immediate = state.withLock { state -> Bool in
-                if predicate() { return true }
-                state.waiters.append(Waiter(id: id, predicate: predicate, continuation: continuation))
-                return false
-            }
-            if immediate {
-                continuation.resume(returning: true)
-                return
-            }
-            Task {
-                try? await Task.sleep(for: timeout)
-                let expired = state.withLock { state -> Waiter? in
-                    guard let index = state.waiters.firstIndex(where: { $0.id == id }) else { return nil }
-                    return state.waiters.remove(at: index)
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                // Registration is atomic with the check: a poke or a cancellation cannot fall between them
+                // (a cancellation that came first is seen here, one that comes later finds the waiter).
+                let immediate = state.withLock { state -> Bool? in
+                    if predicate() { return true }
+                    if Task.isCancelled { return false }
+                    state.waiters[id] = Waiter(predicate: predicate, continuation: continuation, timer: nil)
+                    return nil
                 }
-                expired?.continuation.resume(returning: false)
+                if let immediate {
+                    continuation.resume(returning: immediate)
+                    return
+                }
+                let timer = Task { [self] in
+                    try? await Task.sleep(for: timeout)
+                    if !Task.isCancelled { end(id) }
+                }
+                let attached = state.withLock { state -> Bool in
+                    guard state.waiters[id] != nil else { return false }
+                    state.waiters[id]?.timer = timer
+                    return true
+                }
+                if !attached { timer.cancel() }
             }
+        } onCancel: {
+            end(id)
         }
     }
 }
 
-/// Lets the test run the session's wall-clock heartbeat by hand: `tick` moves the clock and wakes one wait.
+/// Lets the test run the session's wall-clock heartbeat by hand: `tick` moves the clock and wakes every wait
+/// that is sleeping (a tick that finds nobody asleep is kept for the next sleep). Any number of tasks may sleep
+/// at once, and a cancelled sleep ends at once and leaves nothing behind. Nothing here reads the real clock.
 final class TestClock: Sendable {
     private struct State {
         var date = Date(timeIntervalSince1970: 1_000_000)
         var pending = 0
-        var waiter: (id: Int, continuation: CheckedContinuation<Void, Error>)?
+        var waiters: [Int: CheckedContinuation<Void, Error>] = [:]
         var next = 0
     }
 
@@ -149,18 +170,20 @@ final class TestClock: Sendable {
 
     var now: @Sendable () -> Date { { self.state.withLock { $0.date } } }
     var sleeper: @Sendable (Duration) async throws -> Void { { _ in try await self.sleepOnce() } }
+    /// How many sleeps are waiting for a tick.
+    var sleepers: Int { state.withLock { $0.waiters.count } }
 
     func tick(advancing seconds: Double) {
-        let waiter = state.withLock { state -> CheckedContinuation<Void, Error>? in
+        let woken = state.withLock { state -> [CheckedContinuation<Void, Error>] in
             state.date = state.date.addingTimeInterval(seconds)
-            guard let waiter = state.waiter else {
+            if state.waiters.isEmpty {
                 state.pending += 1
-                return nil
+                return []
             }
-            state.waiter = nil
-            return waiter.continuation
+            defer { state.waiters = [:] }
+            return Array(state.waiters.values)
         }
-        waiter?.resume()
+        for waiter in woken { waiter.resume() }
     }
 
     private func sleepOnce() async throws {
@@ -170,27 +193,26 @@ final class TestClock: Sendable {
         }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                let result = state.withLock { state -> Bool? in
-                    if Task.isCancelled { return false }
+                // Atomic with the cancellation check: a cancellation that came first is seen here, one that
+                // comes later finds the waiter in the table.
+                enum Registration { case resumeNow, cancelled, waiting }
+                let registration = state.withLock { state -> Registration in
+                    if Task.isCancelled { return .cancelled }
                     if state.pending > 0 {
                         state.pending -= 1
-                        return true
+                        return .resumeNow
                     }
-                    state.waiter = (id, continuation)
-                    return nil
+                    state.waiters[id] = continuation
+                    return .waiting
                 }
-                switch result {
-                case true: continuation.resume()
-                case false: continuation.resume(throwing: CancellationError())
-                default: break
+                switch registration {
+                case .resumeNow: continuation.resume()
+                case .cancelled: continuation.resume(throwing: CancellationError())
+                case .waiting: break
                 }
             }
         } onCancel: {
-            let waiter = state.withLock { state -> CheckedContinuation<Void, Error>? in
-                guard let waiter = state.waiter, waiter.id == id else { return nil }
-                state.waiter = nil
-                return waiter.continuation
-            }
+            let waiter = state.withLock { $0.waiters.removeValue(forKey: id) }
             waiter?.resume(throwing: CancellationError())
         }
     }
@@ -399,6 +421,7 @@ final class SessionEventLog: Sendable {
 /// Yields to other tasks until `condition` holds (actor state that has no event).
 func spin(_ condition: () async -> Bool) async -> Bool {
     for _ in 0..<200_000 {
+        if Task.isCancelled { return false }
         if await condition() { return true }
         await Task.yield()
     }
@@ -458,13 +481,16 @@ struct SessionRig {
         freeSpace: @escaping SpoolWriter.FreeSpaceProvider = { _ in Int64.max }, systemInput: ControlledInput? = nil,
         micInput: ControlledInput? = nil, gate: MeetingSessionGate? = nil, uuid: UUID = UUID(),
         modelID: String = "test-model", lease: SpeechEngineLease? = nil, engine: (any SpeechEngine)? = nil,
-        withSystem: Bool = true, clock: TestClock? = nil, micAudio: (any AudioInput)? = nil,
+        withSystem: Bool = true, clock: TestClock? = nil, realTime: Bool = false, micAudio: (any AudioInput)? = nil,
         beforeReady: (@Sendable (Int64, UUID) async -> Void)? = nil, sourceBundleID: String? = nil,
         keepAudio: Bool = false
     ) -> MeetingSession {
+        // Every session runs on a clock of its own that only the test moves, so a loaded machine cannot make the
+        // heartbeat see a stalled stream; `realTime: true` is for a test that needs the wall clock.
         var nowFn: @Sendable () -> Date = { Date() }
         var sleepFn: @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
-        if let clock {
+        if !realTime {
+            let clock = clock ?? TestClock()
             nowFn = clock.now
             sleepFn = clock.sleeper
         }
@@ -484,6 +510,8 @@ struct SessionRig {
     var shortLimits: MeetingSessionLimits {
         var limits = MeetingSessionLimits()
         limits.discardBelow = .seconds(15)
+        // The older tests expect a track that ends to be lost at once; resuming has its own tests.
+        limits.resumeAttempts = 0
         return limits
     }
 

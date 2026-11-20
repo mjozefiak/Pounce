@@ -10,18 +10,25 @@ import Testing
         NotesGuard(utterances: [NotesUtterance(startMs: 0, speaker: "Anna", text: text)])
     }
 
-    private func check(_ text: String, quote: String, pointText: String = "Zrobimy 5 rzeczy.")
+    private func check(_ text: String, quote: String, pointText: String = "ok.")
         -> NotesGuard.PointVerdict
     {
         guardrail(text).verifyPoints([GuardFixtures.point("p1", .summary, quote: quote, text: pointText)])
     }
 
-    @Test func aQuoteMaySkipOneFillerWordAndTheRepairedTextComesFromTheTranscript() {
-        let verdict = check("dha czy chciał nam przedstawić plan.", quote: "DHA chciał nam przedstawić")
+    @Test func aQuoteMaySkipOneFillerWordAndTheShownQuoteIsTheTranscripts() {
+        let verdict = check(
+            "dha czy chciał nam przedstawić plan.", quote: "DHA chciał nam przedstawić",
+            pointText: "DHA chciał przedstawić plan.")
         #expect(verdict.dropped == 0)
-        #expect(verdict.repaired == 1)
-        #expect(verdict.verified.first?.text.contains("czy") == true)
         #expect(verdict.verified.first?.quote.contains("czy") == true)
+    }
+
+    @Test func aTextWithADigitThatTheQuoteLacksIsRemovedNotRepaired() {
+        let verdict = check(
+            "dha czy chciał nam przedstawić plan.", quote: "DHA chciał nam przedstawić", pointText: "Zrobimy 5 rzeczy.")
+        #expect(verdict.verified.isEmpty)
+        #expect(verdict.reasons[.unsupportedDetail] == 1)
     }
 
     @Test func skippingThreeWordsIsNotAMatch() {
@@ -55,7 +62,7 @@ import Testing
         let text = "dha czy chciał nam przedstawić plan. Potem dha chciał nam przedstawić wynik."
         let verdict = guardrail(text).verifyPoints([
             GuardFixtures.point(
-                "p1", .summary, quote: "dha chciał nam przedstawić", text: "Zrobimy 5 rzeczy.", time: 0)
+                "p1", .summary, quote: "dha chciał nam przedstawić", text: "ok.", time: 0)
         ])
         #expect(verdict.dropped == 0)
         #expect(verdict.verified.first?.quote.contains("czy") == false)

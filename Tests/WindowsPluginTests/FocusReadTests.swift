@@ -28,7 +28,7 @@ import Testing
 
     private func run(_ plugin: WindowsPlugin, _ id: String) async throws {
         try await #require(plugin.commands.first { $0.id == id }).run()
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
     }
 
     private func workspace(of window: WindowID, in plugin: WindowsPlugin) async throws -> WorkspaceID? {
@@ -90,7 +90,7 @@ import Testing
         harness.clock.advance(0.26)
         await running.value
         client.releaseFocusReads()
-        await plugin.runtime?.settle()
+        await plugin.runtime?.settleGuarded()
         #expect(try await workspace(of: WindowID(pid: 100, number: 1), in: plugin) == WorkspaceID(1))
         #expect(hud.shown.last == .noFocusedWindow)
         let diagnostics = try await #require(plugin.runtime).engine.diagnostics()

@@ -8,7 +8,7 @@ Human contributors follow the same rules.
 
 ## Reporting bugs and proposing features
 
-Use the issue forms: [new issue](https://github.com/mjozefiak/Pounce/issues/new/choose). Do not paste
+Use the issue forms: [new issue](https://github.com/mjozefiak/lintel/issues/new/choose). Do not paste
 clipboard contents, transcripts, notes or other private text into an issue or a log.
 For vulnerabilities, do not open a public issue; see [SECURITY.md](SECURITY.md).
 
@@ -20,7 +20,7 @@ Bug fixes and small changes do not need a spec. See [AGENTS.md](AGENTS.md) (task
 ## Development setup
 
 - macOS 26 or later on Apple silicon, Xcode 27 (Swift 6.4).
-- Clone with submodules: `git clone --recurse-submodules https://github.com/mjozefiak/Pounce.git`
+- Clone with submodules: `git clone --recurse-submodules https://github.com/mjozefiak/lintel.git`
 - Run once: `swift package resolve --disable-keychain` (downloads the SQLCipher binary).
 - `scripts/make-app.sh` builds `dist/Lintel.app`, signed ad-hoc. An ad-hoc build gets a new signature on
   every rebuild, so macOS asks for its permissions again each time. See [docs/signing.md](docs/signing.md).
@@ -33,6 +33,7 @@ Run these in order before you open a PR:
 1. `swift build`
 2. `swift test`
 3. `swift format lint --strict -r Sources Tests`
+4. If you changed `scripts/*.sh`, `CHANGELOG.md` or the release workflow: `zsh scripts/tests/run.zsh`
 
 CI runs the same commands, plus some tests under `--sanitize=thread`
 ([ci.yml](.github/workflows/ci.yml)). A docs-only PR says so in its body.
@@ -42,6 +43,10 @@ CI runs the same commands, plus some tests under `--sanitize=thread`
 - One branch and one PR per change, based on `main`.
 - Use conventional-commit style titles, for example `feat(meetings): ...`, `fix(windows): ...`,
   `docs(specs): ...`.
+- A user-visible change adds one line under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md), in the
+  matching `### Added / Changed / Fixed / Removed / Security` group, written for users. Internal-only
+  changes (refactors, tests, CI, docs) need no line.
+- Do not edit the version in `Resources/Info.plist`: it stays `0.0.0` / `0`. A release takes its version from the tag (`vX.Y.Z` or `vX.Y.Z-beta.N`) and its build number from the commit count; the tag needs a `## [X.Y.Z]` section in CHANGELOG.md.
 - Fill in the PR template. Labels follow the state machine in [SDLC.md](SDLC.md).
 - Review: CI must be green. A UI change needs screenshots of the running app in light and dark mode
   (the QA gate in [SDLC.md](SDLC.md)). A PR labeled `needs-qa` does not merge without `qa-approved`.
