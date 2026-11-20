@@ -722,6 +722,7 @@ picker are scripted by the verbs above (`plugins.windows.qaScriptedFiles`, on in
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.
 - No toggling Launch at Login (`SMAppService`).
 - No signing with the Developer ID release identity on a developer machine (see `docs/signing.md`).
+- No installing: never copy a build into `/Applications` or `~/Applications`. Run the debug app from its build folder; only the owner installs, from the DMG of a release or of a manual signed run (`AGENTS.md`, "Installing and releasing").
 - Quit every Lintel process you started.
 
 Checks that need TCC grants (Accessibility for paste, a real Full Disk Access grant, the privacy prompt

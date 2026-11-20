@@ -56,6 +56,15 @@ NotesPlugin.self, WindowsPlugin.self]`; `MeetingsPlugin` is registered since ste
 | Native UI QA | `SDLC.md` (QA gate), `docs/qa.md` | Build a debug app (`CONFIGURATION=debug scripts/make-app.sh`) and run it with the DEBUG-only `--qa…` launch arguments, which isolate data, settings, Keychain, pasteboard, hotkeys and the file index from the tester's real ones (file search indexes only a fixture folder); attach screenshots of the running app in light and dark mode and the relevant UI states as PR evidence. |
 | Decisions and measurements | `docs/decisions/` (ADRs 0001–0004 exist), `docs/perf.md` (every budget of the spec; benchmarks in `Tests/FilesPluginTests/Benchmarks.swift` and `Tests/AppsPluginTests/Benchmarks.swift`, off by default) | Record architectural decisions as numbered ADRs; record performance budgets measured against the spec. |
 
+## Installing and releasing: what agents never do
+
+Agents and scripts act with the owner's account, so these rules are not optional:
+
+- **Never copy a build into `/Applications` or `~/Applications`.** No agent and no script in `scripts/` installs Lintel. The owner installs the DMG of a release, or of a manual signed run of the Release workflow (`gh run download`). QA runs the debug app from its build folder with the `--qa…` arguments (`docs/qa.md`).
+- **Never push a `v*` tag.** A tag starts a release; only the owner tags.
+- **Never approve a deployment.** The Environment `release` (signing and notarization) is approved by the owner in GitHub, by hand.
+- **Never run `gh secret`, and never call the Environments or pending-deployments API.** Secrets, certificates and keys are the owner's.
+
 ## Validation
 
 Validation gate, in order (also in `.ai/agentic.config.json`):
