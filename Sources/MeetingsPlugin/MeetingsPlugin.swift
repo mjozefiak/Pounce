@@ -196,7 +196,7 @@ public final class MeetingsPlugin: LintelPlugin {
     /// archives and the spool). Models live in the shared `Models/` folder and stay.
     public func eraseData() async throws {
         libraryActions.closeWindows()
-        try library.erase()
+        try await library.eraseAfterOpens()
     }
 
     // MARK: Contributions

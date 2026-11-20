@@ -48,7 +48,20 @@ final class MeetingsLibrary {
     @ObservationIgnored private var resumer: (any MeetingResuming)?
     @ObservationIgnored private var resumeTask: Task<Void, Never>?
     /// The background open in progress, if any (`openInBackground`).
-    @ObservationIgnored private var openTask: Task<Void, Never>?
+    /// `close()` does not clear it: the detached database work cannot be cancelled, so a later `open`/`erase`
+    /// waits for it (`settleOpens`) and the task removes itself only if it is still the registered one.
+    @ObservationIgnored private var openTask: OpenTask?
+    @ObservationIgnored private var openSerial = 0
+    /// How many background opens were started (tests: a second open must join or wait, not start another).
+    @ObservationIgnored private(set) var openLaunches = 0
+    /// Reset archive found by an open that `close()` had already discarded; the next applied open reports it.
+    @ObservationIgnored private var carriedResetArchive: URL?
+
+    private struct OpenTask {
+        let serial: Int
+        let generation: Int
+        let task: Task<Void, Never>
+    }
     /// "Dokończ" runs by meeting id; `close()` cancels them.
     @ObservationIgnored private var finishTasks: [Int64: Task<ResumeOutcome, Never>] = [:]
     /// The meetings a recovery or "Dokończ" pass is working on right now (their rows and spools are in use).
@@ -167,7 +180,8 @@ final class MeetingsLibrary {
             store = opened
             storeBox.withLock { $0 = opened }
             keys = openedKeys
-            resetArchive = archive
+            resetArchive = archive ?? carriedResetArchive
+            carriedResetArchive = nil
             status = .ready
             // The key was definitely missing and has been recreated: nothing in the spool can be read with it.
             if keyWasMissing, spoolStorage.removeAll() > 0 {
@@ -196,30 +210,58 @@ final class MeetingsLibrary {
     /// library before that. A second call while one is running waits for it. A `close()` meanwhile discards
     /// the result (the store is closed again) and the library stays closed.
     func openInBackground() async {
-        guard store == nil else { return }
-        if let openTask {
-            await openTask.value
-            return
+        // An open of an earlier generation (after `close()`) is waited for, never overlapped: two opens on the
+        // same files could both create the key. An open of the current generation is simply joined.
+        while let running = openTask {
+            await running.task.value
+            if running.generation == generation { return }
         }
+        guard store == nil else { return }
         let opener = opener
         let directory = directory
         let now = now()
         let logger = logger
         let generation = generation
+        openSerial += 1
+        openLaunches += 1
+        let serial = openSerial
         let task = Task { @MainActor [weak self] in
             let result = await Task.detached(priority: .userInitiated) {
                 Self.performOpen(opener: opener, directory: directory, now: now, logger: logger)
             }.value
             guard let self else { return }
-            self.openTask = nil
+            if self.openTask?.serial == serial { self.openTask = nil }
             guard self.generation == generation else {
-                if case .opened(let opened, _, _, _) = result { try? opened.close() }
+                // Discarded by a `close()`. What the open did to the Keychain and the disk still happened, so
+                // the parts that are valid whoever uses the library are kept: a key that had to be recreated
+                // makes every old spool unreadable, and a reset archive is reported by the next applied open.
+                if case .opened(let opened, _, let archive, let keyWasMissing) = result {
+                    try? opened.close()
+                    if keyWasMissing, self.spoolStorage.removeAll() > 0 {
+                        logger.notice("The Keychain key was recreated; the unreadable audio spools were deleted")
+                    }
+                    if let archive { self.carriedResetArchive = archive }
+                }
                 return
             }
             self.apply(result)
         }
-        openTask = task
+        openTask = OpenTask(serial: serial, generation: generation, task: task)
         await task.value
+    }
+
+    /// "Erase Data": closes, waits for every background open (also one that `close()` discarded, which would
+    /// recreate the key and the folder), then erases.
+    func eraseAfterOpens() async throws {
+        close()
+        await settleOpens()
+        try erase()
+    }
+
+    /// Waits until no background open is running (also one that `close()` discarded). `erase` needs it: a
+    /// stale open would recreate the key and the folder the erase removed.
+    func settleOpens() async {
+        while let running = openTask { await running.task.value }
     }
 
     /// Closes the library. Background resumes and "Dokończ" runs are cancelled; they find the store closed if
@@ -229,7 +271,6 @@ final class MeetingsLibrary {
     func close() {
         onWillClose?()
         generation += 1
-        openTask = nil
         retention.stop()
         resumeTask?.cancel()
         resumeTask = nil
@@ -272,6 +313,8 @@ final class MeetingsLibrary {
 
     /// "Erase Data": closes the library, removes the Keychain item and the plugin's folder (the database, its
     /// archives and the spool). The host removes the folder too; both are idempotent.
+    ///
+    /// Call `close()` and `await settleOpens()` first (the plugin does) so no stale open is still running.
     func erase(fileManager: FileManager = .default) throws {
         close()
         liveMeetingIDs = []
