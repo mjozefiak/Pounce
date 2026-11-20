@@ -118,6 +118,10 @@ struct QAOptions: Equatable {
     /// `--qa-move-scenario standard|user-applications|unwritable|newer`: which variant of the alert
     /// `--qa-move-prompt` shows (`QAMoveScenario`); default `standard`.
     var moveScenario = QAMoveScenario.standard
+    /// `--qa-update-available <version>`: a fake updater reports at launch that a background check found this
+    /// version, so the menu bar shows the dot and the "Update Available" item. The real update framework is never
+    /// created and nothing is requested from the network (`QAUpdateChecker`).
+    var updateAvailable: String?
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -268,6 +272,8 @@ struct QAOptions: Equatable {
                 options.persistentSettings = true
             case "--qa-move-prompt":
                 options.showsMovePrompt = true
+            case "--qa-update-available":
+                options.updateAvailable = try Self.pathValue(argument, iterator.next())
             case "--qa-move-scenario":
                 let value = try Self.pathValue(argument, iterator.next())
                 guard let scenario = QAMoveScenario(rawValue: value) else { throw .invalidValue(argument, value) }

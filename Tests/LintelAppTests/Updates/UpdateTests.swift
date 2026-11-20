@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import LintelKit
 import Testing
@@ -265,5 +266,77 @@ import Testing
             }
         }
         #expect(importing == ["SparkleUpdateChecker.swift"])
+    }
+}
+
+/// The quiet reminder in the menu bar (spec Step 4.4): a menu item and a dot, never a window.
+@MainActor
+struct UpdateReminderMenuTests {
+    private func actions(pending: @escaping () -> String?, show: @escaping () -> Void = {}) -> ShellMenuActions {
+        var actions = ShellMenuActions(openPanel: {}, openSettings: {}, mainShortcut: { nil }, runCommand: { _ in })
+        actions.pendingUpdate = pending
+        actions.showUpdate = show
+        return actions
+    }
+
+    @Test func withoutAFoundUpdateTheMenuHasNoUpdateItem() {
+        let menu = NSMenu()
+        StatusMenuBuilder(actions: actions(pending: { nil })).populate(menu, commands: [])
+        #expect(menu.items.map(\.title) == ["Open Lintel", "", "Settings…", "About Lintel", "", "Quit Lintel"])
+    }
+
+    @Test func aFoundUpdateIsTheFirstMenuItemAndOpensTheUpdate() throws {
+        var shown = 0
+        let menu = NSMenu()
+        let builder = StatusMenuBuilder(actions: actions(pending: { "0.2.0" }, show: { shown += 1 }))
+        builder.populate(menu, commands: [])
+        #expect(
+            menu.items.map(\.title) == [
+                "Update Available: 0.2.0…", "", "Open Lintel", "", "Settings…", "About Lintel", "", "Quit Lintel",
+            ])
+        let item = try #require(menu.items.first)
+        #expect(item.identifier == StatusMenuBuilder.updateItemIdentifier)
+        let action = try #require(item.action)
+        _ = (item.target as? NSObject)?.perform(action, with: item)
+        #expect(shown == 1)
+    }
+
+    @Test func theMenuFollowsTheReminderEachTimeItIsBuilt() {
+        var pending: String? = "0.2.0"
+        let menu = NSMenu()
+        let builder = StatusMenuBuilder(actions: actions(pending: { pending }))
+        builder.populate(menu, commands: [])
+        #expect(menu.items.first?.title == "Update Available: 0.2.0…")
+        pending = nil
+        builder.populate(menu, commands: [])
+        #expect(menu.items.first?.title == "Open Lintel")
+    }
+
+    @Test func theDotSitsInsideTheTopRightCornerOfTheButton() {
+        let bounds = NSRect(x: 0, y: 0, width: 22, height: 22)
+        let frame = UpdateBadgeView.frame(in: bounds)
+        #expect(bounds.contains(frame))
+        #expect(frame.midX > bounds.midX && frame.midY > bounds.midY)
+        #expect(UpdateBadgeView(frame: frame).hitTest(NSPoint(x: frame.midX, y: frame.midY)) == nil)
+    }
+
+    @Test func theQAArgumentCarriesTheVersion() throws {
+        let options = try #require(try QAOptions.parse(["--qa", "--qa-update-available", "0.2.0"]))
+        #expect(options.updateAvailable == "0.2.0")
+        #expect(throws: QAOptions.ParseError.self) {
+            _ = try QAOptions.parse(["--qa", "--qa-update-available"])
+        }
+    }
+
+    @Test func theQACheckerReportsTheUpdateAndClearsItWhenShown() {
+        let controller = QAUpdateChecker.controller(version: "0.2.0", settings: InMemorySettingsStore())
+        var changes: [String?] = []
+        controller.onReminderChange = { changes.append($0) }
+        controller.startIfAllowed()
+        #expect(controller.state == .running)
+        #expect(controller.pendingVersion == "0.2.0")
+        controller.checkForUpdates()
+        #expect(controller.pendingVersion == nil)
+        #expect(changes == ["0.2.0", nil])
     }
 }
