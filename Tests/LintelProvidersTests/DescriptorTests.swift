@@ -78,8 +78,15 @@ import Testing
         #expect(descriptor.isolationProblems(arguments: argv + ["\(flag)=x"]) == ["forbidden:\(flag)"])
     }
 
-    @Test func aPromptThatLooksLikeAFlagIsJustAValue() throws {
-        let argv = try descriptor.arguments(model: "sonnet", systemPrompt: "--settings")
+    @Test(arguments: ["--settings", "-c", "--dangerously-skip-permissions", "-"])
+    func aPromptThatLooksLikeAFlagIsRefused(prompt: String) {
+        #expect(throws: ProviderError.invalidRequest) {
+            try descriptor.arguments(model: "sonnet", systemPrompt: prompt)
+        }
+    }
+
+    @Test func aFlagNameInsideThePromptIsJustText() throws {
+        let argv = try descriptor.arguments(model: "sonnet", systemPrompt: "Never use --settings.")
         #expect(descriptor.isolationProblems(arguments: argv).isEmpty)
     }
 

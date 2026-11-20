@@ -63,11 +63,18 @@ final class LockedCounter: @unchecked Sendable {
 }
 
 /// One child in its own process group. SIGTERM goes to the whole group, SIGKILL 2 s later, and the group is killed
-/// when the leader has exited, so no grandchild outlives the call.
+/// when the leader has exited, so no grandchild that stays in the group outlives the call. Every signal to the group
+/// is sent while the leader is not yet reaped (a zombie keeps its pid and group id), so a reused pid is never hit.
+/// The pipes are non-blocking: a grandchild that left the group (`setsid`) and keeps a pipe open cannot hold the call
+/// open; reading stops `drainGrace` after the leader exited and writing stops when it exited.
 private final class ProcessJob: @unchecked Sendable {
+    private static let drainGrace: Double = 2
+    private static let pollMillis: Int32 = 100
+
     private let lock = NSLock()
     private var pid: pid_t = 0
     private var reaped = false
+    private var leaderExitedAt: DispatchTime?
     private var ending: ProviderProcessOutput.Ending = .exited
     private var stdoutData = Data()
     private var stderrData = Data()
@@ -92,6 +99,8 @@ private final class ProcessJob: @unchecked Sendable {
         }
         for fd in inPipe + outPipe + errPipe { _ = fcntl(fd, F_SETFD, FD_CLOEXEC) }
         _ = fcntl(inPipe[1], F_SETNOSIGPIPE, 1)
+        // Only our ends: each end of a pipe is its own open file description, the child's ends stay blocking.
+        for fd in [inPipe[1], outPipe[0], errPipe[0]] { _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK) }
 
         var actions: posix_spawn_file_actions_t? = nil
         var attributes: posix_spawnattr_t? = nil
@@ -142,35 +151,39 @@ private final class ProcessJob: @unchecked Sendable {
         let errFD = errPipe[0]
         group.enter()
         queue.async { [stdin = spec.stdin] in
-            Self.writeAll(stdin, to: stdinFD)
+            self.writeAll(stdin, to: stdinFD)
             close(stdinFD)
             self.group.leave()
         }
         group.enter()
         queue.async { [limit = spec.maxStdoutBytes] in
-            let (data, overflow) = Self.readAll(outFD, limit: limit) { self.finish(.outputTooLarge) }
+            let data = self.readAll(outFD, limit: limit) { self.finish(.outputTooLarge) }
             close(outFD)
             self.lock.withLock { self.stdoutData = data }
-            _ = overflow
             self.group.leave()
         }
         group.enter()
         queue.async { [limit = spec.maxStderrBytes] in
-            let (data, _) = Self.readAll(errFD, limit: limit) {}
+            let data = self.readAll(errFD, limit: limit) {}
             close(errFD)
             self.lock.withLock { self.stderrData = data }
             self.group.leave()
         }
         group.enter()
         queue.async {
+            // Wait for the exit without reaping: the zombie keeps the pid and the group id, so the kill below and
+            // any late `finish` can only reach our group.
+            var info = siginfo_t()
+            while waitid(P_PID, id_t(leader), &info, WEXITED | WNOWAIT) == -1 && errno == EINTR {}
+            self.lock.withLock {
+                killpg(leader, SIGKILL)  // anything the child left behind in its group
+                self.reaped = true
+                self.leaderExitedAt = .now()
+            }
             var raw: Int32 = 0
             while waitpid(leader, &raw, 0) == -1 && errno == EINTR {}
             let code: Int32 = (raw & 0x7f) == 0 ? (raw >> 8) & 0xff : 128 + (raw & 0x7f)
-            self.lock.withLock {
-                self.reaped = true
-                self.exitCode = code
-            }
-            killpg(leader, SIGKILL)  // anything the child left behind in its group
+            self.lock.withLock { self.exitCode = code }
             self.group.leave()
         }
         let seconds = Double(spec.timeout.components.seconds) + Double(spec.timeout.components.attoseconds) / 1e18
@@ -197,18 +210,30 @@ private final class ProcessJob: @unchecked Sendable {
         }
     }
 
-    /// The first reason wins. Terminates the whole group: SIGTERM now, SIGKILL after 2 s.
+    /// The first reason wins. Terminates the whole group: SIGTERM now, SIGKILL after 2 s. Both are sent under the
+    /// lock and only while the leader is not reaped.
     private func finish(_ reason: ProviderProcessOutput.Ending) {
-        let shouldKill: Bool = lock.withLock {
+        let killed: Bool = lock.withLock {
             guard ending == .exited, !reaped else { return false }
             ending = reason
+            killpg(pid, SIGTERM)
             return true
         }
-        guard shouldKill else { return }
-        killpg(pid, SIGTERM)
+        guard killed else { return }
         queue.asyncAfter(deadline: .now() + 2) { [self] in
-            let alive = lock.withLock { !reaped }
-            if alive { killpg(pid, SIGKILL) }
+            lock.withLock {
+                if !reaped { _ = killpg(pid, SIGKILL) }
+            }
+        }
+    }
+
+    private var leaderGone: Bool { lock.withLock { reaped } }
+
+    /// True once the leader exited more than `drainGrace` ago: whatever still holds the pipe left our group.
+    private var drainExpired: Bool {
+        lock.withLock {
+            guard let exited = leaderExitedAt else { return false }
+            return DispatchTime.now() >= exited + Self.drainGrace
         }
     }
 
@@ -216,32 +241,41 @@ private final class ProcessJob: @unchecked Sendable {
         for fd in pair { _ = Darwin.close(fd) }
     }
 
-    private static func writeAll(_ data: Data, to fd: Int32) {
+    /// Writes until done, the reader closed the pipe or the leader exited (stdin no longer matters then).
+    private func writeAll(_ data: Data, to fd: Int32) {
         data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
+            guard let base = buffer.baseAddress else { return }
             var offset = 0
             while offset < buffer.count {
-                let written = write(fd, buffer.baseAddress! + offset, min(65_536, buffer.count - offset))
-                if written < 0 {
-                    if errno == EINTR { continue }
-                    return
+                let written = write(fd, base + offset, min(65_536, buffer.count - offset))
+                if written >= 0 {
+                    offset += written
+                    continue
                 }
-                offset += written
+                if errno == EINTR { continue }
+                guard errno == EAGAIN, !leaderGone else { return }
+                var poller = pollfd(fd: fd, events: Int16(POLLOUT), revents: 0)
+                _ = poll(&poller, 1, Self.pollMillis)
             }
         }
     }
 
-    /// Reads to end of file, keeps at most `limit` bytes, keeps draining after that so the child never blocks.
-    private static func readAll(_ fd: Int32, limit: Int, onOverflow: () -> Void) -> (Data, Bool) {
+    /// Reads to end of file, keeps at most `limit` bytes, keeps draining after that so the child never blocks. Stops
+    /// `drainGrace` after the leader exited even when the pipe is still open.
+    private func readAll(_ fd: Int32, limit: Int, onOverflow: () -> Void) -> Data {
         var data = Data()
         var overflow = false
         var buffer = [UInt8](repeating: 0, count: 65_536)
         while true {
             let count = read(fd, &buffer, buffer.count)
+            if count == 0 { break }
             if count < 0 {
                 if errno == EINTR { continue }
-                break
+                guard errno == EAGAIN, !drainExpired else { break }
+                var poller = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
+                _ = poll(&poller, 1, Self.pollMillis)
+                continue
             }
-            if count == 0 { break }
             if data.count + count > limit {
                 if !overflow {
                     overflow = true
@@ -252,6 +286,6 @@ private final class ProcessJob: @unchecked Sendable {
                 data.append(contentsOf: buffer[0..<count])
             }
         }
-        return (data, overflow)
+        return data
     }
 }

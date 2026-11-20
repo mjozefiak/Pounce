@@ -20,7 +20,8 @@ migration, API key, `isolationVerified = true`. TSan step in `ci.yml` is added a
 - [x] 1.1 Target skeleton, descriptor, locator, process, gate, runner, quiet system
 - [x] 1.2 Tests: descriptor, locator, process (fake binary), matrix rows, gate, source scans
 - [x] 1.3 AGENTS.md and format
-- [ ] 1.4 TSan step in ci.yml after #149
+- [x] 1.4 TSan step in ci.yml after #149 (`tsan-providers`)
+- [x] 1.5 Review fixes: escaped grandchild cannot hold a run open, group signalled only before reaping, flag-like system prompt refused
 
 ## Risks
 `risk-high`: new subprocess boundary and consent enforcement. Mitigated by `isolationVerified = false` on the shipped descriptor and no caller.

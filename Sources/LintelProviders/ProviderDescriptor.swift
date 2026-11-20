@@ -147,7 +147,11 @@ public struct ProviderDescriptor: Sendable {
     /// The one place the argv of a content process is made. Content never goes in it, only the model id and our static prompt.
     func arguments(model: String, systemPrompt: String) throws -> [String] {
         guard Self.isValidModelID(model) else { throw ProviderError.invalidModel }
-        guard systemPrompt.utf8.count <= Self.maxSystemPromptBytes, !systemPrompt.contains("\0") else {
+        // A prompt that starts with `-` would be read as a flag by a CLI parser that is not greedy for values; ours
+        // is a static text, so it is refused rather than relying on the parser.
+        guard systemPrompt.utf8.count <= Self.maxSystemPromptBytes, !systemPrompt.contains("\0"),
+            !systemPrompt.hasPrefix("-")
+        else {
             throw ProviderError.invalidRequest
         }
         return try argumentBuilder(model, systemPrompt)

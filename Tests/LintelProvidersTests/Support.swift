@@ -71,6 +71,14 @@ struct FakeCLI {
           if [ "$mode" = "loggedout" ]; then echo '{"loggedIn":false}'; else echo '{"loggedIn":true,"email":"nobody@example.invalid"}'; fi
           exit 0
         fi
+        if [ "$mode" = "escape" ]; then
+          # A grandchild that leaves the process group (new session) and keeps stdin, stdout and stderr open.
+          perl -e 'use POSIX qw(setsid); setsid(); open(my $f, ">", $ARGV[0]); close $f; sleep 30' "$here/escaped" &
+          echo $! > "$here/escapedpid"
+          while [ ! -e "$here/escaped" ]; do sleep 0.05; done
+          echo '{"type":"result","is_error":false,"result":"Fake answer."}'
+          exit 0
+        fi
         printf '%s\n' "$@" > "$here/argv"
         env | cut -d= -f1 | sort > "$here/envnames"
         env | grep '^USER=' > "$here/userenv"
@@ -126,3 +134,10 @@ func makeRequest(model: String = "sonnet", timeout: Duration = .seconds(20)) -> 
 }
 
 let allowed: ProviderAuthorization = { .allowed }
+
+final class DoneFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var done = false
+    var value: Bool { lock.withLock { done } }
+    func set() { lock.withLock { done = true } }
+}

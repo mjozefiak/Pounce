@@ -130,6 +130,37 @@ import Testing
         #expect(gone, "the grandchild must die with the group")
     }
 
+    @Test func aGrandchildThatLeavesTheGroupCannotHoldTheRunOpen() async throws {
+        // The grandchild calls setsid(), so the group kill cannot reach it, and it keeps the three pipes open while
+        // the fake never reads stdin. The run must still end soon after the leader exits and release the gate.
+        let (temp, cli, caches) = try setup(mode: "escape")
+        defer {
+            if let pid = pid_t(cli.read("escapedpid").trimmingCharacters(in: .whitespacesAndNewlines)) {
+                kill(pid, SIGKILL)
+            }
+            temp.remove()
+        }
+        let gate = ProviderGate()
+        let runner = makeRunner(cli, caches: caches, gate: gate)
+        let request = ProviderRequest(
+            feature: .meetingsNotes, model: "sonnet",
+            messages: [ChatMessage(role: "user", content: String(repeating: "zebra ", count: 60_000))],
+            timeout: .seconds(30))
+        let done = DoneFlag()
+        let task = Task {
+            defer { done.set() }
+            return try await runner.run(request, authorization: allowed)
+        }
+        let finished = await eventually(timeout: 10) { done.value }
+        #expect(finished, "an escaped grandchild must not keep the run (and the gate slot) open")
+        guard finished else {
+            task.cancel()
+            return
+        }
+        #expect(try await task.value.text == "Fake answer.")
+        #expect(await gate.queuedCount == 0)
+    }
+
     @Test func aTaskCancelledBeforeTheStartStartsNothing() async throws {
         let (temp, cli, caches) = try setup()
         defer { temp.remove() }
