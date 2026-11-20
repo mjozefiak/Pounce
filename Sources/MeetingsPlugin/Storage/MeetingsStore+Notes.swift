@@ -52,8 +52,8 @@ extension MeetingsStore {
     /// `provider` and `providerModel` are the origin mark (`notes_provider*`), written by this same guarded
     /// `UPDATE` as the result, so the mark always describes the text in `notes_markdown`: a run that is
     /// cancelled or fails never reaches here and leaves it alone, and notes written again by the built-in model
-    /// (both `nil`) clear it. `model` is `nil` when a provider wrote the notes (`notes_model` stays an
-    /// `LLMModelCatalog` id).
+    /// (both `nil`) clear it. `notes_model` stays an `LLMModelCatalog` id and is stored as `NULL` whenever
+    /// `provider` is set, and `providerModel` is dropped without a `provider`, so the two marks never contradict.
     @discardableResult
     func finishNotes(
         _ id: Int64, markdown: String?, status: NotesStatus, promptVersion: String, model: String?,
@@ -69,7 +69,8 @@ extension MeetingsStore {
                     WHERE id = ? AND notes_status IN ('running', 'stale')
                     """,
                 arguments: [
-                    markdown, status.rawValue, promptVersion, model, provider, provider == nil ? nil : providerModel,
+                    markdown, status.rawValue, promptVersion, provider == nil ? model : nil, provider,
+                    provider == nil ? nil : providerModel,
                     max(0, droppedCount),
                     generatedAt.timeIntervalSince1970, id,
                 ])

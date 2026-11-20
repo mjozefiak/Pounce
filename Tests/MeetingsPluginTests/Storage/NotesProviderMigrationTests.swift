@@ -227,6 +227,20 @@ import Testing
         #expect(record.providerModel == nil)
     }
 
+    @Test func aCatalogModelIsNeverStoredNextToAProvider() throws {
+        let (store, directory) = try openStore()
+        defer { withExtendedLifetime(directory) {} }
+        let id = try readyMeeting(store)
+        _ = try store.beginNotes(id)
+        try store.finishNotes(
+            id, markdown: "- by provider", status: .ok, promptVersion: "whole1+cli1", model: "catalog-id",
+            provider: "synthetic-provider", providerModel: "synthetic-model", droppedCount: 0, generatedAt: Self.when)
+        let record = try #require(try store.notesRecord(of: id))
+        #expect(record.provider == "synthetic-provider")
+        #expect(record.providerModel == "synthetic-model")
+        #expect(record.model == nil)
+    }
+
     @Test func deletingTheMeetingRemovesTheMarkWithTheRow() throws {
         let (store, directory) = try openStore()
         defer { withExtendedLifetime(directory) {} }
