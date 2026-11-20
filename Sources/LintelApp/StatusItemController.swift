@@ -17,6 +17,10 @@ struct ShellMenuActions {
     var pendingUpdate: () -> String? = { nil }
     /// Shows the found update (the update framework's own window).
     var showUpdate: (() -> Void)?
+    /// Whether "Check for Updates…" can run now (false when the updater is off or a check is running).
+    var canCheckForUpdates: () -> Bool = { false }
+    /// A check the user asked for. `nil` leaves the menu item out.
+    var checkForUpdates: (() -> Void)?
 }
 
 /// The menu bar item: a template SF Symbol and a menu with "Open Lintel" (showing the current shortcut),
@@ -96,7 +100,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
 /// Fills the menu bar menu: "Open Lintel", menu commands of active plugins, then Settings, About and
 /// Quit, in groups separated by separators.
-final class StatusMenuBuilder: NSObject {
+final class StatusMenuBuilder: NSObject, NSMenuItemValidation {
     /// Keeps the closure targets of command items alive while the menu shows them.
     private var commandTargets: [CommandTarget] = []
     private let actions: ShellMenuActions?
@@ -176,6 +180,19 @@ final class StatusMenuBuilder: NSObject {
         )
         about.target = self
         menu.addItem(about)
+
+        if actions?.checkForUpdates != nil {
+            let check = NSMenuItem(
+                title: String(
+                    localized: "Check for Updates…",
+                    comment: "Menu bar menu item that asks the update framework to check for a new version"),
+                action: #selector(checkForUpdates),
+                keyEquivalent: ""
+            )
+            check.target = self
+            check.identifier = Self.checkItemIdentifier
+            menu.addItem(check)
+        }
         menu.addItem(.separator())
 
         let quit = NSMenuItem(
@@ -188,6 +205,17 @@ final class StatusMenuBuilder: NSObject {
     }
 
     static let updateItemIdentifier = NSUserInterfaceItemIdentifier("lintel.menu.update")
+    static let checkItemIdentifier = NSUserInterfaceItemIdentifier("lintel.menu.checkForUpdates")
+
+    /// "Check for Updates…" is dimmed while the updater is off or a check is running.
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.identifier == Self.checkItemIdentifier { return actions?.canCheckForUpdates() ?? false }
+        return true
+    }
+
+    @objc private func checkForUpdates() {
+        actions?.checkForUpdates?()
+    }
 
     @objc private func showUpdate() {
         actions?.showUpdate?()

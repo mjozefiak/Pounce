@@ -8,9 +8,10 @@ struct GeneralPane: View {
     let hotkeys: HotkeyService
     @Bindable var settings: AppSettings
     let launchAtLogin: any LaunchAtLoginClient
+    var updates: UpdatesSettingsModel?
 
     var body: some View {
-        GeneralPaneContent(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin)
+        GeneralPaneContent(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin, updates: updates)
     }
 }
 
@@ -19,6 +20,7 @@ struct GeneralPaneContent: View {
     let hotkeys: HotkeyService
     @Bindable var settings: AppSettings
     let launchAtLogin: any LaunchAtLoginClient
+    var updates: UpdatesSettingsModel?
 
     @Environment(\.lintelTextSize) private var textSize
     @State private var launchesAtLogin = false
@@ -68,6 +70,9 @@ struct GeneralPaneContent: View {
             } header: {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
                     .settingsSectionHeader()
+            }
+            if let updates {
+                UpdatesSection(model: updates)
             }
         }
         .onAppear {

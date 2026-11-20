@@ -52,9 +52,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard await offerMoveToApplications(environment) else { return }
             await coordinator.start()
             started = true
-            // Off until the owner's update key is in Info.plist (`UpdaterStartPolicy`); DEBUG and QA builds never start it.
+            // `UpdaterStartPolicy` decides; DEBUG and QA builds never start the real updater.
             let updates = makeUpdateController(environment, host: coordinator.host)
             coordinator.attach(updates)
+            // Not while the welcome screen is up: Sparkle's permission question must not appear over it (D6).
+            updates.welcomeIsPending = { [weak coordinator] in coordinator?.onboarding?.isVisible ?? false }
             updates.startIfAllowed()
             self.updates = updates
             if !pendingFiles.isEmpty {
@@ -72,8 +74,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeUpdateController(_ environment: AppEnvironment, host: PluginHost) -> UpdateController {
         let isBusy = { host.busyReason != nil }
         #if DEBUG
-        if let version = qaOptions?.updateAvailable {
-            return QAUpdateChecker.controller(version: version, settings: environment.settings, isBusy: isBusy)
+        if let options = qaOptions, options.updateAvailable != nil || options.updatesOn == true {
+            return QAUpdateChecker.controller(
+                version: options.updateAvailable, settings: environment.settings, isBusy: isBusy)
         }
         #endif
         return UpdateController.live(settings: environment.settings, isBusy: isBusy)

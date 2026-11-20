@@ -54,9 +54,20 @@ final class UpdateController {
         self.makeChecker = makeChecker
     }
 
-    /// Starts the updater when the policy allows it. Safe to call more than once: only the first call acts.
+    /// Whether the welcome flow is on screen. While it is, the updater is not started, so Sparkle's permission
+    /// question never appears over it (spec D6).
+    var welcomeIsPending: () -> Bool = { false }
+    private var waitingForWelcome = false
+
+    /// Starts the updater when the policy allows it and the welcome flow is not pending. Safe to call more than
+    /// once: only the first call that gets past both acts.
     func startIfAllowed() {
         guard state == .idle else { return }
+        if welcomeIsPending() {
+            waitingForWelcome = true
+            return
+        }
+        waitingForWelcome = false
         switch UpdaterStartPolicy.decide(facts) {
         case .refuse(let reason):
             state = .off(reason)
@@ -78,7 +89,40 @@ final class UpdateController {
         }
     }
 
+    /// Call when the welcome flow closed: a start that was held back goes ahead now. Does nothing otherwise, and
+    /// never starts the updater a second time.
+    func welcomeFinished() {
+        guard waitingForWelcome else { return }
+        startIfAllowed()
+    }
+
     var canCheckForUpdates: Bool { checker?.canCheckForUpdates ?? false }
+
+    /// Whether the updater runs; the Settings group shows its switches only then.
+    var isRunning: Bool { state == .running }
+
+    var automaticallyChecks: Bool {
+        get { checker?.automaticallyChecksForUpdates ?? false }
+        set { checker?.automaticallyChecksForUpdates = newValue }
+    }
+
+    var automaticallyDownloads: Bool {
+        get { checker?.automaticallyDownloadsUpdates ?? false }
+        set { checker?.automaticallyDownloadsUpdates = newValue }
+    }
+
+    /// `app.updates.includeBeta`, as the checker offers it.
+    var includesBeta: Bool {
+        UpdateChannel.includeBeta(settings: settings, runningVersion: runningVersion)
+    }
+
+    /// Stores the choice and applies it to the next check at once.
+    func setIncludesBeta(_ include: Bool) {
+        settings.setValue(.bool(include), forKey: SettingsKeys.updatesIncludeBeta)
+        checker?.allowedChannels = UpdateChannel.allowed(includeBeta: include)
+    }
+
+    var runningVersionIsPreRelease: Bool { UpdateChannel.isPreRelease(version: runningVersion) }
 
     func checkForUpdates() {
         checker?.checkForUpdates()

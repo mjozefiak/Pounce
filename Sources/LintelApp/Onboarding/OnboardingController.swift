@@ -203,6 +203,9 @@ final class OnboardingController: NSObject, NSWindowDelegate {
     /// initializer stays unambiguous).
     var openMainWindow: () -> Void = {}
 
+    /// Called after the welcome window closed (finished, skipped or closed): the updater starts then.
+    var onClosed: (() -> Void)?
+
     init(
         hotkeys: HotkeyService, settings: AppSettings,
         pluginSteps: @escaping () -> [OnboardingStep] = { [] }
@@ -285,6 +288,7 @@ final class OnboardingController: NSObject, NSWindowDelegate {
         }
         flow = nil
         window = nil
+        onClosed?()
     }
 
     private func show(_ pages: [WelcomePage], startingAt id: String? = nil) {
