@@ -54,4 +54,8 @@ enum SettingsKeys {
     /// build that finds it absent (`UpdateChannel.includeBeta`); absent on a stable build means `false`.
     /// Added with in-app updates (spec `2026-11-19-updates-and-open-source-hygiene`, Step 4.3).
     static let updatesIncludeBeta = "app.updates.includeBeta"
+
+    /// `Bool`, default `false`: the user chose "Don't ask again" in the launch-time "Move Lintel to Applications?"
+    /// alert (spec `2026-11-19-updates-and-open-source-hygiene`, step 4.2).
+    static let moveDeclined = "app.install.moveDeclined"
 }

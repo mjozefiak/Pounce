@@ -24,19 +24,19 @@ private func windowModel(
             await model.load()
             return model.banners
         }
-        let failed = try WindowRig()
+        let failed = try await WindowRig.make()
         try failed.store.write { $0.setColumn(failed.meetingID, "notes_status = 'failed'") }
         #expect(await banners(failed) == [.notesFailed])
 
-        let partial = try WindowRig(notes: "n")
+        let partial = try await WindowRig.make(notes: "n")
         try partial.store.write { $0.setColumn(partial.meetingID, "notes_status = 'partial'") }
         #expect(await banners(partial) == [.notesPartial])
 
-        let dropped = try WindowRig(notes: "n")
+        let dropped = try await WindowRig.make(notes: "n")
         try dropped.store.write { $0.setColumn(dropped.meetingID, "notes_dropped_count = 3") }
         #expect(await banners(dropped) == [.notesDropped(3)])
 
-        let running = try WindowRig()
+        let running = try await WindowRig.make()
         try running.store.write { $0.setColumn(running.meetingID, "notes_status = 'running'") }
         #expect(await banners(running) == [.notesWriting(nil)])
 
@@ -44,7 +44,7 @@ private func windowModel(
         board.update { $0.phases[running.meetingID] = .waitingForModel }
         #expect(await banners(running, board: board) == [.notesWriting(.waitingForModel)])
 
-        let needs = try WindowRig()
+        let needs = try await WindowRig.make()
         let wanting = NotesBoard()
         wanting.update {
             $0.enabled = true
@@ -53,21 +53,24 @@ private func windowModel(
         }
         #expect(await banners(needs, board: wanting) == [.notesNeedsModel])
         // Notes that are off do not nag.
-        #expect(await banners(try WindowRig(), board: NotesBoard()) == [])
+        #expect(await banners(try await WindowRig.make(), board: NotesBoard()) == [])
         // A meeting that is not ready does not offer notes.
-        #expect(await banners(try WindowRig(status: .incomplete), board: wanting) == [.incomplete(canFinish: true)])
+        #expect(
+            await banners(try await WindowRig.make(status: .incomplete), board: wanting) == [
+                .incomplete(canFinish: true)
+            ])
     }
 
     @Test func theDownloadButtonOpensTheNotesModel() async throws {
         let opened = Box(0)
-        let model = windowModel(try WindowRig(), openNotesModel: { opened.withLock { $0 += 1 } })
+        let model = windowModel(try await WindowRig.make(), openNotesModel: { opened.withLock { $0 += 1 } })
         model.downloadNotesModel()
         #expect(opened.withLock { $0 } == 1)
     }
 
     @Test func regenerateIsOfferedForStaleAndFailedNotesButNotWhileWriting() async throws {
         let calls = Box<[Int64]>([])
-        let rig = try WindowRig(notes: "n")
+        let rig = try await WindowRig.make(notes: "n")
         try rig.store.renameSpeaker(rig.anna, label: "Anna")
         let board = NotesBoard()
         let model = windowModel(rig, board: board, regenerate: { id in calls.withLock { $0.append(id) } })
@@ -84,7 +87,7 @@ private func windowModel(
     }
 
     @Test func theWindowFollowsAJobUntilItEnds() async throws {
-        let rig = try WindowRig()
+        let rig = try await WindowRig.make()
         let board = NotesBoard()
         board.update { $0.phases[rig.meetingID] = .queued }
         try rig.store.write { $0.setColumn(rig.meetingID, "notes_status = 'running'") }

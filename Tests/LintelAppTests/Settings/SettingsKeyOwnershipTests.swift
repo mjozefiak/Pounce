@@ -38,6 +38,7 @@ import Testing
             SettingsKeys.updatesIncludeBeta,
             .exempt("the updater is off (no SUPublicEDKey): the Updates group in General arrives with spec Step 4.5")
         ),
+        (SettingsKeys.moveDeclined, .exempt("answer to the launch-time Move to Applications alert, set only there")),
     ]
 
     private var root: URL {

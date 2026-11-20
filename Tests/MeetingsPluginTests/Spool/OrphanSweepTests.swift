@@ -15,24 +15,24 @@ final class FailingSpool: SpoolMaintenance {
 }
 
 @Suite struct OrphanSweepTests {
-    @Test func aFailedSpoolRemovalKeepsTheMeetingAndTheAudio() throws {
-        let rig = try WindowRig(status: .incomplete)
+    @Test func aFailedSpoolRemovalKeepsTheMeetingAndTheAudio() async throws {
+        let rig = try await WindowRig.make(status: .incomplete)
         let spool = FailingSpool(existing: ["meeting-uuid"])
         #expect(throws: MeetingActionError.spoolNotRemoved) { try rig.store.deleteMeeting(rig.meetingID, spool: spool) }
         #expect(try rig.store.loadDocument(id: rig.meetingID) != nil, "rolled back")
         #expect(try rig.store.segmentCount(meetingID: rig.meetingID) == 2)
     }
 
-    @Test func deletingRacesFinishAndTheClaimWins() throws {
-        let rig = try WindowRig(status: .incomplete)
+    @Test func deletingRacesFinishAndTheClaimWins() async throws {
+        let rig = try await WindowRig.make(status: .incomplete)
         #expect(try rig.store.claimForFinishing(rig.meetingID))
         #expect(throws: MeetingActionError.active) { try rig.store.deleteMeeting(rig.meetingID, spool: rig.spool) }
         #expect(try rig.store.loadDocument(id: rig.meetingID)?.status == .processing)
         #expect(rig.spool.state.withLock { $0.removedForMeetings }.isEmpty, "the audio is untouched")
     }
 
-    @Test func theSweepRemovesOnlyFoldersWithoutARowOrALiveMeeting() throws {
-        let rig = try WindowRig()
+    @Test func theSweepRemovesOnlyFoldersWithoutARowOrALiveMeeting() async throws {
+        let rig = try await WindowRig.make()
         let live = try rig.store.insertMeeting(
             uuid: "live-uuid", startedAt: Date(), speechModelID: "m", status: .recording)
         let spool = RecordingSpool(existing: ["meeting-uuid", "live-uuid", "orphan-1", "orphan-2"])
@@ -45,8 +45,8 @@ final class FailingSpool: SpoolMaintenance {
         #expect(sweeps[0].candidates == ["orphan-1", "orphan-2"])
     }
 
-    @Test func aFailingSpoolIsReportedAndNothingIsLost() throws {
-        let rig = try WindowRig()
+    @Test func aFailingSpoolIsReportedAndNothingIsLost() async throws {
+        let rig = try await WindowRig.make()
         let spool = FailingSpool(existing: ["meeting-uuid", "orphan"])
         let report = try OrphanSpoolSweep.run(store: rig.store, spool: spool)
         #expect(report.removed.isEmpty)
@@ -54,8 +54,8 @@ final class FailingSpool: SpoolMaintenance {
         #expect(try rig.store.loadDocument(id: rig.meetingID) != nil)
     }
 
-    @Test func aRealSpoolFolderWithoutARowIsRemovedAfterTheGrace() throws {
-        let rig = try WindowRig()
+    @Test func aRealSpoolFolderWithoutARowIsRemovedAfterTheGrace() async throws {
+        let rig = try await WindowRig.make()
         let orphan = UUID()
         let storage = SpoolStorage(pluginDirectory: rig.directory.url)
         let folder = try storage.prepare(meeting: orphan)

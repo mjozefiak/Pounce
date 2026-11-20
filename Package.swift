@@ -94,6 +94,14 @@ let package = Package(
             ]
         ),
         .target(
+            name: "LintelProviders",
+            // External AI providers (spec 2026-11-10-external-ai-providers, ADR 0011): runs the provider's CLI as a
+            // child process behind a consent check. Depends only on LintelSpeech (the value types ChatMessage and
+            // GenerationResult), on no plugin and not on LintelApp (`LintelProvidersTests` checks that). Nothing
+            // calls it yet.
+            dependencies: ["LintelSpeech"]
+        ),
+        .target(
             name: "DictationPlugin",
             dependencies: [
                 "LintelKit",
@@ -205,7 +213,7 @@ let package = Package(
         .testTarget(
             name: "DictationPluginTests",
             dependencies: [
-                "DictationPlugin", "LintelSpeech", "LintelKit", "LintelCore", "LintelPersistence",
+                "DictationPlugin", "LintelSpeech", "LintelKit", "LintelCore", "LintelPersistence", "LintelTestSupport",
                 .product(name: "FluidAudio", package: "FluidAudio"),
                 .product(name: "GRDB", package: "GRDBCipher"),
             ],
@@ -237,6 +245,10 @@ let package = Package(
                 "LintelSpeech",
                 .product(name: "FluidAudio", package: "FluidAudio"),
             ]
+        ),
+        .testTarget(
+            name: "LintelProvidersTests",
+            dependencies: ["LintelProviders", "LintelSpeech"]
         ),
         .testTarget(
             name: "LintelPersistenceTests",
