@@ -9,6 +9,9 @@ import LintelKit
 /// Any `--qa…` argument turns QA mode on. In QA mode Lintel uses a temporary data root, in-memory
 /// settings, an in-memory Keychain and a private named pasteboard, never registers global hotkeys and
 /// never activates itself (windows are ordered front without taking keyboard focus from the tester).
+///
+/// The launch-time "Move Lintel to Applications?" alert never appears in DEBUG builds, QA mode included, except
+/// with `--qa-move-prompt`, which shows it (still in full QA mode) over fake file, process and quarantine ports.
 struct QAOptions: Equatable {
     enum Appearance: String, Equatable {
         case light
@@ -107,6 +110,14 @@ struct QAOptions: Equatable {
     var commandFile: URL?
     /// `--qa-command-replay`: run the commands already in the command file at launch (default: start at its end).
     var replaysCommands = false
+    /// `--qa-move-prompt`: shows the launch-time "Move Lintel to Applications?" alert as if Lintel ran from a disk
+    /// image, with fake file manager, process list, quarantine remover and relauncher (`QAInstallFakes`): Move only
+    /// logs what it would do, never touches `/Applications` or the Trash and never quits. "Don't ask again" writes
+    /// the in-memory settings (spec `2026-11-19-updates-and-open-source-hygiene`, step 4.2).
+    var showsMovePrompt = false
+    /// `--qa-move-scenario standard|user-applications|unwritable|newer`: which variant of the alert
+    /// `--qa-move-prompt` shows (`QAMoveScenario`); default `standard`.
+    var moveScenario = QAMoveScenario.standard
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -255,6 +266,12 @@ struct QAOptions: Equatable {
                 options.commandFile = URL(filePath: try Self.pathValue(argument, iterator.next()))
             case "--qa-persistent-settings":
                 options.persistentSettings = true
+            case "--qa-move-prompt":
+                options.showsMovePrompt = true
+            case "--qa-move-scenario":
+                let value = try Self.pathValue(argument, iterator.next())
+                guard let scenario = QAMoveScenario(rawValue: value) else { throw .invalidValue(argument, value) }
+                options.moveScenario = scenario
             default:
                 throw .unknownArgument(argument)
             }
