@@ -221,7 +221,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
         let old = await finished(handle)
         #expect(old != .ready)
-        #expect(await eventually { (try? store.status(of: meeting.id)) == .ready })
+        #expect(await pollUntil { (try? store.status(of: meeting.id)) == .ready })
         #expect(try rig.rows(library, meeting.id).map(\.text) == [words[11]!, words[12]!])
         #expect(!rig.spoolExists(meeting.uuid))
         #expect(rig.finalizations.calls.count == 1)

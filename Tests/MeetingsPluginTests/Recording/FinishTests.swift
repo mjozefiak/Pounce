@@ -100,7 +100,7 @@ private func collect(_ handle: MeetingFinishHandle) async -> (events: [ResumeEve
         library.open()
         let store = try #require(library.store)
 
-        #expect(await eventually { (try? store.status(of: meeting.id)) == .incomplete })
+        #expect(await pollUntil { (try? store.status(of: meeting.id)) == .incomplete })
         #expect(rig.spoolExists(meeting.uuid))
         #expect(try store.audioState(of: meeting.id) == .spool)
         #expect(try rig.rows(library, meeting.id).map(\.text) == [words[11]!])

@@ -28,7 +28,9 @@ final class FinalizeLog: Sendable {
     func record(_ call: Call) { items.withLock { $0.append(call) } }
 }
 
-func eventually(timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool) async -> Bool {
+/// Polls every 10 ms and returns whether the condition held; the caller must assert the result. Named apart from
+/// `eventually` (ControllerSupport), which asserts by itself: a call without a message once resolved here silently.
+func pollUntil(timeout: Duration = .seconds(60), _ condition: @MainActor () -> Bool) async -> Bool {
     let deadline = ContinuousClock.now + timeout
     while ContinuousClock.now < deadline, !Task.isCancelled {
         if await condition() { return true }
