@@ -1,7 +1,9 @@
 # ADR 0013: Approved vocabulary terms may leave the process (meeting notes with a provider, "My server")
 
 - Status: **Proposed** (draft, until the owner accepts this text). Nothing here is implemented, and no code may
-  attach a vocabulary term to a request before this ADR is accepted and its open points have answers.
+  attach a vocabulary term to a request before this ADR is accepted. The owner's decisions of 2026-11-20 on the
+  open points O6 to O8 of the auto-learn spec are applied below; what they do not cover is under "Still to
+  confirm".
 - Date: 2026-11-20
 - Why this ADR exists: ADR 0010 (`0010-dictation-context.md`, Accepted), rule 4, says that the user dictionary
   is never added to a request that leaves the process, and ends with "Changing this rule needs a new ADR". The
@@ -46,11 +48,31 @@ The owner's answer to Z6, recorded as given:
 cannot be told apart from one typed by hand, so the decision covers **the whole vocabulary**, including terms
 the user typed before this change.
 
+The owner's decisions on the open points (2026-11-20), recorded as given:
+
+5. **The whole vocabulary goes, as correct spellings (decision O6).** Every notes request to the provider
+   carries the target spelling ("Save as") of every entry of `vocabulary.json`, not only the terms that match
+   the transcript at hand.
+6. **"My server" the same, in notes tasks (decision O6).** When a notes task goes to "My server", it carries
+   the same whole vocabulary. No notes task goes to "My server" today (see DP2).
+7. **Quality gate G is repeated after the prompt change (decision O6).** Attaching terms changes the notes
+   prompt (`whole1`), so it gets a new version, and the measurement of gate G is repeated before that version
+   reaches users.
+8. **Heard forms: default state, without forms.** Whether heard forms (variants) go too is a proposal with
+   three variants, to be confirmed by the owner (below). Until then only the target spelling may be sent.
+9. **The path is an additive port in `LintelKit` (decision O7, technical, as the spec author recommended).**
+   `MeetingsPlugin` never imports `DictationPlugin`; the new member has a default (no terms) and is one item in
+   the contract queue.
+10. **The meetings vocabulary (story MEET-5.2) is unchanged (decision O8, technical, as the spec author
+    recommended).** It stays on the "Never" list of the providers spec. The difference is intended.
+
 ## What may leave the process, and what may not
 
 | Data | Provider, meeting notes (Claude) | "My server" | Stays in the process |
 |---|---|---|---|
-| Approved terms of the dictation vocabulary | yes, after the provider's consent window | yes | — |
+| Approved terms of the dictation vocabulary: the target spelling of every entry (the whole vocabulary) | yes, after the provider's consent window | yes, in notes tasks | — |
+| Heard forms (variants) of vocabulary terms | no (default state; DP1) | no (default state; DP1) | yes |
+| The meetings vocabulary (MEET-5.2) | never | never | yes |
 | Unapproved suggestions (heard forms, corrected word, counter, dates) | never | never | yes |
 | Sentence fragments of suggestions | never | never | yes |
 | Candidates below the threshold and rejected pairs (keyed digests) | never | never | yes |
@@ -63,7 +85,9 @@ the user typed before this change.
   transcript (ADR 0011, decision 3). Adding this kind of data changes the consent text, so its version changes
   and a consent given earlier is no longer valid: the window is shown again and names vocabulary terms among
   what leaves the Mac. Returning to the built-in model ends the sending.
-- **No code before acceptance.** Until this ADR is accepted and the open points below have answers, the test
+- **Gate G.** The notes prompt with terms is a new prompt version; the measurement of quality gate G is
+  repeated on it before release (decision O6).
+- **No code before acceptance.** Until this ADR is accepted, the test
   "what leaves the Mac" of the providers spec keeps the vocabulary on the forbidden list.
 - **Tests that must exist in the pull request that attaches terms:** a fixture with canary strings in a
   suggestion, a sentence fragment, a candidate and a rejected pair, none of which appears in the request; a test
@@ -77,6 +101,8 @@ Stated plainly, as the owner accepted them:
 
 - Names of clients, colleagues, projects and products from the vocabulary reach an external company and fall
   under its retention rules. What was sent cannot be taken back.
+- Every notes request carries the whole vocabulary (decision O6), so the provider receives client and project
+  names also with a meeting they have nothing to do with, and holds the full list after the first request.
 - A term approved with one click on a suggestion becomes data that is sent with the next meeting notes, also on
   automatic retries and on "Regenerate Notes" for older meetings.
 - The decision covers terms typed by hand before this change, not only terms that came from auto-learn. A user
@@ -90,21 +116,32 @@ What bounds the risk: the provider is off by default and needs a consent that na
 unapproved is ever sent; the user can remove a term, turn the provider off or erase the vocabulary; the
 snapshot, the clipboard and file names stay local.
 
-## Open points (not decided; none may be assumed)
+## Heard forms: a proposal, to be confirmed by the owner (DP1)
 
-The answer to Z6 names the recipients. It does not cover the points below. They are O6 to O8 of the auto-learn
-spec.
+An entry has a target spelling and heard forms: what speech recognition writes instead of it (invented
+example: the form "kubernetis" for the term "Kubernetes"). Decision O6 names the correct spelling. **Default
+state until the owner confirms: A.**
 
-| # | Point |
-|---|---|
-| 1 | The whole vocabulary in every request, or only the terms that match the transcript at hand. |
-| 2 | Whether heard forms (variants) are sent, or only the target spelling. Until this is answered, the providers spec keeps heard forms on its "Never" list, as it keeps the whole vocabulary today; that is the current state, not a decision. |
-| 3 | "My server": in which requests. Today the only request to it is dictation text cleanup; a term list in the cleanup prompt is the conditional story DICT-4.2, which waits for a measurement. And whether the user is told, or asked, before terms go to "My server". |
-| 4 | Whether the decision also covers the second channel to the same recipient (an API key, providers Phase 2), later providers (Phase 3) and dictation through a provider (Phase 4). The answer names meeting notes and Claude. |
-| 5 | Attaching terms changes the notes prompt (`whole1`), so it needs a new prompt version: whether the measurement of quality gate G must be repeated. |
-| 6 | Whether the built-in notes model gets the terms too. That is not a send, and the answer does not mention it. |
-| 7 | How terms get from the dictation vocabulary to meeting notes. The vocabulary belongs to `DictationPlugin`, notes to `MeetingsPlugin`, and plugins never import each other, so this needs a contribution through `LintelKit` (one more item in the contract queue) or another design. Also whether terms are sent when Dictation is off and the vocabulary file exists. |
-| 8 | The meetings vocabulary (story MEET-5.2) stays on the "Never" list of the providers spec while the dictation vocabulary is sent with meeting notes. Whether that difference is intended. |
+| Variant | What goes with notes | Gain | Cost and risk |
+|---|---|---|---|
+| **A** (default state) | The target spelling of every term only | The least data; the model sees the list of correct names and matches distorted words itself | The model may fail to connect a badly distorted form with its term, and the name stays wrong in the notes |
+| **B** | The target spelling, plus the forms of those terms whose form occurs in the transcript at hand | The model gets the pair "heard, correct" where it is needed | More data leaves: forms show how the user speaks and what recognition gets wrong; needs matching before the send; a new line in the consent window |
+| **C** | The target spelling and all forms of all terms | The simplest to build; the best chance of a correct name | The most data in every request, also forms unrelated to the meeting; a longer prompt; a new line in the consent window |
+
+A change to B or C changes the consent text (a new `textVersion`) and needs gate G repeated again.
+
+## Still to confirm (not decided; none may be assumed)
+
+These are DP1 to DP4 and DP8 of the auto-learn spec. The state in the last column holds until the owner
+answers; it is the most careful state, not a decision.
+
+| # | Point | State until answered |
+|---|---|---|
+| DP1 | Whether heard forms are sent (variants above). | A: no forms |
+| DP2 | "My server" in notes tasks. Today the only request to "My server" is dictation text cleanup; no notes task goes to it. So decision 6 is a rule for when such a task exists. Not answered: whether notes through "My server" are to be built; whether dictation cleanup gets terms too (the conditional story DICT-4.2 waits for a measurement); whether the user is told, or asked, before terms go to "My server". | Nothing is built; cleanup carries no terms; nothing is sent |
+| DP3 | Whether the decision also covers the second channel to the same recipient (an API key, providers Phase 2), later providers (Phase 3) and dictation through a provider (Phase 4). The decisions name meeting notes and Claude. | Terms do not go by these routes |
+| DP4 | Whether the built-in notes model gets the terms too. That is not a send. | It does not |
+| DP8 | Whether terms are sent when Dictation is off and the vocabulary file exists. | They are not: a plugin that is off contributes no terms through the port |
 
 ## What this ADR does not change
 
