@@ -13,19 +13,29 @@ final class UpdateController {
     }
 
     private(set) var state: State = .idle
+    /// The version a background check found and the user has not looked at yet; `nil` when there is nothing to
+    /// remind about. The menu bar shows a badge and an "Update available" item while it is set (spec Step 4.4).
+    private(set) var pendingVersion: String? {
+        didSet { if pendingVersion != oldValue { onReminderChange?(pendingVersion) } }
+    }
+    /// Called when `pendingVersion` changes.
+    var onReminderChange: ((String?) -> Void)?
     private var checker: (any UpdateChecking)?
     private let facts: UpdaterStartPolicy.Facts
     private let settings: any SettingsStore
     private let runningVersion: String
     private let makeChecker: () -> any UpdateChecking
+    private let isBusy: () -> Bool
     private let logger = Logger(subsystem: "com.lintelapp", category: "updates")
 
     init(
         facts: UpdaterStartPolicy.Facts,
         settings: any SettingsStore,
         runningVersion: String,
+        isBusy: @escaping () -> Bool = { false },
         makeChecker: @escaping () -> any UpdateChecking
     ) {
+        self.isBusy = isBusy
         self.facts = facts
         self.settings = settings
         self.runningVersion = runningVersion
@@ -43,6 +53,8 @@ final class UpdateController {
             let checker = makeChecker()
             checker.allowedChannels = UpdateChannel.allowed(
                 includeBeta: UpdateChannel.includeBeta(settings: settings, runningVersion: runningVersion))
+            checker.onEvent = { [weak self] event in self?.handle(event) }
+            checker.shouldPostponeRelaunch = { [weak self] in self?.isBusy() ?? false }
             do {
                 try checker.start()
                 self.checker = checker
@@ -58,6 +70,22 @@ final class UpdateController {
 
     func checkForUpdates() {
         checker?.checkForUpdates()
+    }
+
+    private func handle(_ event: UpdateEvent) {
+        switch event {
+        case .foundInBackground(let version): pendingVersion = version
+        case .reminderNoLongerNeeded: pendingVersion = nil
+        }
+    }
+
+    /// Whether an install is waiting for a recording or processing to end (spec Step 4.6).
+    var hasPostponedRelaunch: Bool { checker?.hasPostponedRelaunch ?? false }
+
+    /// Call when a recording or processing ended: a held-back relaunch goes on once nothing is busy.
+    func busyStateChanged() {
+        guard let checker, checker.hasPostponedRelaunch, !isBusy() else { return }
+        checker.resumePostponedRelaunch()
     }
 }
 

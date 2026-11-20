@@ -99,6 +99,19 @@ import Testing
             started += 1
         }
         func checkForUpdates() { checks += 1 }
+        var onEvent: ((UpdateEvent) -> Void)?
+        var shouldPostponeRelaunch: (() -> Bool)?
+        var resumed = 0
+        var postponed = false
+        var hasPostponedRelaunch: Bool { postponed }
+        func resumePostponedRelaunch() {
+            postponed = false
+            resumed += 1
+        }
+        /// What Sparkle does when an update is ready to install: asks, and holds the relaunch on "yes".
+        func readyToRelaunch() {
+            postponed = shouldPostponeRelaunch?() ?? false
+        }
     }
 
     struct Boom: Error {}
@@ -151,6 +164,54 @@ import Testing
         let controller = controller(UpdaterStartPolicyTests.facts(), made: { checkers.append($0) })
         controller.startIfAllowed()
         #expect(checkers.first?.allowedChannels.isEmpty == true)
+    }
+
+    @Test func aBackgroundFindSetsTheReminderAndAttentionClearsIt() {
+        var checkers: [FakeChecker] = []
+        var changes: [String?] = []
+        let controller = controller(UpdaterStartPolicyTests.facts(), made: { checkers.append($0) })
+        controller.onReminderChange = { changes.append($0) }
+        controller.startIfAllowed()
+        #expect(controller.pendingVersion == nil)
+        checkers.first?.onEvent?(.foundInBackground(version: "0.2.0"))
+        #expect(controller.pendingVersion == "0.2.0")
+        checkers.first?.onEvent?(.foundInBackground(version: "0.2.0"))
+        checkers.first?.onEvent?(.reminderNoLongerNeeded)
+        #expect(controller.pendingVersion == nil)
+        #expect(changes == ["0.2.0", nil])
+    }
+
+    @Test func aRelaunchWaitsWhileBusyAndGoesOnAfterwards() {
+        var checkers: [FakeChecker] = []
+        var busy = true
+        let controller = UpdateController(
+            facts: UpdaterStartPolicyTests.facts(), settings: InMemorySettingsStore(), runningVersion: "0.1.0",
+            isBusy: { busy },
+            makeChecker: {
+                let checker = FakeChecker()
+                checkers.append(checker)
+                return checker
+            })
+        controller.startIfAllowed()
+        let checker = try? #require(checkers.first)
+        checker?.readyToRelaunch()
+        #expect(controller.hasPostponedRelaunch)
+        controller.busyStateChanged()
+        #expect(checker?.resumed == 0, "still busy: the relaunch stays held back")
+        busy = false
+        controller.busyStateChanged()
+        #expect(checker?.resumed == 1)
+        #expect(!controller.hasPostponedRelaunch)
+        controller.busyStateChanged()
+        #expect(checker?.resumed == 1)
+    }
+
+    @Test func aRelaunchIsNotHeldBackWhenNothingIsBusy() {
+        var checkers: [FakeChecker] = []
+        let controller = controller(UpdaterStartPolicyTests.facts(), made: { checkers.append($0) })
+        controller.startIfAllowed()
+        checkers.first?.readyToRelaunch()
+        #expect(!controller.hasPostponedRelaunch)
     }
 
     @Test func aStartErrorLeavesTheUpdaterOff() {
