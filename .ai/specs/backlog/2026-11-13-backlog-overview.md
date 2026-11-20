@@ -197,12 +197,12 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 
 | ID | Pytanie | Domyślnie | Zmienia |
 |---|---|---|---|
-| D-Q1 ⚠ | Kontekst domyślnie włączony? | ~~nie~~ **tak** (decyzja właściciela 2026-11-20, ryzyko przyjęte; lista źródeł domyślnych do potwierdzenia: punkt Z1 specu auto-nauki) | DICT-2.3, 2.4 (do przepisania) |
+| D-Q1 ⚠ | Kontekst domyślnie włączony? | ~~nie~~ **tak** (decyzja właściciela 2026-11-20, ryzyko przyjęte; lista źródeł domyślnych: odpowiedź na Z1, wiersz D18 niżej) | DICT-2.3, 2.4 (do przepisania) |
 | D-Q2 | Nowy opis Dostępności w Uprawnieniach (także dla `WindowsPlugin`)? | tak | DICT-2.4 |
 | D-Q3 | Próg bramki: 5 z 20 dyktowań | tak | DICT-0.1 |
 | D-Q4 ⚠ | Jednorazowy odczyt własnej historii dyktowania narzędziem poza repozytorium (monit Pęku kluczy) i przechowanie odszyfrowanych transkryptów jako zbioru regresyjnego na zaszyfrowanym obrazie dysku do końca DICT-3.6? | tak; zapas: ręczny eksport 30 wpisów | DICT-0.1, 3.6, 4.1 |
 | D-Q5 | Profile aplikacji domyślnie włączone? | nie | DICT-1.3 |
-| D-Q6 ⚠ | Schowek głosem w zwykłym dyktowaniu, domyślnie wyłączony, cały segment, potwierdzenie w HUD? | tak | DICT-3.1 |
+| D-Q6 ⚠ | Schowek głosem w zwykłym dyktowaniu, domyślnie wyłączony, cały segment, potwierdzenie w HUD? | ~~tak~~ **domyślnie włączony**, cały segment, potwierdzenie w HUD przy pierwszych 5 użyciach (decyzja właściciela 2026-11-20, Z1 CTX-3 = A, ryzyko przyjęte wbrew rekomendacji autora; pomiar DICT-3.1 przed wydaniem) | DICT-3.1 (do przepisania) |
 | D-Q7 | Pliki: listowanie w hoście czy indeks `FilesPlugin`? | listowanie w hoście | DICT-3.3 |
 | D-Q8 | Wyzwalacze pliku: „małpa”, „at”, „tag”, nazwa z rozszerzeniem; samo „plik X” nie? | tak | DICT-3.4 |
 | D-Q9 | `AXManualAccessibility` w Electronie? | nie | DICT-2.2 |
@@ -210,7 +210,7 @@ Wartość domyślna jest tą, pod którą backlog został napisany. ⚠ oznacza 
 | D-Q11 ⚠ | Uchylić nie-cele „reguły per aplikacja” i „własny słownik” ze specu dyktowania? | tak | DICT-0.3 |
 | D-Q12 | Zapisywać w historii listę użytych źródeł (bez treści)? | tak | DICT-1.4 |
 | D-Q13 | Kandydaci na terminy z ekranu? | warunkowo, po bramce 2% | DICT-4.1 |
-| D-Q14 ⚠ | Czytać proces pierwszoplanowy i katalog roboczy terminala jako osobne źródło, domyślnie wyłączone? | tak | DICT-3.2 – 3.5 |
+| D-Q14 ⚠ | Czytać proces pierwszoplanowy i katalog roboczy terminala jako osobne źródło, domyślnie wyłączone? | ~~tak~~ **nazwa procesu czytana domyślnie; katalog roboczy i pliki po próbach** (decyzja właściciela 2026-11-20, Z1 CTX-5/6) | DICT-3.2 – 3.5 (3.2 do przepisania) |
 
 ### Spotkania
 
@@ -335,9 +335,11 @@ Pełne tabele: `.ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md`; zmiany
 
 | # | Decyzja | Skutek dla backlogu |
 |---|---|---|
-| D14 | Auto-nauka słownika (DICT-2.8): wszystkie decyzje P1–P13, U1–U14, K1–K4 podjęte. Funkcja **włączona domyślnie u wszystkich, także po aktualizacji**, bez arkusza zgody, bez jednorazowego okna i bez wskaźnika obserwacji; czyta całą wartość pola we wszystkich aplikacjach poza edytowalną listą wykluczeń. Zapis: **decyzje właściciela, ryzyko przyjęte (czytanie pól bez wskaźnika i bez zgody per funkcja)**. | DICT-2.8 przepisana; otwarte punkty Z1–Z10 specu. |
-| D15 | **Kontekst dyktowania także włączony domyślnie** (odwraca D-Q1 i zasadę opt-in ADR 0010). Lista tego, co kontekst czyta domyślnie, per źródło, jest **do potwierdzenia przez właściciela, zanim cokolwiek trafi do DICT-2.x** (Z1; warianty dotykają też D-Q6 i D-Q14). | DICT-2.3 i DICT-2.4 do przepisania po Z1; nie startują wcześniej. DICT-2.1 (kontrakt) nie zależy od Z1. |
-| D16 | Zatwierdzone terminy słownika mogą iść do zewnętrznego dostawcy, gdy użytkownik go włączył; niezatwierdzone propozycje i fragmenty zdań zostają lokalnie; lokalny model może oceniać propozycje. | Spec dostawców: nowy rodzaj danych w oknie zgody (zakres do potwierdzenia, Z6). Zmiana reguł 3 i 4 ADR 0010. |
-| D17 | Licznik propozycji także przy „Dyktowanie" w pasku bocznym Ustawień (U9 = B). | Nowy addytywny człon `SettingsStatus` w kolejce `LintelKit` (koszt w DICT-2.8; Z8). |
+| D14 | Auto-nauka słownika (DICT-2.8): wszystkie decyzje P1–P13, U1–U14, K1–K4 podjęte, a punkty Z2–Z5 i Z7–Z10 mają odpowiedzi (D19). Funkcja **włączona domyślnie u wszystkich, także po aktualizacji**, bez arkusza zgody, bez jednorazowego okna i bez wskaźnika obserwacji; czyta całą wartość pola we wszystkich aplikacjach poza edytowalną listą wykluczeń. Zapis: **decyzje właściciela, ryzyko przyjęte (czytanie pól bez wskaźnika i bez zgody per funkcja)**. | DICT-2.8 przepisana; Z1–Z10 mają odpowiedzi; zostają punkty otwarte O1–O9 specu. |
+| D15 | **Kontekst dyktowania także włączony domyślnie** (odwraca D-Q1 i zasadę opt-in ADR 0010). Lista tego, co kontekst czyta domyślnie: wiersz D18. | DICT-2.3 i DICT-2.4 do przepisania według Z1; nie startują wcześniej. |
+| D16 | Zatwierdzone terminy słownika mogą iść do zewnętrznego dostawcy, gdy użytkownik go włączył; niezatwierdzone propozycje i fragmenty zdań zostają lokalnie; lokalny model może oceniać propozycje. | Spec dostawców: nowy rodzaj danych w oknie zgody. **Zakres (odpowiedź na Z6):** zatwierdzone terminy idą do dostawcy przy notatkach ze spotkań (Claude) i do „Mojego serwera". Zmiana reguły 4 ADR 0010 wymaga nowego ADR: szkic `docs/decisions/0013-approved-vocabulary-terms-to-providers.md` (Proposed). Szczegóły nieobjęte odpowiedzią: O6–O8 specu. |
+| D17 | Licznik propozycji także przy „Dyktowanie" w pasku bocznym Ustawień (U9 = B). | Nowy addytywny człon `SettingsStatus` w kolejce `LintelKit` (koszt w DICT-2.8). **Odpowiedź na Z8:** osobny PR kontraktowy, nie PR DICT-2.1. |
+| D18 | **Co kontekst czyta domyślnie (odpowiedź na Z1).** CTX-1 pole = B (tylko 2 znaki przed, 1 po). CTX-2 zaznaczenie = A (przy każdym dyktowaniu). CTX-3 schowek = A (włączone, potwierdzenie w HUD przy pierwszych 5 użyciach). CTX-4 okno = A (tytuł i adres dokumentu). CTX-5/6 terminal i pliki = tylko nazwa procesu; katalog roboczy i pliki po próbach. **CTX-2 = A, CTX-3 = A i CTX-4 = A są wbrew rekomendacjom autora specu (C, B do pomiaru, C): decyzje właściciela, ryzyko przyjęte** (odczyt bez obecnego użytku; schowek przed pomiarem fałszywych rozpoznań). **Pomiar DICT-3.1 trzeba wykonać przed wydaniem.** | Odwraca D-Q1, D-Q6 i w części D-Q14. DICT-2.3, DICT-2.4, DICT-3.1 i DICT-3.2 do przepisania. Luki: O1 (sama nazwa procesu w kontrakcie i w próbach; przed PR DICT-2.1), O2–O5 specu. |
+| D19 | **Pozostałe odpowiedzi (Z2–Z5, Z7–Z10).** Z2/Z3: osobne wyłączniki i osobne listy wykluczeń (nauka: terminale, zdalne pulpity i maszyny wirtualne, menedżery haseł). Z4, Z5, Z7, Z8, Z9, Z10 według rekomendacji autora specu: fragment do 80 znaków z wklejonego tekstu; 12 000 / 100 000 znaków; lokalny model widzi samą parę i może tylko wstrzymać; licznik osobnym PR kontraktu; 200 / 50 / 5000; zgoda właściciela komentarzem w PR-ach wprowadzających klucze. | Kontekst działa w terminalach, nauka nie. Kolejka `LintelKit` dostaje osobny PR licznika. |
 
-Kolejność bez zmian: wydania i tor dostawcy pierwsze; rozszerzenie kontraktu `FocusContextReader` i zmiany ADR 0010 wchodzą przed PR DICT-2.1.
+Kolejność bez zmian: wydania i tor dostawcy pierwsze; rozszerzenie kontraktu `FocusContextReader` i zmiany ADR 0010 wchodzą przed PR DICT-2.1. Przed PR DICT-2.1 trzeba też odpowiedzieć na punkt O1 (jak kontrakt wyraża „tylko nazwę procesu"), bo dotyczy zamrażanego kształtu.
