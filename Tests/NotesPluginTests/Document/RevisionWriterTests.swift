@@ -6,7 +6,7 @@ import Testing
 @testable import NotesPlugin
 
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct RevisionWriterTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct RevisionWriterTests {
     // MARK: Coalescing and flush points
 
     @Test func typingIsWrittenOnceOneSecondAfterTheLastKeystroke() async throws {
@@ -458,7 +458,7 @@ extension RevisionWriter.Outcome {
 // MARK: - Review fixes: no silent loss of typed text
 
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct RevisionWriterDurabilityTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct RevisionWriterDurabilityTests {
     @Test func aRetiredWriterKeepsTheTextAndReportsTheFailure() async throws {
         let rig = try DocRig()
         let writer = rig.writer(.seed(try rig.plan(rig.layer("text"))))
@@ -583,7 +583,7 @@ extension RevisionWriter.Outcome {
 }
 
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct NoteDocumentRegistryDurabilityTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct NoteDocumentRegistryDurabilityTests {
     @Test func aTabThatCannotFlushKeepsItsTextUntilAFlushWorks() async throws {
         let r = try ReconRig()
         let seed = try r.rig.seededDocument(r.rig.layer("seed text"))

@@ -5,7 +5,7 @@ import Testing
 @testable import NotesPlugin
 
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct OverlaySeederTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct OverlaySeederTests {
     private func layer(_ text: String = "text") -> NoteLayer {
         NoteLayer(id: "notes", author: .agent, markdown: text, version: "v1")
     }

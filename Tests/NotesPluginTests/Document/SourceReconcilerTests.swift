@@ -17,7 +17,7 @@ extension RevisionWriter.Reconciliation {
 }
 
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct SourceReconcilerTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct SourceReconcilerTests {
     private func tags(_ result: SourceReconciler.OpenResult) -> [String: String]? {
         guard case .reconciled(let map) = result else { return nil }
         return map.mapValues(\.tag)

@@ -8,7 +8,7 @@ import Testing
 /// Spec step 6.2: the workspace around the revise run: the lock strip, "Ask agent", the report strips, the editor
 /// lock and the tab that closes under a run. The service is the real one over a scripted lease; no window.
 @MainActor
-@Suite(.timeLimit(.minutes(2))) struct ReviseWorkspaceTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(2))) struct ReviseWorkspaceTests {
     private let notes = ReviseFixtures.note
 
     private struct Setup {
