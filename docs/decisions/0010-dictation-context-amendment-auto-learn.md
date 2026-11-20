@@ -1,6 +1,6 @@
 # ADR 0010, amendment (accepted): learning vocabulary terms from corrections (auto-learn) and context on by default
 
-- Status: **Accepted** (owner's decision, 2026-11-20). Nothing here is implemented yet. The owner's decisions of 2026-11-20 on auto-learn
+- Status: **Accepted** (owner's decision, 2026-11-20); **applied to `0010-dictation-context.md`**. Nothing here is implemented yet. The owner's decisions of 2026-11-20 on auto-learn
   (P1–P13, U1–U14, K1–K4, threshold 2) and the owner's answers of the same day to **Z1–Z10** (what dictation
   context reads by default, and the nine points that waited for a confirmation) are applied below. Three answers
   (CTX-2 = A, CTX-3 = A, CTX-4 = A) go against the author's recommendation and are recorded as owner decisions,
@@ -9,9 +9,10 @@
   points those decisions did not cover (DP1–DP9) were answered by the owner on the same day and are applied
   below ("The owner's answers to DP1–DP9"). Where a later answer narrows an earlier one (Z6 and O6 by DP1–DP4
   and DP8; CTX-5 by DP5; O2 by DP6), the later, narrower answer is in force and the earlier one stays visible.
-  The file `0010-dictation-context.md` is not edited in this pull request: the accepted changes are written
-  into it in a following documents pull request, before the DICT-2.1 pull request. Until then this file is
-  the record of the accepted changes.
+  **Applied (2026-11-20):** the accepted changes are written into `0010-dictation-context.md` (section
+  "Amendment of 2026-11-20 (applied)" and the rules, tables and sections it points to), in a documents pull
+  request before the DICT-2.1 pull request. `0010-dictation-context.md` is now the text in force; this file stays
+  unchanged below as the historical record of how the decisions were reached.
 - Date: 2026-11-20 (revised the same day after the owner's three sets of decisions, after the answers to
   Z1–Z10, after the decisions on O1–O9, and after the answers to DP1–DP9 and the acceptance)
 - Spec: `.ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md` (decision tables, the owner's answers to
