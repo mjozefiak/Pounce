@@ -40,7 +40,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
         let handle = try #require(library.finish(meetingID: meeting.id))
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
         #expect(try store.status(of: meeting.id) == .processing)
 
         #expect(await library.applyRetention() == 0)
@@ -211,7 +211,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
         rig.engine.gate.close()
         let handle = try #require(library.finish(meetingID: meeting.id))
         let engine = rig.engine
-        #expect(await engine.transcribing.wait { engine.entered >= 1 })
+        #expect(await engine.transcribing.wait(timeout: .seconds(60)) { engine.entered >= 1 })
 
         library.close()
         library.open()
@@ -221,7 +221,7 @@ private func finished(_ handle: MeetingFinishHandle) async -> ResumeOutcome {
 
         let old = await finished(handle)
         #expect(old != .ready)
-        #expect(await eventually { (try? store.status(of: meeting.id)) == .ready })
+        #expect(await pollUntil { (try? store.status(of: meeting.id)) == .ready })
         #expect(try rig.rows(library, meeting.id).map(\.text) == [words[11]!, words[12]!])
         #expect(!rig.spoolExists(meeting.uuid))
         #expect(rig.finalizations.calls.count == 1)

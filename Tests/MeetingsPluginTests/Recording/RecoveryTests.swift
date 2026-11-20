@@ -77,7 +77,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         // Right after the pass the meeting is still `processing`: retention and "Dokończ" stay away.
         #expect(library.lastRecovery?.toResume.map(\.id) == [meeting.id])
 
-        #expect(await eventually { (try? store.audioState(of: meeting.id)) == .deleted })
+        #expect(await pollUntil { (try? store.audioState(of: meeting.id)) == .deleted })
         #expect(try store.audioState(of: meeting.id) == .deleted)
         #expect(!rig.spoolExists(meeting.uuid))
         let rows = try rig.rows(library, meeting.id)
@@ -104,7 +104,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         let library = rig.library(resumer: rig.resumerFactory(mic: mic))
         library.open()
         let store = try #require(library.store)
-        #expect(await eventually { (try? store.audioState(of: meeting.id)) == .deleted })
+        #expect(await pollUntil { (try? store.audioState(of: meeting.id)) == .deleted })
         #expect(rig.engine.loads == 0)
         #expect(rig.finalizations.calls.count == 1)
         #expect(!rig.spoolExists(meeting.uuid))
@@ -128,7 +128,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
         let library = rig.library(resumer: rig.resumerFactory(mic: mic, haveModel: false))
         library.open()
         let store = try #require(library.store)
-        #expect(await eventually { (try? store.status(of: meeting.id)) == .incomplete })
+        #expect(await pollUntil { (try? store.status(of: meeting.id)) == .incomplete })
         #expect(rig.spoolExists(meeting.uuid))
         #expect(try store.audioState(of: meeting.id) == .spool)
         #expect(rig.finalizations.calls.isEmpty)
@@ -228,7 +228,7 @@ private let texts: [Int: String] = [11: "Pierwsza wypowiedź", 12: "Druga wypowi
 
         // The retention pass only offers interrupted meetings: seeing this one proves it was already
         // `incomplete` when the sweep started.
-        #expect(await eventually { !maintenance.state.withLock { $0.sweeps }.isEmpty })
+        #expect(await pollUntil { !maintenance.state.withLock { $0.sweeps }.isEmpty })
         let first = try #require(maintenance.state.withLock { $0.sweeps }.first)
         #expect(first.candidates == [SpoolStorage.name(of: meeting.uuid)])
         #expect(try library.store?.status(of: meeting.id) == .incomplete)

@@ -393,7 +393,7 @@ import Testing
         ]
         rig.controller.start()
         // The session has ended before its start returns.
-        await eventually { rig.hud.last == .savedIncomplete }
+        await eventually("saved and idle") { rig.hud.last == .savedIncomplete && rig.controller.phase == .idle }
         #expect(rig.controller.phase == .idle)
         startLatch.open()
         await rig.controller.waitUntilEnded()
