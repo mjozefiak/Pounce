@@ -22,6 +22,15 @@ import os
 ///
 /// Events from the client are coalesced and flushed by one serial flush loop, so inputs reach the reducer in the
 /// order the events were read, and a flush never overlaps the next.
+#if DEBUG
+/// A client that counts the events it has put on its stream, so a test can ask the engine to wait until its pump has
+/// taken all of them (`WindowEngine.waitForPump()`).
+protocol PumpCountingClient: WindowClient {
+    /// Events accepted by the stream so far (a dropped or terminated yield is not counted).
+    var emittedEventCount: Int { get }
+}
+#endif
+
 actor WindowEngine {
     private var state: EngineState
     private let client: any WindowClient
@@ -144,7 +153,13 @@ actor WindowEngine {
             for await event in events {
                 guard let self else { return }
                 await self.ingest(event)
+                #if DEBUG
+                await self.pumped()
+                #endif
             }
+            #if DEBUG
+            await self?.pumpEnded()
+            #endif
         }
         guard !stopped else { return await abandonStart() }
         await store.load()
@@ -183,6 +198,9 @@ actor WindowEngine {
         // `subscribe()` cannot be handed a stream that is still dying.
         await pumpTask?.value
         pumpTask = nil
+        #if DEBUG
+        pumpEnded()
+        #endif
         flushTask?.cancel()
         flushTask = nil
         // Events still waiting for the tick are dropped: the restore below needs none of them.
@@ -341,6 +359,57 @@ actor WindowEngine {
     // Test hooks: production code waits inside `stop()`; nothing else needs to know when the engine is quiet.
     func waitForWork() async { await waitUntilQuiet() }
     func settle() async { await waitUntilIdle() }
+
+    /// How many events the pump has handed to `ingest` (counted after `ingest` returned, so the event is already in
+    /// the coalescer). Compared with `PumpCountingClient.emittedEventCount` by `waitForPump()`.
+    private var pumpedEvents = 0
+    private var pumpEnd = false
+    private var pumpWaiters: [UInt64: (target: Int, continuation: CheckedContinuation<Void, Never>)] = [:]
+    private var nextPumpWaiter: UInt64 = 0
+
+    fileprivate func pumped() {
+        pumpedEvents += 1
+        let ready = pumpWaiters.filter { $0.value.target <= pumpedEvents }
+        for (token, waiter) in ready {
+            pumpWaiters[token] = nil
+            waiter.continuation.resume()
+        }
+    }
+
+    /// The pump is gone (stream finished or engine stopped): nothing more will arrive, so nobody may keep waiting.
+    fileprivate func pumpEnded() {
+        pumpEnd = true
+        let waiting = pumpWaiters
+        pumpWaiters = [:]
+        for waiter in waiting.values { waiter.continuation.resume() }
+    }
+
+    private func cancelPumpWaiter(_ token: UInt64) {
+        pumpWaiters.removeValue(forKey: token)?.continuation.resume()
+    }
+
+    /// Waits until the pump has taken every event the client had emitted when this was called. Without it a
+    /// `flushEvents()` can look at the coalescer before the pump put a just-emitted event there, and the flush tick
+    /// that event then arms may never fire on a virtual clock. Ends at once for a client that does not count, a
+    /// stopped engine or an ended stream, and when the calling task is cancelled.
+    func waitForPump() async {
+        guard let counting = client as? any PumpCountingClient, pumpTask != nil, !pumpEnd, !stopped else { return }
+        let target = counting.emittedEventCount
+        guard pumpedEvents < target else { return }
+        nextPumpWaiter += 1
+        let token = nextPumpWaiter
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                if Task.isCancelled || pumpedEvents >= target || pumpEnd {
+                    continuation.resume()
+                } else {
+                    pumpWaiters[token] = (target, continuation)
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelPumpWaiter(token) }
+        }
+    }
     #endif
 
     /// Nothing queued and no batch open (the ledger is the one count of work on the lanes).
@@ -411,6 +480,7 @@ actor WindowEngine {
     #if DEBUG
     /// Flushes the coalesced events now and waits for the work they cause (tests drive the engine with this).
     func flushEvents() async {
+        await waitForPump()
         await flush(waiting: true)
     }
     #endif
