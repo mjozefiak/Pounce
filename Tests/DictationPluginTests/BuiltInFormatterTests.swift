@@ -180,11 +180,12 @@ private let cleaned = "Jutro mamy spotkanie o dziesiątej, nie to znaczy o jeden
 
     @Test func aSlowOperationIsGivenUpOnWithoutWaitingForIt() async throws {
         let release = Release()
-        let started = ContinuousClock.now
         // Ignores cancellation, like a model load that cannot be interrupted.
         let value = try await FirstResult.within(.milliseconds(60)) { await release.wait() }
+        // It came back while the operation was still held: given up on without waiting for it. No wall-clock
+        // budget, which a starved machine overruns (4 s on a loaded CI runner); the held operation is the proof.
         #expect(value == nil)
-        #expect(ContinuousClock.now - started < .seconds(3))
+        #expect(await !release.isOpened)
         await release.open()
     }
 
@@ -202,6 +203,8 @@ private let cleaned = "Jutro mamy spotkanie o dziesiątej, nie to znaczy o jeden
 private actor Release {
     private var continuation: CheckedContinuation<Int, Never>?
     private var opened = false
+
+    var isOpened: Bool { opened }
 
     func wait() async -> Int {
         if opened { return 1 }
