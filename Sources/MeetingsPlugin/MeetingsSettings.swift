@@ -53,7 +53,7 @@ struct MeetingsSettings: Sendable {
 
     var speechModelID: String { settings.string(Key.speechModel) ?? Self.defaultSpeechModel }
 
-    /// `pl` or `en`; only the Whisper engine uses it.
+    /// `pl` or `en`; Whisper pins the language to it, Parakeet gets it as a script hint (issue #132).
     var speechLanguage: String { settings.string(Key.speechLanguage) == "en" ? "en" : "pl" }
 
     /// A folder the user downloaded the speech model into by hand.
