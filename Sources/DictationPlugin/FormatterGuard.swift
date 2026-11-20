@@ -7,7 +7,8 @@ import Foundation
 /// Two paths (ADR 0010, "The guard"). A chunk WITHOUT a spoken retraction marker is judged by the length
 /// range and the language, exactly as before the self-correction work. A chunk WITH a marker that has words
 /// after it is judged by one narrow rule: the output is the whole input with the marker kept, or the input
-/// minus ONE span that ends at the marker, and nothing else changes except rewrites that cost nothing.
+/// minus ONE span that ends at the marker (it starts on the nearest word parallel to the replacement, or at
+/// the start of the chunk for "A albo jednak B"), and nothing else changes except rewrites that cost nothing.
 enum FormatterGuard {
     enum Verdict: Equatable, Sendable {
         case accepted(String)
@@ -127,8 +128,11 @@ enum FormatterGuard {
     private static let derivationLimit = 10_000
 
     /// Whether the output is the whole input with the marker kept, or the input minus one span that ends at the
-    /// marker and starts at the beginning of the chunk or on a word parallel to the first word of the
-    /// replacement (at most `retractedSpanCap` words, and no more than the replacement's length plus two). The
+    /// marker (at most `retractedSpanCap` words, and no more than the replacement's length plus two). The span
+    /// starts on the NEAREST word parallel to the first word of the replacement (the same word, two number words
+    /// with a whole number taken together, "w"/"we"), so a speaker who repeats a word earlier in the sentence
+    /// loses nothing before the nearest one; or at the start of the chunk when a disjunction word ("albo",
+    /// "lub", "a", "or") stands right before the marker and the span holds no negation ("A albo jednak B"). The
     /// span holds at least one word that is not a filler, so a marker that opens the chunk is never dropped.
     /// Everything else, a lost or swapped word, a dropped marker with both versions kept, is refused.
     static func isDerivable(
@@ -137,18 +141,51 @@ enum FormatterGuard {
         guard spoken.count * written.count <= derivationLimit else { return false }
         if aligns(spoken, written) { return true }
         let marker = correction.marker
-        // A span must withdraw a word of this chunk: a marker with only fillers before it (a chunk that starts
-        // with "wait", "sorry", "przepraszam") retracts nothing here, so it stays.
         var lead = 0
         while lead < marker.start, let length = fillerLengths(spoken, at: lead).max() { lead += length }
         guard lead < marker.start else { return false }
         let cap = min(spoken.count - marker.end + 2, retractedSpanCap, marker.start)
-        let starts =
-            marker.start == 0 ? [0] : Array(stride(from: marker.start - 1, through: marker.start - cap, by: -1))
-        return starts.contains { start in
-            (start == 0 || parallel(spoken[start], spoken[correction.first]))
-                && aligns(Array(spoken[..<start]) + Array(spoken[marker.end...]), written)
+        var starts: [Int] = []
+        if var near = stride(from: marker.start - 1, through: marker.start - cap, by: -1)
+            .first(where: { parallel(spoken[$0], spoken[correction.first]) })
+        {
+            // A number is withdrawn as a whole: "osiemnaście tysięcy to znaczy dwadzieścia pięć tysięcy",
+            // "one hundred and five".
+            func isNumber(_ index: Int) -> Bool { NumberWords.value(of: [spoken[index]]) != nil }
+            while near > 0, near > marker.start - cap {
+                if isNumber(near), isNumber(near - 1) {
+                    near -= 1
+                } else if isNumber(near), near >= 2, spoken[near - 1] == "and", isNumber(near - 2) {
+                    near -= 2
+                } else {
+                    break
+                }
+            }
+            starts.append(near)
         }
+        // From the start of the chunk only for the idiom "A albo jednak B": a disjunction word right before the
+        // marker, and no negation in the span (a negation is never withdrawn silently).
+        if marker.start >= 2, marker.start <= cap, disjunctions.contains(spoken[marker.start - 1]),
+            !spoken[..<marker.start].contains(where: negates)
+        {
+            starts.append(0)
+        }
+        return starts.contains { start in
+            aligns(Array(spoken[..<start]) + Array(spoken[marker.end...]), written)
+        }
+    }
+
+    /// The words that join the two versions in "A albo jednak B", "A or actually B".
+    private static let disjunctions: Set<String> = ["albo", "lub", "or", "a"]
+
+    /// Words that negate. A span taken from the start of the chunk never holds one.
+    private static let negations: Set<String> = [
+        "nie", "not", "no", "never", "nigdy", "nikt", "nic", "żaden", "żadna", "żadne", "ani", "bez", "without",
+        "none", "nothing", "nobody", "neither", "nor", "cannot", "nikomu", "niczego", "nigdzie",
+    ]
+
+    private static func negates(_ token: String) -> Bool {
+        negations.contains(token) || token.hasSuffix("n't")
     }
 
     /// Whether `written` is `spoken` at no cost: every spoken word is written as the same word (equal after

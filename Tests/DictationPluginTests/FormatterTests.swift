@@ -212,14 +212,15 @@ final class ScriptedTransport: HTTPTransport, @unchecked Sendable {
         #expect(FormatterGuard.check(input: input, output: output) == .accepted(output))
     }
 
-    /// Known limitation: the guard cannot tell a negated imperative from a retraction marker. "nie czekaj" here
-    /// is an instruction to someone else, yet the output that drops everything before it is one span that ends
-    /// at the marker, so it is accepted. Only the prompt (keep both versions when unsure) and the raw text
-    /// (`dictation.pasteLastRaw`) protect the user in this case.
-    @Test func aNegatedImperativeLooksLikeARetractionToTheGuard() {
+    /// "nie czekaj" here is an instruction to someone else. The output that drops everything before it would
+    /// start the span at the beginning of the chunk with a negation in it, which the guard refuses, so the raw
+    /// text is pasted (ADR 0010, round 5).
+    @Test func aNegatedImperativeIsNotTakenForARetraction() {
         let input = "napisz Piotrkowi nie czekaj na mnie z kolacją"
+        #expect(FormatterGuard.check(input: input, output: "Na mnie z kolacją.") == .rejected(.selfCorrection))
         #expect(
-            FormatterGuard.check(input: input, output: "Na mnie z kolacją.") == .accepted("Na mnie z kolacją."))
+            FormatterGuard.check(input: input, output: "Napisz Piotrkowi, nie czekaj na mnie z kolacją.")
+                == .accepted("Napisz Piotrkowi, nie czekaj na mnie z kolacją."))
     }
 
     @Test func languageDetection() {

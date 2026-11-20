@@ -25,7 +25,7 @@ enum MainGuardReference {
     }
 }
 
-/// Runs `GuardProbeTable` (every probe of review rounds 1 to 4, all invented) against `FormatterGuard`, and
+/// Runs `GuardProbeTable` (every probe of review rounds 1 to 5, all invented) against `FormatterGuard`, and
 /// compares the chunks without a marker with `main`.
 @Suite struct GuardProbeTests {
     private func accepted(_ input: String, _ output: String) -> Bool {
@@ -39,14 +39,15 @@ enum MainGuardReference {
 
     private static let table =
         GuardProbeTable.rounds12 + GuardProbeTable.round3 + GuardProbeTable.round4
-        + GuardProbeTable.round5
+        + GuardProbeTable.round5 + GuardProbeTable.round6
 
     /// Correct cleanups that the guard turns into the raw text (fail-safe). Each is a documented limit of the
     /// marker rule (ADR 0010, "What the guard rejects although the result is right"); the test fails when one is
     /// accepted or a new one appears, so the list and its count stay true.
     static let falseAlarms: Set<String> = [
         "H7a", "H8e", "N9", "N10", "N11", "N18", "N20", "N22", "N26", "N29", "N32", "N34", "N37", "N39", "F3", "F8",
-        "F15", "F16", "F19", "F20", "F23", "F26", "A24", "A27", "A28", "A31", "A32", "VS11", "VP6", "VM10",
+        "F15", "F16", "F19", "F20", "F23", "F26", "A24", "A27", "A28", "A31", "A32", "VS11", "VP6", "VM10", "OK2",
+        "OK11",
     ]
 
     /// Texts that lose the final version or other content, have NO marker, and that `main` accepts too (ADR 0010,
