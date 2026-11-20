@@ -8,7 +8,7 @@
 >
 > Decyzja właściciela z 2026-11-20, która wyznacza ramy: panel słownika (DICT-1.2) wychodzi teraz i jest na `main` (PR #157); auto-nauka wchodzi **po** fundamencie kontekstu (DICT-2.1 `FocusContextReader` w `LintelKit`, DICT-2.2 realizacja Accessibility). Decyzje UX i prywatności właściciel podejmuje osobno.
 >
-> Dokumenty powiązane: backlog `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md` (story DICT-2.8 i zakres story DICT-2.1), ADR `docs/decisions/0010-dictation-context.md` (bez zmian, Accepted), jego poprawka `docs/decisions/0010-dictation-context-amendment-auto-learn.md` (status Accepted, 2026-11-20), `docs/decisions/0013-approved-vocabulary-terms-to-providers.md` (status Accepted, 2026-11-20; decyzja Z6 zawężona odpowiedziami na DP1–DP4 i DP8) i spec dostawców `.ai/specs/2026-11-10-external-ai-providers.md` (nowy rodzaj danych w oknie zgody: zatwierdzone terminy słownika).
+> Dokumenty powiązane: backlog `.ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md` (story DICT-2.8 i zakres story DICT-2.1), ADR `docs/decisions/0010-dictation-context.md` (Accepted; zmiany z poprawki wpisane, R5), jego poprawka `docs/decisions/0010-dictation-context-amendment-auto-learn.md` (status Accepted, 2026-11-20; zmiany wpisane do ADR 0010, poprawka zostaje jako zapis historii), `docs/decisions/0013-approved-vocabulary-terms-to-providers.md` (status Accepted, 2026-11-20; decyzja Z6 zawężona odpowiedziami na DP1–DP4 i DP8) i spec dostawców `.ai/specs/2026-11-10-external-ai-providers.md` (nowy rodzaj danych w oknie zgody: zatwierdzone terminy słownika).
 >
 > Wszystkie przykłady w tym pliku są wymyślone. Żaden nie pochodzi z prawdziwego dyktowania ani spotkania.
 
@@ -25,8 +25,8 @@ Zasady tej sekcji:
 
 - Każdy wiersz poniżej to **decyzja właściciela 2026-11-20**, przekazana przez orkiestratora w trzech paczkach. Autor specu niczego nie wybrał. Warianty, które przegrały, i pełne uzasadnienia rekomendacji są w wersji tego pliku z PR #176.
 - Wiersze oznaczone **ryzyko przyjęte** to decyzje podjęte świadomie wbrew rekomendacji autora. Ich wspólny zapis: **decyzje właściciela, ryzyko przyjęte (czytanie pól bez wskaźnika i bez zgody per funkcja)**. Skutki są w sekcji „Model zagrożeń", bez łagodzenia.
-- Punkty Z1–Z10 (dawna lista „Do potwierdzenia") mają odpowiedzi właściciela z 2026-11-20; są zapisane dokładnie tak, jak je wybrał. Punkty O1–O9 (luki i sprzeczności po odpowiedziach na Z1–Z10) mają decyzje właściciela z 2026-11-20, zapisane dokładnie tak, jak je wybrał. Punkty DP1–DP9 (to, czego decyzje O1–O9 nie obejmowały) mają odpowiedzi właściciela z 2026-11-20, zapisane dokładnie tak, jak je wybrał. Tam, gdzie i one nie obejmują szczegółu, spec go **nie rozstrzyga**: szczegół jest na liście „Zostaje do potwierdzenia".
-- Implementacja kroku nie zaczyna się, dopóki punkty z listy „Zostaje do potwierdzenia", które go dotyczą, nie mają odpowiedzi.
+- Punkty Z1–Z10 (dawna lista „Do potwierdzenia") mają odpowiedzi właściciela z 2026-11-20; są zapisane dokładnie tak, jak je wybrał. Punkty O1–O9 (luki i sprzeczności po odpowiedziach na Z1–Z10) mają decyzje właściciela z 2026-11-20, zapisane dokładnie tak, jak je wybrał. Punkty DP1–DP9 (to, czego decyzje O1–O9 nie obejmowały) mają odpowiedzi właściciela z 2026-11-20, zapisane dokładnie tak, jak je wybrał. Tam, gdzie i one nie obejmują szczegółu, spec go **nie rozstrzyga**: szczegół zapisuje się jako punkt do decyzji właściciela. Punkty R1–R6 są rozstrzygnięte (sekcja „Rozstrzygnięcia R1–R6").
+- Implementacja kroku nie zaczyna się, dopóki punkty do decyzji, które go dotyczą, nie mają odpowiedzi. Punkty R1–R6 są rozstrzygnięte.
 
 **Twarde odmowy** (decyzja właściciela 2026-11-20: potwierdzone, obowiązują zawsze i nie da się ich wyłączyć): pola bezpieczne; aktywne Secure Event Input; własne okna Lintel; aplikacje z listy wykluczeń; brak uprawnienia Dostępność; nic z pola, par ani kandydatów w logach, raportach awarii, diagnostyce i `ranking.sqlite`.
 
@@ -173,20 +173,22 @@ Po decyzjach O1–O9 zostało dziewięć punktów (DP1–DP9). Właściciel odpo
 
 ### Bramki (zamknięte przez właściciela 2026-11-20)
 
-- Poprawka ADR 0010: **Accepted**.
+- Poprawka ADR 0010: **Accepted**, wpisana do tekstu ADR 0010 (R5).
 - ADR 0013: **Accepted**, w zakresie minimum.
-- Makieta v3: **zaakceptowana** jako prototyp. Implementacja UI 1:1 z makietą może wejść do kolejki, **za torem dostawcy i makietą HUD**. Właściciel zaakceptował makietę w wersji sprzed trzech zmian tekstu, które wynikają z odpowiedzi na DP5 i DP6 i z zasady „tylko dane oczywiście fikcyjne"; lista różnic „przed / po" jest w sekcji „Makieta" i czeka na jego potwierdzenie.
+- Makieta v3: **zaakceptowana** jako prototyp. Implementacja UI 1:1 z makietą może wejść do kolejki, **za torem dostawcy i makietą HUD**. Właściciel zaakceptował makietę w wersji sprzed trzech zmian tekstu, które wynikają z odpowiedzi na DP5 i DP6 i z zasady „tylko dane oczywiście fikcyjne"; lista różnic „przed / po" jest w sekcji „Makieta"; zmiany są przyjęte (R4).
 
-### ⚠️ Zostaje do potwierdzenia (odpowiedzi tego nie obejmują; autor tego nie rozstrzyga)
+### Rozstrzygnięcia R1–R6 (t42, techniczne i porządkowe, 2026-11-20)
 
-| # | Punkt | Skąd się bierze | Stan do odpowiedzi | Dotyczy |
-|---|---|---|---|---|
-| **R1** | **Wiersz „Terminal" w stałej tabeli przed próbami.** Zaakceptowana makieta ma w tabeli wiersz „Terminal: nazwa programu na pierwszym planie". Po DP5 nazwa programu czeka na próby, więc w wydaniu sprzed prób ten wiersz opisywałby odczyt, którego nie ma. Czy przed próbami wiersza nie ma, czy zostaje z innym tekstem. | DP5 obok zaakceptowanej makiety | makieta bez zmiany w tym wierszu; do odpowiedzi DICT-2.4 nie rysuje wiersza „Terminal" przed próbami | DICT-2.4 |
-| **R2** | **Wiersze tabeli po próbach.** Po udanych próbach tabela potrzebuje wierszy dla nazwy procesu, katalogu roboczego i plików, a wiersz Dostępności w Uprawnieniach potrzebuje ich wymienienia. Makieta ich nie rysuje; ich słowa nie są ustalone. | O1, DP5; uwaga recenzenta | wiersze są wymagane (zapisane w DICT-2.4 i DICT-3.2); słowa do ustalenia przed wydaniem z próbami | DICT-2.4, DICT-3.2, DICT-3.3 |
-| **R3** | **Lista przypadków testowych prób terminala.** Kryterium DP5 mówi „we wszystkich przypadkach testowych". Listę przypadków wyznaczają kryteria 3 i 6 prób DICT-0.2; nie jest ona zapisana w tym specu ani zatwierdzona osobno. | DP5 obok DICT-0.2 | przypadki z kryteriów 3 i 6 DICT-0.2; wynik prób pokazuje pełną listę przypadków | DICT-0.2, DICT-3.2 |
-| **R4** | **Trzy zmiany tekstu w zaakceptowanej makiecie** (lista „przed / po" w sekcji „Makieta"). | odpowiedzi na DP5, DP6; zasada danych fikcyjnych | zmiany naniesione w zrzutach; czekają na potwierdzenie właściciela | implementacja UI |
-| **R5** | **Wpisanie zaakceptowanych zmian do tekstu ADR 0010.** Poprawka jest zaakceptowana, ale plik `0010-dictation-context.md` nie jest zmieniany w tym PR. | krok 0.3b | osobny PR dokumentów przed PR DICT-2.1; do tego czasu obowiązuje plik poprawki | DICT-2.1 |
-| **R6** | **Story DICT-4.2 a „nie dyktowanie, nie model wbudowany".** Warunkowa story DICT-4.2 dołącza listę terminów słownika do promptu czyszczenia dyktowania w **modelu wbudowanym** (lokalnie, nic nie opuszcza procesu; dla „Mojego serwera" i dostawcy już dziś nie dołącza). Odpowiedzi na DP1–DP4 i DP8 dotyczą tego, co idzie do Claude i komu jeszcze terminy nie idą; nie mówią wprost, czy lokalna story DICT-4.2 zostaje. | minimum (DP3, DP4) obok backlogu DICT-4.2 | DICT-4.2 bez zmian w backlogu i nie startuje bez odpowiedzi | DICT-4.2 |
+Punkty, które odpowiedzi na DP1–DP9 zostawiły do potwierdzenia, są rozstrzygnięte. Żaden nie jest już otwarty.
+
+| # | Punkt | Rozstrzygnięcie (2026-11-20) | Gdzie zapisane |
+|---|---|---|---|
+| **R1** | Wiersz „Terminal" w stałej tabeli przed próbami | **Przed próbami w stałej tabeli nie ma wiersza „Terminal"** (wynika z DP5: nazwa programu czeka na próby, więc wiersz opisywałby odczyt, którego nie ma). Zrzuty makiety v3 mają jeszcze ten wiersz (zaakceptowana wersja); implementacja go nie rysuje przed próbami, a zrzutu w tym wierszu nie zmieniamy w tym PR | DICT-2.4 |
+| **R2** | Wiersze tabeli po próbach | Słowa wierszy dla nazwy procesu, katalogu roboczego i plików (i ich wymienienie w wierszu Dostępności) są ustalane w DICT-2.4 i DICT-3.2, nie teraz | DICT-2.4, DICT-3.2, DICT-3.3 |
+| **R3** | Lista przypadków testowych prób terminala | Lista jest zapisana w DICT-0.2 jako część tej story (kryterium 6a). Kryterium właściciela: **właściwa karta we wszystkich przypadkach, zero błędnych katalogów**. Recenzent story DICT-0.2 ocenia kompletność listy | DICT-0.2, DICT-3.2 |
+| **R4** | Trzy zmiany tekstu w makiecie po akceptacji (lista „przed / po" w sekcji „Makieta") | **Przyjęte** | implementacja UI |
+| **R5** | Wpisanie zaakceptowanych zmian do tekstu ADR 0010 | **Zrobione** osobnym PR dokumentów przed DICT-2.1: zmiany są w `docs/decisions/0010-dictation-context.md` (tekst obowiązujący); plik poprawki zostaje jako zapis historii z odsyłaczem | DICT-2.1 |
+| **R6** | Story DICT-4.2 a „nie dyktowanie, nie model wbudowany" | „Minimum" (DP1–DP4, DP8) dotyczy wysyłki słownika przy notatkach. DICT-4.2 (lista terminów w prompcie czyszczenia modelu **wbudowanego**, lokalnie) **zostaje w backlogu jako osobna story z własną decyzją**: nie jest objęta decyzją „minimum" z ADR 0013 i nie jest przez nią zakazana | DICT-4.2 |
 
 ## 📝 Problem Statement
 
@@ -492,7 +494,7 @@ Zrzuty makiety v3 (zastąpiły zrzuty v2, w tym arkusz zgody, którego już nie 
 
 Ekrany makiety (stałe identyfikatory): `set-dictation-suggest-window`, `set-dictation-suggest-row`, `set-dictation-suggest-empty`, `set-dictation-suggest-added`, `set-dictation-suggest-rejected`, `set-dictation-suggest-off`, `set-dictation-suggest-keys`, `set-dictation-suggest-noax`, `set-dictation-suggest-data`, `set-permissions-accessibility`, `set-dictation-context-table`. Ekrany `dlg-suggest-consent-*` i `hud-suggest` z v2 nie istnieją.
 
-**Różnice względem zaakceptowanej wersji (do potwierdzenia przez właściciela, punkt R4).** Właściciel zaakceptował makietę 2026-11-20 w wersji sprzed tych zmian. Zmieniony jest tylko tekst; układ, kolory i pozostałe słowa są bez zmian. Zrzuty w repozytorium pokazują wersję po zmianach.
+**Różnice względem zaakceptowanej wersji (przyjęte, punkt R4).** Właściciel zaakceptował makietę 2026-11-20 w wersji sprzed tych zmian. Zmieniony jest tylko tekst; układ, kolory i pozostałe słowa są bez zmian. Zrzuty w repozytorium pokazują wersję po zmianach.
 
 | # | Ekran | Przed (wersja zaakceptowana) | Po | Powód |
 |---|---|---|---|---|
@@ -500,7 +502,7 @@ Ekrany makiety (stałe identyfikatory): `set-dictation-suggest-window`, `set-dic
 | 2 | `set-dictation-context-table`, dopisek w wierszu „Tytuł okna i adres dokumentu" | „W terminalach tytuł okna nie jest czytany." | „W terminalach tytuł okna i adres dokumentu nie są czytane." (tekst angielski zmieniony tak samo) | DP6 |
 | 3 | `set-dictation-suggest-window`, jeden wiersz propozycji z imieniem i nazwiskiem | wymyślone imię i nazwisko, które mogło wyglądać na prawdziwą osobę | „Jan Przykładowy" (usłyszane: „jan pszykładowy") | zasada: tylko dane oczywiście fikcyjne; zrzut okna jest przez to wyższy o 3 piksele |
 
-Poza zrzutami: zdanie we wstępie strony makiety („to jeszcze nie jest zaakceptowany prototyp") zastąpione informacją o akceptacji. Bez zmiany został wiersz „Terminal" stałej tabeli (punkt R1).
+Poza zrzutami: zdanie we wstępie strony makiety („to jeszcze nie jest zaakceptowany prototyp") zastąpione informacją o akceptacji. Zrzuty zachowują wiersz „Terminal" stałej tabeli z zaakceptowanej wersji; zgodnie z R1 implementacja nie rysuje go przed próbami.
 
 Co rysuje makieta (decyzje właściciela 2026-11-20):
 
@@ -515,7 +517,7 @@ Co rysuje makieta (decyzje właściciela 2026-11-20):
 | Stan pusty | jedna linia: „Brak propozycji. Pojawi się, gdy drugi raz poprawisz to samo słowo po dyktowaniu." | U4 = A |
 | Licznik | w nagłówku bloku i przy „Dyktowanie" w pasku bocznym | U9 = B |
 | Klawiatura | Return = dodaj, ⌫ = odrzuć, ⌘E = edytuj; strzałki zmieniają wiersz | U14 |
-| Stała tabela kontekstu | w Dyktowanie → Kontekst, zawsze widoczna, bez arkusza zgody; wiersze: tekst przy kursorze, zaznaczony tekst („na razie nic z niego nie korzysta"), tytuł okna i adres dokumentu („w terminalach tytuł okna i adres dokumentu nie są czytane"), terminal (stan po próbach, punkt R1), schowek; kolumny: co, kiedy, co jest zapisywane (nic); zdanie pod tabelą o nazwach źródeł w historii (DP9: wystarczy). Po udanych próbach potrzebne są jeszcze wiersze dla katalogu roboczego i plików (R2) | O3, O2, DP6, DP9, CTX-1–CTX-5 |
+| Stała tabela kontekstu | w Dyktowanie → Kontekst, zawsze widoczna, bez arkusza zgody; wiersze: tekst przy kursorze, zaznaczony tekst („na razie nic z niego nie korzysta"), tytuł okna i adres dokumentu („w terminalach tytuł okna i adres dokumentu nie są czytane"), bez wiersza „Terminal" przed próbami (R1), schowek; kolumny: co, kiedy, co jest zapisywane (nic); zdanie pod tabelą o nazwach źródeł w historii (DP9: wystarczy). Po udanych próbach potrzebne są jeszcze wiersze dla nazwy procesu, katalogu roboczego i plików; ich słowa ustala DICT-2.4 i DICT-3.2 (R2) | O3, O2, DP6, DP9, CTX-1–CTX-5 |
 | „Dane nauki" | liczby (propozycje, policzone poprawki, odrzucone) oraz „Zapomnij odrzucone…" i „Wymaż dane nauki…" | P11.4, U7 = A |
 | Lista wykluczeń | wstępnie: terminale, zdalne pulpity i maszyny wirtualne, menedżery haseł; dodawanie i usuwanie; lista osobna od listy kontekstu | P3, Z2 |
 | Wiersz Dostępność w Uprawnieniach | cztery cele, czwarty mówi wprost o czytaniu pola po wklejeniu i wskazuje wyłącznik | P11.1, P5.1 |
@@ -821,7 +823,7 @@ Progi decyzji (decyzja techniczna przyjęta według rekomendacji autora specu, O
 | Aplikacje bez Accessibility (część Electron, terminale) | nauka nie działa tam, gdzie użytkownik dyktuje najwięcej; funkcja wygląda na zepsutą | linia stanu pustego (U4), nota w dokumentacji | zasięg nieznany do macierzy z prób |
 | Brak dowodu popytu | funkcja mało używana | każdy krok wdrażany osobno; faza A nie dotyka kontraktu; krok B5 jest bramką | bramka DICT-0.1 przeszła bez linii bazowej |
 | Zależności | DICT-2.1–2.2 niezmergowane, próby niewykonane | faza A na atrapie; akceptacja zmian ADR przed DICT-2.1 | termin fazy B zależy od DICT-0.2 |
-| Kolejka `LintelKit` | spóźnione wpisanie zmian do tekstu ADR 0010 opóźnia PR DICT-2.1, a z nim DICT-3.3 i MEET | zmiany ADR zaakceptowane 2026-11-20 (krok 0.2); wpisanie do ADR 0010 osobnym PR dokumentów przed DICT-2.1 (R5) | — |
+| Kolejka `LintelKit` | spóźnione wpisanie zmian do tekstu ADR 0010 opóźnia PR DICT-2.1, a z nim DICT-3.3 i MEET | zmiany ADR zaakceptowane 2026-11-20 (krok 0.2) i wpisane do ADR 0010 osobnym PR dokumentów przed DICT-2.1 (R5, zrobione) | — |
 | Dane właściciela w repozytorium | trwały wyciek | tylko dane syntetyczne; punkt recenzji | — |
 
 ## 📋 Phasing
@@ -847,9 +849,9 @@ Każdy krok to jedna gałąź `feat/` i jeden PR oparty na `main`, pełna bramka
 | 0.2 | **Przed PR DICT-2.1:** właściciel akceptuje treść zmian ADR 0010 (**zrobione 2026-11-20**: poprawka Accepted), które P1/P2 przesądzają (plik poprawki, sekcja „Change 7 in detail"); kształt z sekcji „Architecture" przeniesiony do zakresu DICT-2.1 (backlog: story DICT-2.1 już go wymienia) | 0.1 | PR DICT-2.1 zawiera nowe człony i testy `LintelKitTests` wartości domyślnych; ADR 0010 ma dopisany nowy kształt w decyzji 3 |
 | 0.3 | Właściciel wypełnia pozostałe P, U i K | 0.1 | **zrobione 2026-11-20** (tabele decyzji w tym specu) |
 | 0.3a | Właściciel odpowiada na Z1 (co kontekst czyta domyślnie) i na Z2–Z10 | 0.3 | **zrobione 2026-11-20** (sekcje „Odpowiedzi właściciela na Z1–Z10" i „Z1: co kontekst dyktowania czyta domyślnie") |
-| 0.3b | Właściciel odpowiada na punkty otwarte O1–O9 (**zrobione 2026-11-20**, sekcja „Decyzje właściciela O1–O9"); odpowiada na punkty DP1–DP9 (**zrobione 2026-11-20**); akceptuje treść poprawki ADR 0010 i ADR 0013 (**zrobione 2026-11-20**, oba Accepted). Zostaje: wpisanie zaakceptowanych zmian do tekstu ADR 0010 (punkt R5) i przepisanie stories | 0.3a | ADR 0010 z dopisanymi zmianami; ADR 0013 Accepted; stories DICT-2.3, DICT-2.4, DICT-3.1 i DICT-3.2 przepisane |
+| 0.3b | Właściciel odpowiada na punkty otwarte O1–O9 (**zrobione 2026-11-20**, sekcja „Decyzje właściciela O1–O9"); odpowiada na punkty DP1–DP9 (**zrobione 2026-11-20**); akceptuje treść poprawki ADR 0010 i ADR 0013 (**zrobione 2026-11-20**, oba Accepted). Wpisanie zaakceptowanych zmian do tekstu ADR 0010 (punkt R5): **zrobione**. Zostaje: przepisanie stories | 0.3a | ADR 0010 z dopisanymi zmianami; ADR 0013 Accepted; stories DICT-2.3, DICT-2.4, DICT-3.1 i DICT-3.2 przepisane |
 | 0.4 | Kryteria 7–12 dopisane do DICT-0.2; próby wykonane, wyniki w ADR | 0.3 | wypełnione tabele w ADR |
-| 0.5 | Makieta v3 zaakceptowana przez właściciela jako prototyp (**zrobione 2026-11-20**; trzy zmiany tekstu czekają na potwierdzenie, R4). Implementacja UI wchodzi do kolejki za torem dostawcy i makietą HUD | 0.3 | linia `Prototype:` w tym specu |
+| 0.5 | Makieta v3 zaakceptowana przez właściciela jako prototyp (**zrobione 2026-11-20**; trzy zmiany tekstu przyjęte, R4). Implementacja UI wchodzi do kolejki za torem dostawcy i makietą HUD | 0.3 | linia `Prototype:` w tym specu |
 
 ### Faza A — rdzeń na atrapie
 
@@ -911,7 +913,7 @@ flowchart TD
 - `BACKWARD_COMPATIBILITY.md`: §1 (człony z P2 = D, w PR DICT-2.1), §2 (format albo migracja z P7), §3 (klucze), §4–§5 (cel Dostępności, nota wydania, skróty z U14).
 - `AGENTS.md`: wiersz „Dictation plugin" (typy `AutoLearn/`, klucze, zasady logowania).
 - `docs/perf.md` (budżet obserwacji, „not yet measured"), `docs/qa.md` (klucze QA), `CHANGELOG.md`.
-- ADR 0010: zmiany z pliku poprawki (Accepted 2026-11-20), do wpisania w tekst ADR przed PR DICT-2.1 (R5).
+- ADR 0010: zmiany z pliku poprawki (Accepted 2026-11-20) wpisane w tekst ADR przed PR DICT-2.1 (R5, zrobione).
 - Backlog: DICT-2.3 i DICT-2.4 (przepisanie według Z1: wartości domyślne, brak arkusza zgody dla nauki, trzy cele → cztery), DICT-3.1 (`clipboardReference` domyślnie `true` tylko po czystym pomiarze, O5) i DICT-3.2 (do prób nic: ani nazwa procesu, ani katalog; po udanych próbach nazwa, katalog i pliki włączają się same, O1 i DP5; twarde kryterium prób), DICT-2.4 (wiersze stałej tabeli dla nazwy procesu, katalogu i plików po próbach), DICT-0.2 (kryteria 7–12).
 - Spec dostawców: test i okno zgody dla zatwierdzonych terminów (zakres minimum: cały słownik, sama poprawna pisownia, tylko notatki przez Claude Code; ADR 0013 Accepted, DP1–DP4 i DP8 mają odpowiedzi); powtórzenie bramki jakości G po zmianie promptu `whole1` (O6).
 - ADR 0013 (`docs/decisions/0013-approved-vocabulary-terms-to-providers.md`): status Accepted (2026-11-20); ADR 0010, reguła 4, dostaje odsyłacz do niego.
