@@ -427,6 +427,23 @@ Zależności z epikiem MEET: `TermReplacer` z DICT-1.1 trafia do `LintelCore`, b
 - **DoD:** wspólne DoD.
 - **Start:** `om-auto-create-pr "Pomiar budżetów kontekstu dyktowania: benchmark wyłączony domyślnie (LINTEL_DICTATION_CONTEXT_BENCH), zmierzone wiersze w docs/perf.md dla migawki, startu nagrania i reguł po transkrypcji — Source doc: .ai/specs/backlog/2026-11-13-epic-context-aware-dictation.md (story DICT-2.7)"`
 
+### DICT-2.8 — Propozycje słownika z poprawek (auto-nauka) — zablokowana decyzjami właściciela
+
+Dopisana 2026-11-20. Decyzja właściciela z 2026-11-20: panel słownika (DICT-1.2) wychodzi teraz (PR #157, zmergowany), auto-nauka wchodzi **po** fundamencie kontekstu (DICT-2.1, DICT-2.2). Story nie jest w diagramie zależności powyżej; jej zależności są opisane tutaj i w specu.
+
+- **Story:** Jako osoba dyktująca chcę, by Lintel zauważał, że po dyktowaniu poprawiam to samo słowo, i proponował wpis do słownika, który sama zatwierdzam, aby nie wpisywać każdego terminu ręcznie.
+- **Spec:** `.ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md`. Propozycja zmian ADR: `docs/decisions/0010-dictation-context-amendment-auto-learn.md` (status Proposed; ADR 0010 bez zmian).
+- **Bramka (twarda):** decyzje właściciela U1–U14 (UX) i P1–P13 (prywatność) w sekcji „Open Questions" specu. Żadna nie jest podjęta. Kierunek, wartości domyślne i zakres wynikają z nich; do tego czasu nie powstaje kod ani prototyp traktowany jako wzorzec.
+- **Zależności:** DICT-1.2 (jest na `main`). Część bez Accessibility (faza A specu: różnicowanie, filtry, magazyn, sekcja „Propozycje" na atrapie źródła) nie zależy od DICT-2.x. Obserwacja pola (faza B) wymaga DICT-2.2 i wykonanych prób DICT-0.2 z dopisanymi kryteriami 7–12 (w specu i w pliku propozycji ADR); przy wyborze „auto-nauka podlega wyłącznikowi kontekstu" także DICT-2.3 i DICT-2.4.
+- **Kontrakt `LintelKit`:** przy wariancie obserwacji „do utraty fokusu" (P2 = A/D) kształt `FocusContextReader` musi zostać rozszerzony (uchwyt pola, ponowny odczyt tego samego zakresu, powiadomienie o utracie fokusu). Decyzja powinna zapaść **przed** startem DICT-2.1, bo to jedyny moment, w którym zmiana nie kosztuje drugiego PR kontraktowego w kolejce z DICT-3.3 i MEET. Pozostałe warianty nie zmieniają kontraktu.
+- **Powierzchnie (zależne od decyzji):** `DictationPlugin` (`AutoLearn/`, panel, `DictationSettings`, `eraseData()`); `LintelApp` (`AXFocusContextReader`, `PermissionsPane`: czwarty cel Dostępności, §4 i §5); ewentualnie `LintelKit` (§1); nowe klucze `plugins.dictation.*` (§3); nowy plik albo tabele w `Plugins/dictation/` (§2); ADR 0010 (12 zmian z pliku propozycji); kryterium 4 w DICT-2.4 (trzy cele → cztery).
+- **Etykiety:** kroki z nowym celem uprawnienia, nowym kluczem ustawień, nowym zapisem na dysk albo zmianą kontraktu są `risk-high` (drugi recenzent, test ścieżki odmowy, test migracji, bez samodzielnego QA); kroki z czystą logiką `risk-low`; kroki z UI `needs-qa`. Priorytet nadaje właściciel razem z decyzjami.
+- **Estymata:** L (kilka powierzchni; spec dzieli pracę na kroki A1–A3, B1–B5, C1–C2, każdy na osobnym PR).
+- **Kryteria akceptacji:** w specu, przy każdym kroku („Test, który go zamyka"). Wspólne dla wszystkich wariantów: nic nie trafia do słownika bez zatwierdzenia; odrzucona para nie wraca; treść pola nigdy nie trafia na dysk ani do logów; pola bezpieczne, Secure Event Input, własne okna Lintel i aplikacje z listy odmów nie są czytane; wyłączenie przerywa trwającą obserwację bez końcowego odczytu.
+- **Prywatność:** wspólne reguły epica obowiązują, z wyjątkami, które musi najpierw dopuścić zaakceptowana poprawka ADR 0010 (odczyt po wklejeniu; zapis pary „usłyszane → poprawione"). Testy, fixture, zrzuty i przykłady wyłącznie syntetyczne.
+- **DoD:** wspólne DoD + zaakceptowany prototyp ekranów z wybranymi wariantami przed kodem UI + zaakceptowana poprawka ADR przed pierwszym krokiem, który czyta cudzą aplikację albo zapisuje parę.
+- **Start:** brak komendy startowej, dopóki bramka jest zamknięta. Po decyzjach: `om-auto-implement-spec .ai/specs/2026-11-20-dictation-vocabulary-auto-learn.md` krok po kroku.
+
 ---
 
 ## Faza 3 — odwołania głosowe
