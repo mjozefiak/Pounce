@@ -82,7 +82,16 @@ private let repositoryRoot = URL(filePath: #filePath)
                 from: Data(contentsOf: repositoryRoot.appending(path: "Resources/Lintel.entitlements")), format: nil)
                 as? [String: Any])
         #expect(entitlements["com.apple.security.device.audio-input"] as? Bool == true)
-        #expect(entitlements["com.apple.security.cs.disable-library-validation"] as? Bool == true)
+        // A Developer ID build has a Team ID, so its frameworks load under library validation; only the ad-hoc file
+        // (no Team ID) turns it off (scripts/select-entitlements.sh, docs/signing.md).
+        #expect(entitlements["com.apple.security.cs.disable-library-validation"] == nil)
+        let adhocEntitlements = try #require(
+            try PropertyListSerialization.propertyList(
+                from: Data(contentsOf: repositoryRoot.appending(path: "Resources/Lintel-adhoc.entitlements")),
+                format: nil)
+                as? [String: Any])
+        #expect(adhocEntitlements["com.apple.security.device.audio-input"] as? Bool == true)
+        #expect(adhocEntitlements["com.apple.security.cs.disable-library-validation"] as? Bool == true)
     }
 }
 

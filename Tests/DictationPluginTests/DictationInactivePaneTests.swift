@@ -24,6 +24,8 @@ import Testing
             model: model, formatting: formatting,
             history: HistorySettingsModel(
                 settings: settings, history: DictationPlugin(context: rig.harness.context).history),
+            vocabulary: VocabularyPanelModel(
+                store: VocabularyStore(directory: rig.harness.directory.url), settings: settings),
             recorder: AnyView(EmptyView()), isActive: isActive)
         let window = NSWindow(
             contentRect: NSRect(x: -10_000, y: -10_000, width: 600, height: 800), styleMask: [.titled],

@@ -8,7 +8,7 @@ import Testing
 /// Spec step 4.7, Retention: the leftover detached rows go on store open and in each sweep, and a `VACUUM` follows
 /// at most once a day. (Detach means delete for an overlay without user writing or an open comment: `OverlayDetachTests`.)
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct NotesRetentionTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct NotesRetentionTests {
     private let day = NotesStore.vacuumInterval
     private let start = Date(timeIntervalSince1970: 1_800_000_000)
 

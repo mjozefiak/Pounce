@@ -17,7 +17,7 @@ swift build
 .build/debug/Lintel --qa --qa-appearance dark --qa-show-menu --qa-quit-after 8
 ```
 
-Or build a bundle (ad-hoc signed, never with the "Lintel Release" identity locally) and run its binary:
+Or build a bundle (ad-hoc signed, never with the release identity locally) and run its binary:
 
 ```bash
 CONFIGURATION=debug scripts/make-app.sh
@@ -339,6 +339,59 @@ Needs a real Keychain and the app built by `scripts/make-app.sh` (not `--qa`, wh
 - Keychain Access shows one `com.lintelapp.dictation` item; Settings → Features → Dictation → Erase Data removes it and the `Plugins/dictation` folder (downloaded models in `Models/` stay; "Remove model" deletes them);
 - delete the `com.lintelapp.dictation` item by hand and relaunch: the old file is renamed `dictation.sqlite.unreadable-<date>` and the history starts empty.
 
+### Dictation vocabulary panel (DICT-1.2, part A of the mockup)
+
+Settings → Dictation → Vocabulary sits between Basics and Advanced. In a `--qa` run Dictation is off by default and the
+vocabulary file is the QA run's own, so seed it with the DEBUG key `plugins.dictation.qaVocabulary=<state>` (not a
+contract; invented terms only, the seed file is rewritten at every launch):
+
+```bash
+APP=dist/Lintel-QA.app/Contents/MacOS/Lintel-QA
+$APP --qa --qa-data-root /tmp/lintel-qa-vocab --qa-setting plugins.dictation.enabled=true \
+  --qa-setting plugins.dictation.qaVocabulary=few --qa-window settings --qa-settings dictation \
+  --qa-appearance light --qa-snapshot /tmp/vocab-few.png --qa-quit-after 6
+```
+
+The snapshot is the window's visible part, so the section is at the bottom of a 720 pt window: scroll it first, or use a
+taller window, for the lower states. Add `-AppleLanguages "(pl)"`, `--qa-appearance dark` and
+`--qa-setting app.textSize=s|xl` as for any pane. A state with a sheet (`delete`) is not drawn by `--qa-snapshot` and
+`--qa-quit-after` waits for the sheet: take that screenshot by hand and press Esc.
+
+| `qaVocabulary=` | Mockup | Shows |
+|---|---|---|
+| `empty` | A2 | no terms: "No terms yet" with the primary Add Term… |
+| `few` | A1 | 5 terms in alphabetical order, no search |
+| `long` | A8 | 47 terms: search field, list capped at about 6 rows, "47 terms" |
+| `search:<text>` | A8 | 47 terms with the search typed, for example `search:post` (matches in a term and in a variant, "2 of 47") or `search:wrzos` (no match: "Add “wrzos”…") |
+| `add` | A3 | the form as a new first row, Add Term… inactive |
+| `edit` | A3 | AuthService open for editing, "auth serwis" typed, the example under the variants |
+| `err-empty` / `err-dupterm` / `err-alias` / `err-rule` / `err-long` | A4 | the form after pressing Add (Save for `err-rule`) with that problem (empty term; duplicate "authservice" with Show; variant of another term; SwiftUI edited with the variant "swift", which is the term Swift; a 10-word variant); no example while a problem is shown |
+| `noalias` | A4 | the form for "Verdigris" without variants and its hint |
+| `limit` | A4 | 2000 terms: the "full" strip, Add Term… inactive |
+| `short` / `short-ok` | A5 | "Zed" with the short variant "zet": warning and Add inactive / box ticked and Add active |
+| `off` | A6 | switch off, list dimmed and still editable, "Off: terms are kept and not used." |
+| `delete` | A7 | the confirmation sheet for AuthService ("Its 2 spoken variants are removed too.") |
+| `readonly` | A9 | a file from a newer version: neutral strip, terms shown, no Edit, Delete or Add |
+| `corrupt` | A9 | a damaged file was set aside: empty list, one-time strip with Show Copy in Finder and Dismiss |
+| `saveerror` | A9 | the form for "Orchard" after a write that fails: error strip, "Try Again" |
+| `keyboard` | A10 | the list has the keyboard on its second row |
+
+Not drawn by QA flags and checked by hand: Tab order (switch, search, list as one stop, Add Term…), ↑↓ Return ⌫ Esc on the
+list, Return in the variants field (token, then save on an empty field), ⌫ in an empty field (removes the last token),
+VoiceOver (row: "AuthService. When I hear: auth service, ałt serwis. Row 1 of 5." with Edit and Delete actions; tokens
+"variant 1 of 2"; errors announced; "Term added. 4 terms."), Reduce Motion (the section has no animation) and text sizes S to XL.
+
+## Meetings capture counters (#135, manual)
+
+Settings → Meetings → Advanced → **Copy diagnostics** puts the counters of the last 20 meetings on the pasteboard
+(numbers and the channel names `mic` / `system` only; file `Plugins/meetings/capture-counters.json`). After a real
+recording with system audio: paste it and check `recorded` against `speech sent to engine` per channel, the
+`hard cuts`, `empty results dropped`, `ring buffers dropped`, `taps recreated`, `silence inserted` lines and
+`Audio gap written while recording`. Switch the output device (headset on/off) during a recording: `taps recreated`
+rises and `Audio gap written` becomes `yes`. A plain recording that is only stopped stays `no` (its `end padding`
+is not a hole). A recording of under 15 s with nothing transcribed is listed as `discarded as quiet`. Delete a
+meeting (or Clear Library): its section is gone from the next copy. No text, name, title or device name may appear.
+
 ## Meetings audio sources (manual)
 
 The real Core Audio tap (`CoreAudioProcessTapBackend`) is compiled but never exercised by `swift test`: a tap shows the
@@ -363,8 +416,8 @@ isolates the Keychain; audio permissions are per app, not per `--qa` data folder
   Audio Recording" list. If it does not, record the correct id in the ADR and in the Permissions deep link.
 - **Permission lost after an ad-hoc rebuild.** With ad-hoc signing the code signature changes on every build, so macOS
   forgets the system-audio consent: after rebuilding, the self-test goes back to "no audio" until the prompt is accepted
-  again (remove the stale Lintel entry first if the prompt does not come back). Release builds signed with the stable
-  "Lintel Release" certificate keep it.
+  again (remove the stale Lintel entry first if the prompt does not come back). Release builds signed with the
+  Developer ID certificate keep it.
 - **Default shortcut and VoiceOver (manual).** The default ⌃⌥M is also VoiceOver's modifier (⌃⌥ = VO). With
   VoiceOver on, ⌃⌥M may be consumed by VoiceOver instead of reaching Lintel. Check once with VoiceOver running
   that the command starts and stops a recording, and if it does not, record the finding in the PR (the shortcut
@@ -668,7 +721,7 @@ picker are scripted by the verbs above (`plugins.windows.qaScriptedFiles`, on in
 
 - No synthetic key events, no `tccutil`, no edits to TCC databases or `com.apple.*` defaults.
 - No toggling Launch at Login (`SMAppService`).
-- No signing with the "Lintel Release" identity on a developer machine (see `docs/signing.md`).
+- No signing with the Developer ID release identity on a developer machine (see `docs/signing.md`).
 - Quit every Lintel process you started.
 
 Checks that need TCC grants (Accessibility for paste, a real Full Disk Access grant, the privacy prompt

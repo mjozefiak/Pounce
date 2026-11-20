@@ -7,7 +7,7 @@ import Testing
 
 /// The gutter from the store to the document model and the Details toggles (spec step 4.3).
 @MainActor
-@Suite("Gutter wiring")
+@Suite("Gutter wiring", .finishesRigs)
 struct GutterWiringTests {
     private let seed = "## Summary\n\nWe ship on Friday. [12:41]\n\n- Budget approved. [12:44]"
 

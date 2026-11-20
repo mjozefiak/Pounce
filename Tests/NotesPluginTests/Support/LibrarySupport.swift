@@ -89,6 +89,7 @@ final class ManualClock: Clock, Sendable {
         var now = Instant(offset: .zero)
         var sleepers: [UUID: Sleeper] = [:]
         var sleepCalls = 0
+        var finished = false
     }
 
     private let state = Mutex(State())
@@ -119,7 +120,7 @@ final class ManualClock: Clock, Sendable {
                     enum Outcome { case wait, fire, cancel }
                     let outcome = state.withLock { state -> Outcome in
                         state.sleepCalls += 1
-                        if Task.isCancelled { return .cancel }
+                        if Task.isCancelled || state.finished { return .cancel }
                         if deadline <= state.now { return .fire }
                         state.sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
                         return .wait
@@ -139,6 +140,24 @@ final class ManualClock: Clock, Sendable {
             cancelledSleeps.increment()
             throw error
         }
+    }
+
+    /// How many sleeps are waiting for the clock to move right now.
+    var sleeperCount: Int { state.withLock { $0.sleepers.count } }
+
+    /// Ends the clock when its test ends: every sleeper wakes with `CancellationError` and any later `sleep` throws at
+    /// once, so a timer task a test left behind finishes instead of waiting on the clock for the rest of the process.
+    /// Returns how many sleepers it had to wake, which a test that cleaned up after itself leaves at zero.
+    @discardableResult
+    func finish() -> Int {
+        let left = state.withLock { state -> [Sleeper] in
+            state.finished = true
+            let left = Array(state.sleepers.values)
+            state.sleepers.removeAll()
+            return left
+        }
+        for sleeper in left { sleeper.continuation.resume(throwing: CancellationError()) }
+        return left.count
     }
 
     func advance(by duration: Duration) {
@@ -180,6 +199,7 @@ final class ScriptedNoteSource: NoteSource, Sendable {
         var contentGate: Gate?
         var deleteFails = false
         var onDelete: (@Sendable (NoteKey) -> Void)?
+        var onSubscribe: (@Sendable () -> Void)?
         var renameFails = false
         var renamed: [(NoteKey, String)] = []
     }
@@ -321,7 +341,11 @@ final class ScriptedNoteSource: NoteSource, Sendable {
     func actions(for key: NoteKey) -> [NoteSourceAction] { state.withLock { $0.actions } }
     func setActions(_ actions: [NoteSourceAction]) { state.withLock { $0.actions = actions } }
 
+    /// Called at the start of every `makeChanges()`, on the caller's task, before the stream exists.
+    func setOnSubscribe(_ hook: (@Sendable () -> Void)?) { state.withLock { $0.onSubscribe = hook } }
+
     func makeChanges() -> AsyncStream<Void> {
+        state.withLock { $0.onSubscribe }?()
         let (stream, continuation) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
         let id = UUID()
         state.withLock { $0.continuations[id] = continuation }

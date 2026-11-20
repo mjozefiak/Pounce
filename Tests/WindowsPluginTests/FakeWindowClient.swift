@@ -9,7 +9,7 @@ import Testing
 /// A scriptable, in-memory `WindowClient`: latency, refusals, hung apps, minimum sizes, apps that move their
 /// window back, echoes of our own frames and re-ordered events. It records every call, so a test can assert what
 /// the engine did and in which order.
-final class FakeWindowClient: WindowClient, Sendable {
+final class FakeWindowClient: PumpCountingClient, Sendable {
     /// What one window does when asked to move.
     enum Behavior: Equatable, Sendable {
         case normal
@@ -63,6 +63,7 @@ final class FakeWindowClient: WindowClient, Sendable {
         var completionWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
         var callWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
         var stallWaiters: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+        var emitted = 0
     }
 
     private let state = Mutex(State())
@@ -114,7 +115,15 @@ final class FakeWindowClient: WindowClient, Sendable {
     }
 
     func emit(_ events: [WindowEvent]) {
-        for event in events { continuation.yield(event) }
+        for event in events { yield(event) }
+    }
+
+    var emittedEventCount: Int { state.withLock { $0.emitted } }
+
+    /// Every event goes through here, so `emittedEventCount` is exact. A yield that replaced the oldest buffered event
+    /// adds none (one in, one out); one after `finish()` adds none.
+    private func yield(_ event: WindowEvent) {
+        if case .enqueued = continuation.yield(event) { state.withLock { $0.emitted += 1 } }
     }
 
     func finish() { continuation.finish() }
@@ -377,8 +386,8 @@ final class FakeWindowClient: WindowClient, Sendable {
             return (actual, state.echoes && state.deliversEvents, state.deliversEvents ? snap : nil)
         }
         guard let result else { throw .windowGone }
-        if result.echo { continuation.yield(.moved(id)) }
-        if result.snap != nil { continuation.yield(.moved(id)) }
+        if result.echo { yield(.moved(id)) }
+        if result.snap != nil { yield(.moved(id)) }
         return result.actual
     }
 }

@@ -5,7 +5,7 @@ import Testing
 @testable import NotesPlugin
 
 @MainActor
-@Suite(.timeLimit(.minutes(1))) struct NotesEditingWiringTests {
+@Suite(.finishesRigs, .timeLimit(.minutes(1))) struct NotesEditingWiringTests {
     private func model(_ r: ReconRig) -> NotesWorkspaceModel {
         var environment = NotesWorkspaceModel.Environment(library: r.library, pasteboard: RecordingPasteboard())
         environment.registry = r.registry

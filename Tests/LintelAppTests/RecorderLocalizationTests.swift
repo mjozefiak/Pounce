@@ -43,7 +43,7 @@ import Testing
         #expect(script.contains("BUNDLE_ID=\"com.lintelapp.Lintel.QA\""))
         #expect(script.contains("EXEC_NAME=\"Lintel-QA\""))
         // Another path, so a debug build never replaces the release bundle the DMG is made from.
-        #expect(script.contains("OUT=\"$ROOT/dist/$APP_NAME-QA.app\""))
+        #expect(script.contains("OUT=\"$DIST_DIR/$APP_NAME-QA.app\""))
         #expect(script.contains("Delete :CFBundleDocumentTypes"))
         #expect(script.contains("Delete :UTExportedTypeDeclarations"))
         #expect(script.contains("--identifier \"$BUNDLE_ID\""))

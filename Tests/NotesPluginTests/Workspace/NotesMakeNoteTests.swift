@@ -61,7 +61,7 @@ private struct MakeRig {
 }
 
 @MainActor
-@Suite("Make note on a dictation")
+@Suite("Make note on a dictation", .finishesRigs)
 struct NotesMakeNoteTests {
     @Test("from the Dictations list: the cleaned text becomes a new note that opens in a tab, on the Notes list")
     func makesFromTheList() async throws {
@@ -178,7 +178,7 @@ private enum Feedback {
 }
 
 @MainActor
-@Suite("Make note writes an independent manual note", .timeLimit(.minutes(1)))
+@Suite("Make note writes an independent manual note", .finishesRigs, .timeLimit(.minutes(1)))
 struct NotesMakeNoteStoreTests {
     @Test func theStoreHoldsACopyWithNoLinkAndTheDictationIsUntouched() async throws {
         let r = try ReconRig()
