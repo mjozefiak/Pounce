@@ -186,6 +186,33 @@ import Testing
                 "if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/')\n        run: swift test"))
     }
 
+    @Test func notarizationIsBoundedAndItsLogsAreKept() throws {
+        let sign = code(try #require(try jobs()["sign"]))
+        let text = sign.joined(separator: "\n")
+        let minutes = try #require(
+            sign.compactMap { $0.firstMatch(of: /^    timeout-minutes: (\d+)$/).map { Int($0.1) ?? 0 } }.first)
+        // Two notarizations at 10 + 40 minutes each (scripts/notarize.sh defaults) and the rest must fit.
+        #expect(minutes >= 310, "largest allowed app wait (240) + the rest must fit")
+        #expect(minutes <= 360)
+        let upload = try #require(text.range(of: "name: notary-logs"))
+        let before = String(text[..<upload.lowerBound])
+        #expect(before.components(separatedBy: "\n").suffix(6).contains { $0.contains("if: always()") })
+    }
+
+    @Test func theAppWaitIsAManualInputPassedThroughEnvOnly() throws {
+        let text = code(try workflow().components(separatedBy: "\n")).joined(separator: "\n")
+        #expect(text.contains("      notary_wait_minutes:\n"))
+        #expect(text.contains("        type: string\n        default: \"40\"\n"))
+        let sign = code(try #require(try jobs()["sign"]))
+        let appStep = try #require(sign.joined(separator: "\n").range(of: "- name: Notarize the app"))
+        let dmgStep = try #require(sign.joined(separator: "\n").range(of: "- name: Notarize and staple the DMG"))
+        let joined = sign.joined(separator: "\n")
+        #expect(
+            joined[appStep.lowerBound..<dmgStep.lowerBound].contains(
+                "NOTARY_WAIT_MINUTES: ${{ inputs.notary_wait_minutes }}"))
+        #expect(!joined[dmgStep.lowerBound...].contains("NOTARY_WAIT_MINUTES"), "the DMG keeps the default wait")
+    }
+
     @Test func signChecksTheReleaseOrderBeforeAnySecret() throws {
         let sign = code(try #require(try jobs()["sign"]))
         let text = sign.joined(separator: "\n")
