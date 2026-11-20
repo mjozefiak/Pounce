@@ -127,14 +127,15 @@ cannot detect that. The text of a field is never stored and never sent, which bo
   The owner's approval of each weaker default is a comment of the owner in the pull request that adds the key
   (Z10; `BACKWARD_COMPATIBILITY.md` section 3). For the terminal sources (the process name, the working
   directory, the file references) the approval is given in advance by the answer to DP5, recorded in this ADR.
-- Each source has its own switch (Z3). The defaults are the ones in "What dictation context reads by default"
-  below (change 13), no longer "all off by default" (D-Q6, D-Q14 reversed as written there).
+- The `terminal` source and the clipboard and file references each have their own switch (unchanged). The
+  defaults are the ones in "What dictation context reads by default" below (change 13), no longer "all off by
+  default" (D-Q6, D-Q14 reversed as written there).
 - The Accessibility row in Settings → Permissions names **four** purposes: pasting, moving windows, reading the
   text field while dictating (the third also names the document address and says that in terminals the title and
   the address are not read), and reading the text field after a paste to notice the user's corrections, with
   where to switch it off. A change of a permission's purpose text needs a release note
-  (`BACKWARD_COMPATIBILITY.md` sections 4 and 5). Mock-up v3 was accepted by the owner (2026-11-20), with three
-  text changes the owner confirmed (R4).
+  (`BACKWARD_COMPATIBILITY.md` sections 4 and 5). Mock-up v3 was accepted by the owner (2026-11-20); the three
+  text changes made after that acceptance were taken over as a procedural point (R4, 2026-11-20).
 - Lintel never writes an attribute to another application and does not set `AXManualAccessibility` or
   `AXEnhancedUserInterface` (D-Q9).
 
