@@ -118,6 +118,7 @@ class IsolationArgvTests(unittest.TestCase):
     def test_only_the_content_free_commands_may_skip_the_flags(self):
         self.assertEqual(canary.require_no_content(["--version"]), ["--version"])
         self.assertEqual(canary.require_no_content(("auth", "status")), ["auth", "status"])
+        self.assertEqual(canary.require_no_content(["--help"]), ["--help"])
         for args in (["-p"], ["auth", "login"], ["--version", "-p"], ["auth", "status", "--settings", "{}"], []):
             with self.assertRaises(RuntimeError):
                 canary.require_no_content(args)
@@ -160,6 +161,43 @@ class IsolationArgvTests(unittest.TestCase):
             canary.Canary.__init__ = original
         self.assertEqual("REAL" in err.getvalue(), bool(seen["flag"]))  # the warning is printed only with the flag
         return seen["flag"]
+
+
+class RealConfigControlTests(unittest.TestCase):
+    def test_pair_argv_differs_only_in_the_configuration_flags(self):
+        loose = canary.stream_argv("/x/claude", "haiku", "/d", False)
+        iso = canary.stream_argv("/x/claude", "haiku", "/d", True)
+        for argv in (loose, iso):
+            self.assertIn("--no-session-persistence", argv)
+            self.assertEqual(argv[argv.index("--tools") + 1], "")
+            self.assertEqual(canary.forbidden_in_product(argv), [])
+        self.assertEqual(canary.missing_isolation(iso), [])
+        self.assertEqual(sorted(canary.missing_isolation(loose)), ["--disable-slash-commands", "--setting-sources",
+                                                                    "--strict-mcp-config"])
+
+    def test_snapshot_diff_lists_new_and_modified_names_and_never_opens_files(self):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, True)
+        os.makedirs(os.path.join(d, "a"))
+        with open(os.path.join(d, "a", "old.txt"), "w") as f:
+            f.write("x")
+        before = canary.snapshot_tree(d)
+        os.makedirs(os.path.join(d, "b"))
+        os.utime(os.path.join(d, "a", "old.txt"), (1, 1))
+        with open(os.path.join(d, "b", "new.txt"), "w") as f:
+            f.write("y")
+        with mock.patch("builtins.open", side_effect=AssertionError("content must not be read")):
+            after = canary.snapshot_tree(d)
+        dirs, files, modified = canary.diff_snapshots(before, after)
+        self.assertEqual((dirs, files, modified), (["b"], [os.path.join("b", "new.txt")], [os.path.join("a", "old.txt")]))
+
+    def test_init_counts_keeps_numbers_only(self):
+        ev = {"type": "system", "subtype": "init", "tools": [], "mcp_servers": [{"name": "private"}], "skills": ["s", "t"],
+              "plugins": [{"name": "cc-plugin-x"}, {"name": "mine"}], "agents": ["a"], "slash_commands": []}
+        out = canary.init_counts(json.dumps(ev))
+        self.assertEqual((out["mcp_servers"], out["skills"], out["plugins"], out["pluginsNotBuiltIn"]), (1, 2, 2, 1))
+        self.assertNotIn("private", json.dumps(out))
+        self.assertIsNone(canary.init_counts("not json"))
 
 
 class UserConfigTests(unittest.TestCase):
@@ -225,6 +263,7 @@ class UserConfigTests(unittest.TestCase):
 
 FAKE_CLI = ('printf \'%s\\t%s\\n\' "$HOME" "$*" >> "$CANARY_TEST_ARGV_LOG"\n'
             'if [ "$1" = "--version" ]; then echo "9.9.9 (Claude Code)"; exit 0; fi\n'
+            'if [ "$1" = "--help" ]; then echo "  --safe-mode   Start with all customizations disabled"; exit 0; fi\n'
             'if [ "$1" = "auth" ]; then echo \'{"loggedIn":true,"authMethod":"x","email":"a@b.c"}\'; exit 0; fi\n'
                         'in=$(cat); echo "$in" > "$TMPDIR/copy-$$.txt"\n'
             'case " $* " in *" --no-session-persistence "*) ;; *) mkdir -p "$HOME/.claude/projects/p"; '
@@ -323,9 +362,13 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(report["cli"]["version"], "9.9.9")
         self.assertIn("coldTiny", report["checks"])
         checks = report["checks"]
-        # positive controls with the real configuration are skipped by default
-        self.assertTrue(checks["control"]["skipped"])
-        self.assertTrue(checks["hookEvents"]["realConfigWithoutTheFlag"]["skipped"])
+        # the positive control with the real configuration is skipped by default
+        self.assertTrue(checks["realConfig"]["skipped"])
+        self.assertNotIn("control", checks)
+        self.assertNotIn("realConfigWithoutTheFlag", checks["hookEvents"])
+        # --safe-mode is measured with the isolation flags only (the fake CLI has no init event: no difference seen)
+        self.assertTrue(checks["safeMode"]["cliSupportsFlag"])
+        self.assertFalse(checks["safeMode"]["recommendInGoldenList"])
         # the fake CLI writes its stdin to TMPDIR (private temp of the child): the scan must see it
         self.assertTrue(checks["diskCopies"]["callsWithAnyCopy"])
         # ... and a session file whenever --no-session-persistence is missing: only in the temporary HOME cases
@@ -345,12 +388,20 @@ class ProcessTests(unittest.TestCase):
         # the work directory is removed
         self.assertEqual([n for n in os.listdir(tmp) if n.startswith("provider-canary-")], [])
 
-    def test_end_to_end_opt_in_runs_the_real_config_controls(self):
-        report, _argv, home, tmp = self.run_main(["--positive-control-real-config"])
-        checks = report["checks"]
-        self.assertNotIn("skipped", checks["control"])
-        self.assertNotIn("skipped", checks["hookEvents"]["realConfigWithoutTheFlag"])
-        self.assertEqual(len(checks["diskCopies"]["controlSessionFilesRemoved"]), 1)
+    def test_end_to_end_opt_in_runs_one_pair_with_and_without_the_flags(self):
+        report, argv_lines, home, tmp = self.run_main(["--positive-control-real-config", "--only", "realConfig"])
+        rc = report["checks"]["realConfig"]
+        self.assertNotIn("skipped", rc)
+        calls = [a.split(" ") for h, a in argv_lines if h == home and "-p" in a.split(" ")]
+        self.assertEqual(len(calls), 2)  # one pair, nothing else
+        loose = [c for c in calls if canary.missing_isolation(c + [""])]
+        self.assertEqual(len(loose), 1)
+        for c in calls:  # no session file and no tool in either call
+            self.assertIn("--no-session-persistence", c)
+            self.assertEqual(c[c.index("--tools") + 1], "")
+        self.assertEqual(set(rc["withFlags"]["counts"]), set(rc["withoutFlags"]["counts"]))
+        self.assertEqual(rc["configDirChanges"]["counts"]["newFiles"], 0)  # the fake CLI writes nothing there
+        self.assertNotIn("newFiles", json.dumps(rc["configDirChanges"]).replace('"newFiles": 0', ""))
         self.assertEqual([n for n in os.listdir(tmp) if n.startswith("provider-canary-")], [])
 
     def test_work_directory_is_removed_when_a_step_raises(self):

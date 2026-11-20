@@ -20,18 +20,20 @@ Tests of the script (no real CLI, a fake one, a fake home): `python3 -I -m unitt
 - The CLI itself still reads your login and its own state in your config directory (`~/.claude`,
   `~/.claude.json`), as it does for any call. The script writes nothing there.
 - **`--positive-control-real-config` (off by default) is the exception. WARNING: it runs your real hooks.** It adds
-  two calls with your real `HOME` and without the isolation flags: `control` (project settings of the decoy, tools
-  allowed, the session saved in your config directory and removed again, your user-level MCP servers may start) and
-  `hookEvents.realConfigWithoutTheFlag` (all your settings: every hook of yours for session start, prompt submit and
-  stop runs once, your plugins load). Use it only if you accept that. It is the only way to prove that the tool,
-  shell and `CLAUDE.md` detectors can fire, because those need a logged-in model call. The first version of this
-  script ran both calls on every full run; that is how the owner's real hooks ran during the first measurement
-  (ADR 0011, "What the first run did").
+  ONE pair of calls (step `realConfig`): the same synthetic probe with your real `HOME` without the configuration
+  flags (your hooks, MCP servers, plugins, skills and slash commands load) and with the product flags. Both keep
+  `--no-session-persistence` and `--tools ""`, so no session is saved. The report holds counts only (hooks started by
+  event, user-tier hook modules, MCP servers, plugins, skills, slash commands, agents, tools). The script reads no file
+  content in your config directory: it compares names and times before and after, prints what is new or changed to
+  stderr, and deletes nothing. Run it as `--only realConfig --positive-control-real-config` so that the `disk` step
+  (which searches changed files for the run's random markers) does not run. Use it only if you accept that. The
+  first version of this script ran two such calls on every full run; that is how the owner's real hooks ran during
+  the first measurement (ADR 0011, "What the first run did"). The first result of the pair is in ADR 0011,
+  "Follow-up of 2026-11-20".
 - The disk scan (`disk`) walks your config directory, `~/.cache`, the system temp directory and the
   `~/Library/{Caches,Application Support,Logs}` folders whose name contains `claude` or `anthropic`. It only searches
   files modified since the start for this run's random markers and reports paths and counts. It prints no file
-  content and changes nothing (with the opt-in control it removes that control's own session file and its own empty
-  project directories).
+  content and changes nothing.
 - The temporary work directory (`$TMPDIR/provider-canary-*`) is removed at the end, also when a step raises or the
   script gets Ctrl-C, SIGTERM or SIGHUP; a `claude` process still running then is killed with its process group
   first (it runs in its own session, so the terminal's Ctrl-C does not reach it).
@@ -69,7 +71,8 @@ the working directory and a private `TMPDIR`.
 | 3 | Hooks, MCP and plugins, **user level** | `userConfig`: a temporary `HOME` with a synthetic user configuration: command hooks for SessionStart, UserPromptSubmit, Stop and SessionEnd in `settings.json`, an MCP server in `.claude.json`, an enabled plugin with a SessionStart hook, an agent definition. Each one creates an empty marker file when the CLI runs it. Six cases: `control` (no flag: everything must fire, or the test proves nothing), `product` (the product flags: nothing may fire) and each flag alone (`--setting-sources ""`, `--strict-mcp-config`, `--safe-mode`, `--no-session-persistence`). No login there, so no model call; the Stop hook is not reached. |
 | 3 | Hooks under the real login | `hooks` (`hookEvents`): one call with the real `HOME` and the product flags plus a canary hook passed by `--settings` (UserPromptSubmit and Stop; the product never passes `--settings`). The canary hooks must fire (the detector works through the end of the turn) and `hooksStartedBeyondCanary` must be 0: any other started hook would be one of yours. The debug log's hook modules are counted by tier (user tier must be 0). |
 | 4 | `CLAUDE.md`, MCP, plugins | The decoy has a `CLAUDE.md` with a token and a `.mcp.json` whose server is `touch <file>`. The init event reports tools, MCP servers, skills and plugins (`pluginsNotBuiltIn` must be 0). |
-| control | Positive control with the real config, **opt-in** | Only with `--positive-control-real-config` (see the warning above). The same decoy with tools allowed, project settings loaded and the session persisted. Hook, MCP server and shell marker must appear and the session file must contain the marker. Without it, the tool, shell and `CLAUDE.md` results rest on the init event (`tools` is empty) and have no positive control in that run. |
+| control | Positive control with the real config, **opt-in** | `realConfig`, only with `--positive-control-real-config` (see the warning above): one call without the configuration flags and one with the product flags; counts of hooks started, user-tier hook modules, MCP servers, plugins, skills, slash commands, agents and tools; the config directory compared by name and time. Without it, the tool, shell and `CLAUDE.md` results rest on the init event (`tools` is empty). |
+| safe-mode | `--safe-mode` | `safeMode`: the product flags with and without `--safe-mode` under the real login (login, JSON result shape, init counts, hook modules by tier). Recommended only if the login and the format are unchanged and something less is loaded. |
 | 5 | TCC | `tccInheritance`: opens two TCC-protected files from the script and from a plain child. See below. |
 | 6 | Session files | `userConfig`: after each case the temporary config directory's `projects/**/*.jsonl` is searched for that call's marker: 1 file without `--no-session-persistence`, 0 with it. `disk` does the same search in the real config directory for every isolated call (`sessionFilesWithMarkerByIsolatedCall`, all 0). Paths and counts only. |
 | 6 | Copies on disk | `disk`: every file modified since the start under the CLI config directory, `~/.claude.json`, `~/.cache`, the system temp directory, `~/Library/{Caches,Application Support,Logs}/*claude*|*anthropic*`, the child `TMPDIR` and working directories is searched for each call's marker. Report: paths and counts. |
