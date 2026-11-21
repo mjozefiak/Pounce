@@ -80,9 +80,11 @@ public final class MeetingsPlugin: LintelPlugin {
         self.runtime = runtime
         let resultsChanged = context.resultsChanged
         let noteChanges = noteChanges
+        let providerRelay = ProviderBoardRelay()
         let changed: @Sendable () -> Void = {
             resultsChanged()
             noteChanges.notify()
+            providerRelay.notify()
         }
         self.changed = changed
         library = MeetingsLibrary(
@@ -94,13 +96,15 @@ public final class MeetingsPlugin: LintelPlugin {
         let llmManager = ModelManagers.shared.manager(
             for: context.modelsDirectory.appending(path: MeetingsUI.llmDirectoryName, directoryHint: .isDirectory),
             logger: context.logger)
+        // The one runner: the notes jobs run content through it, the settings only probe and test through it.
+        let providerRunner = system.makeProviderRunner(context.cachesDirectory) { settings.notesProviderBinary }
         let notes = NotesService(
             NotesService.Dependencies(
                 library: library, settings: settings,
                 modelFile: { model in
                     await llmManager.location(of: model.package).folder.flatMap { model.fileURL(in: $0) }
                 },
-                providerRunner: system.makeProviderRunner(context.cachesDirectory),
+                providerRunner: providerRunner,
                 openModels: context.openModels, changed: changed, logger: context.logger))
         self.notes = notes
         library.onMeetingReady = { [weak notes] id in notes?.meetingBecameReady(id) }
@@ -117,7 +121,9 @@ public final class MeetingsPlugin: LintelPlugin {
             changed: changed)
         ui = MeetingsUI(
             context: context, settings: settings, library: library, activity: activity,
-            authorizer: authorizer ?? system.microphoneAuthorizer(), makeSelfTest: system.makeSelfTest, notes: notes)
+            authorizer: authorizer ?? system.microphoneAuthorizer(), makeSelfTest: system.makeSelfTest, notes: notes,
+            providerRunner: providerRunner)
+        providerRelay.target = ui.model.provider
         // The banner reads the speech model's place and the microphone; a change makes the shell read it again.
         ui.model.onStatusChange = { resultsChanged() }
         let relay = relay
@@ -197,6 +203,9 @@ public final class MeetingsPlugin: LintelPlugin {
     /// archives and the spool). Models live in the shared `Models/` folder and stay.
     public func eraseData() async throws {
         libraryActions.closeWindows()
+        // Erase Data also forgets the provider choice and the hand-picked CLI (spec: "Cykl życia wyboru").
+        settings.clearNotesProvider()
+        settings.setNotesProviderBinary(nil)
         try await library.eraseAfterOpens()
     }
 

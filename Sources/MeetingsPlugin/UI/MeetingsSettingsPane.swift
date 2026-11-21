@@ -60,6 +60,38 @@ struct MeetingsPaneContent: View {
                 Text("Basics", comment: "Settings pane section title: the main settings of a pane")
                     .settingsSectionHeader()
             }
+            if ProviderChoiceModel.surfacesProvider(notesEnabled: model.notes.enabled, isLocal: model.provider.isLocal)
+            {
+                Section {
+                    NotesWrittenByRows(provider: model.provider, notes: model.notes)
+                } header: {
+                    Text("Notes are written by", comment: "Settings → Meetings: provider menu label")
+                        .settingsSectionHeader()
+                } footer: {
+                    if model.provider.isLocal {
+                        SettingsFooter(
+                            LocalizedStringResource(
+                                "Nothing leaves this Mac.",
+                                comment: "Settings → Meetings: caption under the local choice"))
+                    }
+                }
+                if !model.provider.isLocal || model.provider.earlierMark != nil {
+                    Section {
+                        NotesWrittenByNotices(provider: model.provider)
+                    } footer: {
+                        if !model.provider.isLocal {
+                            SettingsFooter(
+                                LocalizedStringResource(
+                                    "Switch back to Local here at any time: no question asked. It stops further sending; it can’t recall what was sent.",
+                                    comment: "Settings → Meetings: caption under the notice about an external provider")
+                            )
+                        }
+                    }
+                }
+            }
+            Section {
+                recordingRows
+            }
         } advanced: {
             advanced
         } data: {
@@ -133,9 +165,10 @@ struct MeetingsPaneContent: View {
                     comment: "Settings → Meetings: help under Write notes after each meeting"))
         }
         .toggleStyle(.switch)
-        if model.notes.enabled {
-            notesModelRow
-        }
+    }
+
+    /// Speech model, language, "Your name" and retention: their own card under the notes section (mockup v2).
+    @ViewBuilder private var recordingRows: some View {
         LabeledContent {
             Picker(selection: Binding(get: { model.speechPackageID }, set: { model.selectSpeechModel($0) })) {
                 ForEach(model.speechPackages) { package in

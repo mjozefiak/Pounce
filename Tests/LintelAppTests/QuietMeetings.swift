@@ -17,7 +17,9 @@ enum QuietMeetings {
             makeSelfTest: { SystemAudioSelfTest(backend: NoTapBackend(), player: NoTonePlayer()) },
             microphoneAuthorizer: { UnaskedMicrophone() },
             makeSession: { _, _ in RefusedSession() },
-            makeProviderRunner: { ProviderRunner(system: .quiet, cachesDirectory: $0) })
+            makeProviderRunner: { directory, manual in
+                ProviderRunner(system: .quiet, cachesDirectory: directory, manualBinaryPath: manual)
+            })
         #expect(
             MeetingsSystem.liveUses.isEmpty, "a test built the real \(MeetingsSystem.liveUses.sorted())")
     }

@@ -71,7 +71,7 @@ import Testing
         }
         #expect(source.contains("\"Privacy and data\", comment:"))
         // The notes model is a choice here; its download lives in Models (no "Download (≈ …)" card).
-        #expect(source.contains("if model.notes.enabled {"))
+        #expect(source.contains("ProviderChoiceModel.surfacesProvider("))
         #expect(!source.contains("Download ("))
         #expect(!source.contains("Try it on an example"))
     }

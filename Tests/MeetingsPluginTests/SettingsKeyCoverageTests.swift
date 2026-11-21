@@ -23,15 +23,17 @@ import Testing
         "retentionDays": "setRetentionDays",
         "keepAudio": "setKeepAudio",
         "selfName": "setSelfName",
+        "notesProvider": "setNotesProvider(",
+        "notesProviderModel": "setNotesProvider(",
+        "notesProviderBinary": "setNotesProviderBinary(",
     ]
 
     /// Keys with no pane control, each with the reason. The prototype figure `set-meetings` shows no control for
     /// any of them either (step 5.2).
     static let exempt: [String: String] = [
-        "notesProvider":
-            "no pane control until the provider mockup is accepted (A5b); set by tests and --qa-setting only",
-        "notesProviderModel":
-            "no pane control until the provider mockup is accepted (A5b); set by tests and --qa-setting only",
+        "qaProviderStatus": "DEBUG-only QA key (--qa-setting): forces the provider's status; release builds ignore it",
+        "qaAccountName": "DEBUG-only QA key (--qa-setting): an invented account name for screenshots",
+        "qaProviderScenario": "DEBUG-only QA key (--qa-setting): shows a job state without a real CLI",
         "systemAudio": "no pane control by design: capture setting kept for defaults, default on",
         "diarization": "no pane control by design: capture setting kept for defaults, default on",
         "notesChunkTokens": "tuning key set with defaults only; no pane control by design",
@@ -48,6 +50,7 @@ import Testing
         "Sources/MeetingsPlugin/Suggestions/MeetingsSettingsModel+Suggestions.swift",
         "Sources/MeetingsPlugin/Notes/NotesViews.swift",
         "Sources/MeetingsPlugin/Notes/NotesSettingsModel.swift",
+        "Sources/MeetingsPlugin/Notes/ProviderChoiceModel.swift",
         "Sources/MeetingsPlugin/MeetingsPlugin+Settings.swift",
     ]
 
@@ -58,6 +61,8 @@ import Testing
             "main window",
             [
                 "Sources/MeetingsPlugin/UI/MeetingsSettingsPane.swift",
+                "Sources/MeetingsPlugin/Notes/ProviderChoiceViews.swift",
+                "Sources/MeetingsPlugin/Notes/ProviderChoiceModel.swift",
                 // Both model folders are chosen in the Models pane through the usages' `chooseFolder`.
                 "Sources/MeetingsPlugin/MeetingsPlugin+Models.swift",
             ],
@@ -77,6 +82,9 @@ import Testing
                 "retentionDays": "model.selectRetention(",
                 "keepAudio": "$model.keepAudio",
                 "selfName": "model.saveSelfName(",
+                "notesProvider": "provider.choose(",
+                "notesProviderModel": "provider.chooseModel(",
+                "notesProviderBinary": "settings.setNotesProviderBinary(",
             ]
         )
     ]

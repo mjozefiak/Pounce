@@ -203,7 +203,12 @@ enum MeetingLibraryPresentation {
         switch entry.notesStatus {
         case .none: return needsNotesModel ? needsModelBadge : nil
         case .running: return String(localized: "Writing notes", comment: "Meeting library badge: notes in progress")
-        case .ok: return String(localized: "Notes", comment: "Meeting library badge: the meeting has notes")
+        case .ok:
+            // A provider wrote them: the row says so (D9=A) instead of the plain "Notes".
+            if let mark = ProviderMark.chip(provider: entry.notesProvider, model: entry.notesProviderModel) {
+                return mark
+            }
+            return String(localized: "Notes", comment: "Meeting library badge: the meeting has notes")
         case .partial:
             return String(localized: "Partial notes", comment: "Meeting library badge: notes miss some parts")
         case .failed: return String(localized: "Notes failed", comment: "Meeting library badge: notes failed")

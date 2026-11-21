@@ -20,6 +20,10 @@ struct MeetingsSettings: Sendable {
         static let builtInLLMModel = "builtInLLMModel"
         static let notesProvider = "notesProvider"
         static let notesProviderModel = "notesProviderModel"
+        static let notesProviderBinary = "notesProviderBinary"
+        static let qaProviderStatus = "qaProviderStatus"
+        static let qaProviderScenario = "qaProviderScenario"
+        static let qaAccountName = "qaAccountName"
         static let notesChunkTokens = "notesChunkTokens"
         static let notesReduceInputTokens = "notesReduceInputTokens"
         static let suggestMeetings = "suggestMeetings"
@@ -94,12 +98,13 @@ struct MeetingsSettings: Sendable {
 
     /// The external provider the user chose to write the notes, or `nil` for the built-in model (the default).
     /// Choosing a provider is the consent: a transcript leaves the Mac only while this is not `nil`. Read fresh
-    /// on every call. A missing, empty, unknown or malformed value is `nil`, never a guess: it means the built-in
+    /// on every call. A missing, empty, unknown or malformed value, and a model that the provider does not offer (the hidden Haiku, a typed id), is `nil`, never a guess: it means the built-in
     /// model, and `ProviderRunner` starts nothing for it (owner decision 2026-11-20; no UI yet).
     var notesProviderSelection: NotesProviderSelection? {
         guard let id = settings.string(Key.notesProvider), !id.isEmpty,
             let descriptor = Self.knownProviders.first(where: { $0.id.rawValue == id }),
-            let model = settings.string(Key.notesProviderModel), ProviderDescriptor.isValidModelID(model)
+            let model = settings.string(Key.notesProviderModel), ProviderDescriptor.isValidModelID(model),
+            descriptor.models.contains(where: { $0.id == model })
         else { return nil }
         return NotesProviderSelection(provider: descriptor.id, model: model)
     }
@@ -254,8 +259,8 @@ struct MeetingsSettings: Sendable {
     func setConsentReminder(_ value: Bool) { settings.set(value, for: Key.consentReminder) }
     func setNotesEnabled(_ value: Bool) { settings.set(value, for: Key.notesEnabled) }
     func setBuiltInLLMModel(_ model: LLMModel) { settings.set(model.id, for: Key.builtInLLMModel) }
-    /// Both keys go together, so a half-written choice never reads as one. Settings has no control for them yet
-    /// (a test or the DEBUG `--qa-setting` flag sets them).
+    /// The choice in Settings → Meetings → "Notes are written by": two keys that go together, so a half-written
+    /// choice never reads as one. Choosing is the consent (owner decision, 2026-11-20); nothing else is stored.
     func setNotesProvider(_ selection: NotesProviderSelection) {
         settings.set(selection.provider.rawValue, for: Key.notesProvider)
         settings.set(selection.model, for: Key.notesProviderModel)
@@ -264,6 +269,50 @@ struct MeetingsSettings: Sendable {
     func clearNotesProvider() {
         settings.removeValue(for: Key.notesProvider)
         settings.removeValue(for: Key.notesProviderModel)
+    }
+
+    /// The CLI the user chose with "Choose File…"; `nil` searches the fixed directories.
+    var notesProviderBinary: String? {
+        guard let path = settings.string(Key.notesProviderBinary), !path.isEmpty else { return nil }
+        return path
+    }
+    func setNotesProviderBinary(_ path: String?) {
+        if let path, !path.isEmpty {
+            settings.set(path, for: Key.notesProviderBinary)
+        } else {
+            settings.removeValue(for: Key.notesProviderBinary)
+        }
+    }
+
+    /// DEBUG only (`--qa-setting plugins.meetings.qaAccountName=<name>`): the macOS account's full name as the
+    /// "Your name" suggestion reads it, so a screenshot shows an invented name, never the tester's.
+    var qaAccountName: String? {
+        #if DEBUG
+        settings.string(Key.qaAccountName)
+        #else
+        nil
+        #endif
+    }
+
+    /// DEBUG only (`--qa-setting plugins.meetings.qaProviderScenario=running|confirm|details|ready|<failure reason>`; any value puts the provider banner first): a job
+    /// in progress, the D12 question, the notice's Details open, or the last job failed with that reason
+    /// (`timedOut`, `network`, `rateLimited`, `other`, `tooLong`, `modelNotAvailable`). Nothing runs.
+    var qaProviderScenario: String? {
+        #if DEBUG
+        settings.string(Key.qaProviderScenario)
+        #else
+        nil
+        #endif
+    }
+
+    /// DEBUG only (`--qa-setting plugins.meetings.qaProviderStatus=ready|notInstalled|notSignedIn|incompatibleVersion`):
+    /// the state the provider's row and banner show, with no process started. Release builds never read it.
+    var qaProviderStatus: ProviderStatus? {
+        #if DEBUG
+        settings.string(Key.qaProviderStatus).flatMap(ProviderStatus.init(rawValue:))
+        #else
+        nil
+        #endif
     }
     func setSuggestMeetings(_ value: Bool) { settings.set(value, for: Key.suggestMeetings) }
     func setSuggestMutedBundleIDs(_ ids: [String]) { settings.set(ids, for: Key.suggestMutedBundleIDs) }

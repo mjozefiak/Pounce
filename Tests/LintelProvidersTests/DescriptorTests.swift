@@ -23,8 +23,9 @@ import Testing
         #expect(!argv.joined(separator: " ").contains("/"))
     }
 
-    @Test func descriptorIsNotVerifiedUntilTheCanaryDecision() {
-        #expect(!ProviderDescriptor.claudeCode.isolationVerified)
+    @Test func theShippedDescriptorIsVerified() {
+        // The last commit of PR 215 turns sending on; the owner's qa-approved is the consent for it.
+        #expect(ProviderDescriptor.claudeCode.isolationVerified)
     }
 
     @Test(arguments: [
@@ -158,7 +159,7 @@ import Testing
         #expect(descriptor.status(versionOutput: Data("2.1.328".utf8), authOutput: out) == .notSignedIn)
         #expect(descriptor.status(versionOutput: Data("2.1.328".utf8), authOutput: nil) == .notSignedIn)
         #expect(descriptor.status(versionOutput: Data("1.9.0".utf8), authOutput: loggedIn) == .incompatibleVersion)
-        #expect(descriptor.status(versionOutput: Data("3.0.0".utf8), authOutput: loggedIn) == .incompatibleVersion)
+        #expect(descriptor.status(versionOutput: Data("3.0.0".utf8), authOutput: loggedIn) == .newerVersion)
         #expect(descriptor.status(versionOutput: Data("garbage".utf8), authOutput: loggedIn) == .incompatibleVersion)
     }
 

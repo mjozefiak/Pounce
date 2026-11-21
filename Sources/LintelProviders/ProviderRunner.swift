@@ -12,6 +12,8 @@ public struct ProviderRunner: Sendable {
     private let cachesDirectory: URL
     private let manualBinaryPath: @Sendable () -> String?
     private let environment: @Sendable () -> [String: String]
+    /// Which hand-picked binaries already answered the identity probe (see `prepareBinary`).
+    private let proven = ManualBinaryProof()
 
     public init(
         system: ProviderSystem,
@@ -48,7 +50,11 @@ public struct ProviderRunner: Sendable {
 
     // MARK: content
 
-    public func run(_ request: ProviderRequest, authorization: ProviderAuthorization) async throws -> GenerationResult {
+    /// `onExactModel` gets the model the CLI reports it used (the alias is not the exact version), when it reports one.
+    public func run(
+        _ request: ProviderRequest, authorization: ProviderAuthorization,
+        onExactModel: (@Sendable (String) -> Void)? = nil
+    ) async throws -> GenerationResult {
         let descriptor = try self.descriptor(for: request.provider)
         let (argv, stdin) = try prepare(request, descriptor: descriptor)
         let id = descriptor.id
@@ -61,30 +67,47 @@ public struct ProviderRunner: Sendable {
                 throw ProviderError.notAuthorized(reason)
             }
             try Task.checkCancellation()
-            let spec = try makeSpec(descriptor: descriptor, arguments: argv, stdin: stdin, timeout: request.timeout)
+            let binary = try await prepareBinary(descriptor)
+            let spec = try makeSpec(
+                binary: binary.url, descriptor: descriptor, arguments: argv, stdin: stdin, timeout: request.timeout)
             defer { spec.workspace.remove() }
+            // Directly before the start: the file is still the one that answered the probe.
+            try binary.recheck()
             ProviderLog.record(.contentProcessStarted, provider: id)
             return try await system.process.runContent(spec.value)
         }
         try Self.check(output.ending, provider: id)
         ProviderLog.record(.processFinished, provider: id, millis: Self.millis(since: started))
+        if let exact = descriptor.exactModel(stdout: output.stdout) { onExactModel?(exact) }
         return try interpret(output, descriptor: descriptor)
     }
 
     // MARK: probes (no user content)
 
     public func status(of provider: ProviderID) async -> ProviderStatus {
-        guard let descriptor = descriptors.first(where: { $0.id == provider }) else { return .notInstalled }
+        await report(of: provider).status
+    }
+
+    /// The status and the CLI's version number (`2.1.329`), for the Settings row. The two probes carry no content.
+    public func report(of provider: ProviderID) async -> ProviderStatusReport {
+        guard let descriptor = descriptors.first(where: { $0.id == provider }) else {
+            return ProviderStatusReport(status: .notInstalled, version: nil)
+        }
         do {
             let version = try await probe(descriptor, arguments: descriptor.versionArguments, stdin: Data())
-            guard version.ending == .exited, version.exitCode == 0 else { return .incompatibleVersion }
+            guard version.ending == .exited, version.exitCode == 0 else {
+                return ProviderStatusReport(status: .incompatibleVersion, version: nil)
+            }
+            let number = ProviderVersion(parsing: String(decoding: version.stdout, as: UTF8.self))
+                .map { $0.parts.map(String.init).joined(separator: ".") }
             let auth = try await probe(descriptor, arguments: descriptor.authStatusArguments, stdin: Data())
             let authData = auth.exitCode == 0 ? auth.stdout : nil
-            return descriptor.status(versionOutput: version.stdout, authOutput: authData)
+            return ProviderStatusReport(
+                status: descriptor.status(versionOutput: version.stdout, authOutput: authData), version: number)
         } catch ProviderError.notInstalled {
-            return .notInstalled
+            return ProviderStatusReport(status: .notInstalled, version: nil)
         } catch {
-            return .incompatibleVersion
+            return ProviderStatusReport(status: .incompatibleVersion, version: nil)
         }
     }
 
@@ -102,10 +125,12 @@ public struct ProviderRunner: Sendable {
             }
             let system = self.system
             let output: ProviderProcessOutput = try await gate.withSlot(provider) {
+                let binary = try await prepareBinary(descriptor)
                 let spec = try makeSpec(
-                    descriptor: descriptor, arguments: argv, stdin: Data("Reply with the single word OK.".utf8),
-                    timeout: .seconds(120))
+                    binary: binary.url, descriptor: descriptor, arguments: argv,
+                    stdin: Data("Reply with the single word OK.".utf8), timeout: .seconds(120))
                 defer { spec.workspace.remove() }
+                try binary.recheck()
                 ProviderLog.record(.probeProcessStarted, provider: provider)
                 return try await system.process.runProbe(spec.value)
             }
@@ -150,18 +175,73 @@ public struct ProviderRunner: Sendable {
         return (argv, Data(content.utf8))
     }
 
+    /// The binary for ONE process: the path setting is read once here, links are resolved once, and the result (a
+    /// URL and, for a hand-picked file, its identity) is what the probe and the process that follows both use; no
+    /// later step reads the setting or the path again. A binary the user picked by hand (or a `defaults write`) is
+    /// trusted only after it answered the version probe as this provider's CLI: its file name is one of the
+    /// descriptor's names and `--version` names the product and a version. The answer is tied to the file's
+    /// identity (device, inode, size, change time), so a replaced file is asked again, and `recheck()` compares it
+    /// once more directly before a process with content starts. The probe carries no content: argv is `--version`,
+    /// stdin is empty. Runs inside the provider's queue slot; the search of the fixed directories needs no proof
+    /// (it finds only the installer's places).
+    private func prepareBinary(_ descriptor: ProviderDescriptor) async throws -> ResolvedBinary {
+        let manual = manualBinaryPath().flatMap { $0.isEmpty ? nil : $0 }
+        guard let manual else {
+            guard let url = system.locator.locate(descriptor, manualPath: nil) else {
+                ProviderLog.record(.refusedNotInstalled, provider: descriptor.id)
+                throw ProviderError.notInstalled
+            }
+            return ResolvedBinary(url: url, identity: nil)
+        }
+        guard descriptor.binaryNames.contains(URL(filePath: manual).lastPathComponent),
+            let url = system.locator.locate(descriptor, manualPath: manual),
+            let identity = ManualBinaryProof.identityKey(of: url)
+        else {
+            ProviderLog.record(.refusedNotInstalled, provider: descriptor.id)
+            throw ProviderError.notInstalled
+        }
+        let binary = ResolvedBinary(url: url, identity: identity)
+        if proven.contains(identity) { return binary }
+        let spec = try makeSpec(
+            binary: url, descriptor: descriptor, arguments: descriptor.versionArguments, stdin: Data(),
+            timeout: .seconds(30))
+        defer { spec.workspace.remove() }
+        try binary.recheck()
+        ProviderLog.record(.probeProcessStarted, provider: descriptor.id)
+        let output = try await system.process.runProbe(spec.value)
+        let text = String(decoding: output.stdout, as: UTF8.self)
+        guard output.ending == .exited, output.exitCode == 0, text.contains(descriptor.displayName),
+            ProviderVersion(parsing: text) != nil
+        else {
+            ProviderLog.record(.refusedNotInstalled, provider: descriptor.id)
+            throw ProviderError.notInstalled
+        }
+        // The file that answered must be the one that was named: if it changed while the probe ran, it is not proven.
+        try binary.recheck()
+        proven.insert(identity)
+        return binary
+    }
+
+    struct ResolvedBinary {
+        let url: URL
+        /// `nil` for a binary found in the fixed directories.
+        let identity: String?
+
+        /// A hand-picked file that is no longer the one that was probed ends the run (no process starts).
+        func recheck() throws {
+            guard let identity else { return }
+            guard ManualBinaryProof.identityKey(of: url) == identity else { throw ProviderError.notInstalled }
+        }
+    }
+
     private struct PreparedSpec {
         let value: ProviderProcessSpec
         let workspace: ProviderWorkspace
     }
 
     private func makeSpec(
-        descriptor: ProviderDescriptor, arguments: [String], stdin: Data, timeout: Duration
+        binary: URL, descriptor: ProviderDescriptor, arguments: [String], stdin: Data, timeout: Duration
     ) throws -> PreparedSpec {
-        guard let binary = system.locator.locate(descriptor, manualPath: manualBinaryPath()) else {
-            ProviderLog.record(.refusedNotInstalled, provider: descriptor.id)
-            throw ProviderError.notInstalled
-        }
         let workspace = try ProviderWorkspace.make(in: cachesDirectory)
         let value = ProviderProcessSpec(
             executable: binary, arguments: arguments,
@@ -175,8 +255,11 @@ public struct ProviderRunner: Sendable {
     {
         let system = self.system
         return try await gate.withSlot(descriptor.id) {
-            let spec = try makeSpec(descriptor: descriptor, arguments: arguments, stdin: stdin, timeout: .seconds(30))
+            let binary = try await prepareBinary(descriptor)
+            let spec = try makeSpec(
+                binary: binary.url, descriptor: descriptor, arguments: arguments, stdin: stdin, timeout: .seconds(30))
             defer { spec.workspace.remove() }
+            try binary.recheck()
             ProviderLog.record(.probeProcessStarted, provider: descriptor.id)
             return try await system.process.runProbe(spec.value)
         }
@@ -215,5 +298,32 @@ public struct ProviderRunner: Sendable {
     private static func millis(since start: ContinuousClock.Instant) -> Int {
         let parts = (ContinuousClock.now - start).components
         return Int(parts.seconds * 1000 + parts.attoseconds / 1_000_000_000_000_000)
+    }
+}
+
+/// What the identity probe established for hand-picked binaries (see `ProviderRunner.prepareBinary`).
+final class ManualBinaryProof: @unchecked Sendable {
+    private let lock = NSLock()
+    private var proven: Set<String> = []
+
+    func contains(_ identityKey: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return proven.contains(identityKey)
+    }
+
+    func insert(_ identityKey: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        proven.insert(identityKey)
+    }
+
+    /// The resolved path with the file's device, inode, size and change time: another file, or the same one changed,
+    /// differs.
+    static func identityKey(of url: URL) -> String? {
+        var info = stat()
+        guard stat(url.path, &info) == 0 else { return nil }
+        return
+            "\(url.path)|\(info.st_dev)|\(info.st_ino)|\(info.st_size)|\(info.st_ctimespec.tv_sec).\(info.st_ctimespec.tv_nsec)"
     }
 }

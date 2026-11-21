@@ -56,15 +56,18 @@ import Testing
         #expect(process.probeRuns == 0)
     }
 
-    @Test func theShippedDescriptorStartsNothing() async {
+    @Test func theShippedDescriptorStartsAfterAuthorization() async throws {
         let process = QuietProviderProcess()
         let shipped = ProviderRunner(
             system: .quiet(process),
             cachesDirectory: URL(filePath: NSTemporaryDirectory()).appending(path: "x-\(UUID())"))
-        await #expect(throws: ProviderError.isolationNotVerified) {
-            try await shipped.run(makeRequest(), authorization: allowed)
-        }
-        #expect(process.contentRuns == 0)
+        _ = try await shipped.run(makeRequest(), authorization: allowed)
+        #expect(process.contentRuns == 1)
+        do {
+            _ = try await shipped.run(makeRequest(), authorization: { .denied(.noConsent) })
+            Issue.record("a denied authorization must not run")
+        } catch ProviderError.notAuthorized {}
+        #expect(process.contentRuns == 1, "a denied authorization still starts nothing")
     }
 
     @Test(arguments: [

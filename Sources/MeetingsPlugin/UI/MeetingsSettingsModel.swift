@@ -66,6 +66,8 @@ final class MeetingsSettingsModel {
     let diarization: MeetingsModelCardModel
     let systemAudioTest: SystemAudioTestModel
     let notes: NotesSettingsModel
+    /// "Notes are written by": the provider and model menus, their status and notice.
+    let provider: ProviderChoiceModel
     /// The speech models to choose from.
     let speechPackages: [ModelPackage]
     private(set) var speechPackageID: String
@@ -93,7 +95,7 @@ final class MeetingsSettingsModel {
     init(
         settings: MeetingsSettings, library: MeetingsLibrary, privacy: MeetingsPrivacyActions,
         speech: MeetingsModelCardModel, diarization: MeetingsModelCardModel, systemAudioTest: SystemAudioTestModel,
-        notes: NotesSettingsModel, speechPackages: [ModelPackage] = ModelCatalog.all,
+        notes: NotesSettingsModel, provider: ProviderChoiceModel, speechPackages: [ModelPackage] = ModelCatalog.all,
         authorizer: any MicrophoneAuthorizer,
         listDevices: @escaping () -> [MicrophoneCapture.InputDevice] = MicrophoneCapture.inputDevices,
         openURL: @escaping @MainActor (URL) -> Void,
@@ -106,6 +108,7 @@ final class MeetingsSettingsModel {
         self.diarization = diarization
         self.systemAudioTest = systemAudioTest
         self.notes = notes
+        self.provider = provider
         self.speechPackages = speechPackages
         self.authorizer = authorizer
         self.listDevices = listDevices
@@ -134,6 +137,8 @@ final class MeetingsSettingsModel {
         await speech.refresh()
         await diarization.refresh()
         await notes.refresh()
+        provider.reload()
+        provider.refreshStatus()
     }
 
     /// Re-reads only what the Settings banner shows: the speech model's place and the microphone access. Reads
@@ -141,6 +146,8 @@ final class MeetingsSettingsModel {
     func refreshStatus() async {
         microphone = authorizer.status()
         await speech.refresh()
+        provider.reload()
+        provider.refreshStatus(force: false)
     }
 
     // MARK: Speech engine

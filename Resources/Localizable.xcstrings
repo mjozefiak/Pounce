@@ -25669,6 +25669,1410 @@
         }
       }
     },
+    "Writing notes with %@…" : {
+      "comment" : "Settings → Meetings banner while a provider writes notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Writing notes with %@…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ pisze notatki…"
+          }
+        }
+      }
+    },
+    "Transcripts leave this Mac." : {
+      "comment" : "Settings → Meetings banner: the short notice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcripts leave this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypty opuszczają tego Maca."
+          }
+        }
+      }
+    },
+    "Ready · Notes are written by %@." : {
+      "comment" : "Settings → Meetings banner when an external provider writes the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready · Notes are written by %@."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gotowe · Notatki pisze %@."
+          }
+        }
+      }
+    },
+    "Use Local" : {
+      "comment" : "Settings → Meetings banner button: back to the built-in model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Local"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Użyj Lokalnie"
+          }
+        }
+      }
+    },
+    "%@ not found" : {
+      "comment" : "Settings → Meetings banner: the provider's CLI is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ not found"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie znaleziono %@"
+          }
+        }
+      }
+    },
+    "Lintel uses the %@ installed on your Mac. New notes won’t be written until it is found." : {
+      "comment" : "Settings → Meetings banner detail: the provider's CLI is missing",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel uses the %@ installed on your Mac. New notes won’t be written until it is found."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel używa %@ zainstalowanego na Twoim Macu. Nowe notatki nie powstaną, dopóki go nie znajdzie."
+          }
+        }
+      }
+    },
+    "How to Install" : {
+      "comment" : "Settings → Meetings banner button: opens the install page",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How to Install"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jak zainstalować"
+          }
+        }
+      }
+    },
+    "Choose File…" : {
+      "comment" : "Settings → Meetings banner button: pick the CLI by hand",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose File…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wskaż plik…"
+          }
+        }
+      }
+    },
+    "Sign in to %@" : {
+      "comment" : "Settings → Meetings banner: the provider's CLI is not signed in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaloguj się w %@"
+          }
+        }
+      }
+    },
+    "Open Terminal and run the command below, then check again." : {
+      "comment" : "Settings → Meetings banner detail: how to sign in",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Terminal and run the command below, then check again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Terminal i uruchom poniższe polecenie, potem sprawdź ponownie."
+          }
+        }
+      }
+    },
+    "This Claude Code is too old" : {
+      "comment" : "Settings → Meetings banner: the provider's CLI version is too old",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Claude Code is too old"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta wersja Claude Code jest za stara"
+          }
+        }
+      }
+    },
+    "Update it, then check again." : {
+      "comment" : "Settings → Meetings banner detail: update the CLI",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update it, then check again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaktualizuj ją, potem sprawdź ponownie."
+          }
+        }
+      }
+    },
+    "Update Claude Code" : {
+      "comment" : "Settings → Meetings banner button: how to update the CLI",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Claude Code"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zaktualizuj Claude Code"
+          }
+        }
+      }
+    },
+    "This Claude Code is newer than this Lintel supports." : {
+      "comment" : "Settings → Meetings banner: the provider's CLI is newer than Lintel knows",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Claude Code is newer than this Lintel supports."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta wersja Claude Code jest nowsza, niż obsługuje ten Lintel."
+          }
+        }
+      }
+    },
+    "Write on This Mac" : {
+      "comment" : "Settings → Meetings banner button: the built-in model writes the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write on This Mac"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napisz na tym Macu"
+          }
+        }
+      }
+    },
+    "Notes weren’t written" : {
+      "comment" : "Settings → Meetings banner title: a provider job failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes weren’t written"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki nie powstały"
+          }
+        }
+      }
+    },
+    "%@ isn’t available on your %@ plan" : {
+      "comment" : "Settings → Meetings banner title: the plan does not include the model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ isn’t available on your %@ plan"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ nie jest dostępny w Twoim planie %@"
+          }
+        }
+      }
+    },
+    "Choose another model. Nothing was written for the last meeting." : {
+      "comment" : "Settings → Meetings banner detail: the plan does not include the model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose another model. Nothing was written for the last meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz inny model. Notatki ostatniego spotkania nie powstały."
+          }
+        }
+      }
+    },
+    "Choose Model" : {
+      "comment" : "Settings → Meetings banner button: opens the model menu",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Model"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz model"
+          }
+        }
+      }
+    },
+    "This meeting is too long for %@" : {
+      "comment" : "Settings → Meetings banner title: the transcript needs more parts than allowed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This meeting is too long for %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To spotkanie jest za długie dla %@"
+          }
+        }
+      }
+    },
+    "Nothing was sent. The transcript is longer than Lintel can split safely." : {
+      "comment" : "Settings → Meetings banner detail: transcript too long",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing was sent. The transcript is longer than Lintel can split safely."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie wysłano. Transkrypt jest dłuższy, niż Lintel potrafi bezpiecznie podzielić."
+          }
+        }
+      }
+    },
+    "Claude didn’t answer in time. Write them on this Mac instead? Nothing more is sent." : {
+      "comment" : "Settings → Meetings banner detail: the provider timed out",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude didn’t answer in time. Write them on this Mac instead? Nothing more is sent."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude nie odpowiedział w czasie. Napisać je na tym Macu? Nic więcej nie zostanie wysłane."
+          }
+        }
+      }
+    },
+    "Claude couldn’t be reached. Write them on this Mac instead? Nothing more is sent." : {
+      "comment" : "Settings → Meetings banner detail: the provider could not be reached",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude couldn’t be reached. Write them on this Mac instead? Nothing more is sent."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie udało się połączyć z Claude. Napisać je na tym Macu? Nic więcej nie zostanie wysłane."
+          }
+        }
+      }
+    },
+    "Your Claude plan’s limit is reached. Write them on this Mac instead? Nothing more is sent." : {
+      "comment" : "Settings → Meetings banner detail: the subscription limit is reached",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your Claude plan’s limit is reached. Write them on this Mac instead? Nothing more is sent."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limit Twojego planu Claude jest wyczerpany. Napisać je na tym Macu? Nic więcej nie zostanie wysłane."
+          }
+        }
+      }
+    },
+    "Claude couldn’t write them. Write them on this Mac instead? Nothing more is sent." : {
+      "comment" : "Settings → Meetings banner detail: the provider failed for another reason",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude couldn’t write them. Write them on this Mac instead? Nothing more is sent."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude nie napisał notatek. Napisać je na tym Macu? Nic więcej nie zostanie wysłane."
+          }
+        }
+      }
+    },
+    "Notes are written on this Mac. Nothing is sent anywhere." : {
+      "comment" : "Settings → Meetings banner detail when notes are written by the built-in model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are written on this Mac. Nothing is sent anywhere."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki powstają na tym Macu. Nic nie jest nigdzie wysyłane."
+          }
+        }
+      }
+    },
+    "Notes are written by" : {
+      "comment" : "Settings → Meetings: provider menu label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes are written by"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki pisze"
+          }
+        }
+      }
+    },
+    "Local" : {
+      "comment" : "Provider menu: the built-in models on this Mac",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokalnie"
+          }
+        }
+      }
+    },
+    "Built-in models. Nothing leaves this Mac." : {
+      "comment" : "Provider menu: Local",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built-in models. Nothing leaves this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wbudowane modele. Nic nie opuszcza Maca."
+          }
+        }
+      }
+    },
+    "Tools on your subscription" : {
+      "comment" : "Provider menu group: CLIs on the user's plan",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tools on your subscription"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Narzędzia na Twojej subskrypcji"
+          }
+        }
+      }
+    },
+    "%@ · through the %@ on this Mac" : {
+      "comment" : "Provider menu: the company and how the text gets there",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · through the %@ on this Mac"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · przez %@ na tym Macu"
+          }
+        }
+      }
+    },
+    "Add provider…" : {
+      "comment" : "Provider menu: row that adds a provider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add provider…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj dostawcę…"
+          }
+        }
+      }
+    },
+    "Models offered by %@" : {
+      "comment" : "Model menu heading of an external provider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Models offered by %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modele oferowane przez %@"
+          }
+        }
+      }
+    },
+    "Newest %@ your %@ knows" : {
+      "comment" : "Model menu: an alias means the newest model of that family",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest %@ your %@ knows"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Najnowszy %@, jaki zna Twoje %@"
+          }
+        }
+      }
+    },
+    "Built-in models" : {
+      "comment" : "Model menu heading of the local models",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built-in models"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modele wbudowane"
+          }
+        }
+      }
+    },
+    "Used for every meeting." : {
+      "comment" : "Settings → Meetings: help under the local model",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used for every meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używany dla każdego spotkania."
+          }
+        }
+      }
+    },
+    "for %@ Macs and up" : {
+      "comment" : "Local model: the least memory",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for %@ Macs and up"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "od Maców z %@"
+          }
+        }
+      }
+    },
+    "This model uses more of your subscription’s limit and takes longer than Sonnet." : {
+      "comment" : "Settings → Meetings: note under the model menu for Opus and Fable",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This model uses more of your subscription’s limit and takes longer than Sonnet."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten model zużywa więcej limitu Twojej subskrypcji i pracuje dłużej niż Sonnet."
+          }
+        }
+      }
+    },
+    "Status" : {
+      "comment" : "Settings → Meetings: provider status row",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stan"
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "comment" : "Settings → Meetings: the provider is being looked at",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdzanie…"
+          }
+        }
+      }
+    },
+    "✓ %@ %@, signed in" : {
+      "comment" : "Settings → Meetings status: the provider's CLI works; name, version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ %@ %@, signed in"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ %@ %@, zalogowano"
+          }
+        }
+      }
+    },
+    "✓ %@, signed in" : {
+      "comment" : "Settings → Meetings status: the CLI works",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ %@, signed in"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ %@, zalogowano"
+          }
+        }
+      }
+    },
+    "Not installed" : {
+      "comment" : "Settings → Meetings status: no CLI",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not installed"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niezainstalowany"
+          }
+        }
+      }
+    },
+    "Not signed in" : {
+      "comment" : "Settings → Meetings status: CLI without login",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not signed in"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niezalogowany"
+          }
+        }
+      }
+    },
+    "Incompatible version" : {
+      "comment" : "Settings → Meetings status: CLI version not supported",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incompatible version"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niezgodna wersja"
+          }
+        }
+      }
+    },
+    "It worked." : {
+      "comment" : "Settings → Meetings: the test text went through",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It worked."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Działa."
+          }
+        }
+      }
+    },
+    "It didn’t work." : {
+      "comment" : "Settings → Meetings: the test failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It didn’t work."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie zadziałało."
+          }
+        }
+      }
+    },
+    "Test" : {
+      "comment" : "Settings → Meetings: button that tries the provider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testuj"
+          }
+        }
+      }
+    },
+    "Sends a short fixed example, not a meeting." : {
+      "comment" : "Settings → Meetings: what the test sends",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sends a short fixed example, not a meeting."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wysyła krótki, stały przykład, nie spotkanie."
+          }
+        }
+      }
+    },
+    "Copy Command" : {
+      "comment" : "Settings → Meetings: copies the sign-in command",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy Command"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj polecenie"
+          }
+        }
+      }
+    },
+    "Lintel never sees your login." : {
+      "comment" : "Settings → Meetings: the sign-in stays in the CLI",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel never sees your login."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel nie widzi Twojego logowania."
+          }
+        }
+      }
+    },
+    "A job is running. What was already sent stays with the provider." : {
+      "comment" : "Settings → Meetings: asked once when Use Local is pressed during a job",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A job is running. What was already sent stays with the provider."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zadanie trwa. To, co już wysłano, zostaje u dostawcy."
+          }
+        }
+      }
+    },
+    "Last meeting" : {
+      "comment" : "Settings → Meetings: row naming the meeting that failed",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ostatnie spotkanie"
+          }
+        }
+      }
+    },
+    "Nothing leaves this Mac." : {
+      "comment" : "Settings → Meetings: caption under the local choice",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing leaves this Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nic nie opuszcza tego Maca."
+          }
+        }
+      }
+    },
+    "Switch back to Local here at any time: no question asked. It stops further sending; it can’t recall what was sent." : {
+      "comment" : "Settings → Meetings: caption under the notice about an external provider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Switch back to Local here at any time: no question asked. It stops further sending; it can’t recall what was sent."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wrócić do Lokalnie możesz tu w każdej chwili, bez pytania. To zatrzymuje dalsze wysyłanie, ale nie cofa tego, co już poszło."
+          }
+        }
+      }
+    },
+    "What leaves this Mac, for every meeting" : {
+      "comment" : "Settings → Meetings, Details of the provider notice: section heading",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What leaves this Mac, for every meeting"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co opuszcza Maca, przy każdym spotkaniu"
+          }
+        }
+      }
+    },
+    "Not sent" : {
+      "comment" : "Settings → Meetings, Details of the provider notice: section heading",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not sent"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nie wysyłamy"
+          }
+        }
+      }
+    },
+    "When it happens" : {
+      "comment" : "Settings → Meetings, Details of the provider notice: section heading",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When it happens"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiedy to następuje"
+          }
+        }
+      }
+    },
+    "What you should know" : {
+      "comment" : "Settings → Meetings, Details of the provider notice: section heading",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What you should know"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Co warto wiedzieć"
+          }
+        }
+      }
+    },
+    "The **whole transcript**, in one go (a very long meeting in several large parts)." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The **whole transcript**, in one go (a very long meeting in several large parts)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Cały transkrypt**, naraz (bardzo długie spotkanie w kilku dużych częściach)."
+          }
+        }
+      }
+    },
+    "**Speaker names**, including names you gave and your own." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Speaker names**, including names you gave and your own."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Imiona mówców**, także nadane przez Ciebie i Twoje własne."
+          }
+        }
+      }
+    },
+    "**Timestamps** of each segment ([mm:ss])." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Timestamps** of each segment ([mm:ss])."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Znaczniki czasu** każdego fragmentu ([mm:ss])."
+          }
+        }
+      }
+    },
+    "Your **whole dictation vocabulary** of approved terms: correct spelling only, not the forms as heard, not unapproved suggestions. Only while Dictation is on." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your **whole dictation vocabulary** of approved terms: correct spelling only, not the forms as heard, not unapproved suggestions. Only while Dictation is on."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cały Twój **słownik Dyktowania** zatwierdzonych terminów: sama poprawna pisownia, bez usłyszanych form i niezatwierdzonych propozycji. Tylko gdy Dyktowanie jest włączone."
+          }
+        }
+      }
+    },
+    "**With every meeting and with no question asked**: after each recording, when an interrupted meeting is finished (also in the background after a restart), after a speaker name changes, and on automatic retries after an error or timeout (a retry sends the transcript again)." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**With every meeting and with no question asked**: after each recording, when an interrupted meeting is finished (also in the background after a restart), after a speaker name changes, and on automatic retries after an error or timeout (a retry sends the transcript again)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Przy każdym spotkaniu i bez pytania**: po każdym nagraniu, przy dokończeniu przerwanego spotkania (także w tle po restarcie), po zmianie imienia mówcy i przy automatycznych ponowieniach po błędzie lub przekroczeniu czasu (ponowienie wysyła transkrypt jeszcze raz)."
+          }
+        }
+      }
+    },
+    "“Regenerate notes” sends the transcript **again**, also for meetings recorded before you chose this provider." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Regenerate notes” sends the transcript **again**, also for meetings recorded before you chose this provider."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„Napisz notatki od nowa” wysyła transkrypt **jeszcze raz**, także spotkań nagranych, zanim wybrałeś tego dostawcę."
+          }
+        }
+      }
+    },
+    "Changing the model of the same provider asks nothing and changes nothing about what is sent." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changing the model of the same provider asks nothing and changes nothing about what is sent."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmiana modelu u tego samego dostawcy o nic nie pyta i nie zmienia tego, co jest wysyłane."
+          }
+        }
+      }
+    },
+    "It goes through **your Claude account**, under the provider’s terms and your plan; Anthropic may keep the text." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It goes through **your Claude account**, under the provider’s terms and your plan; Anthropic may keep the text."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idzie przez **Twoje konto Claude**, na zasadach dostawcy i Twojego planu; Anthropic może przechowywać tekst."
+          }
+        }
+      }
+    },
+    "**What was sent can’t be taken back.** Switching back to Local stops further sending only." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**What was sent can’t be taken back.** Switching back to Local stops further sending only."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Wysłanego nie da się cofnąć.** Powrót do Lokalnie zatrzymuje tylko dalsze wysyłanie."
+          }
+        }
+      }
+    },
+    "**Lintel doesn’t tell meeting participants.** Informing them is up to you." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Lintel doesn’t tell meeting participants.** Informing them is up to you."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "**Lintel nie informuje uczestników spotkań.** Poinformowanie ich należy do Ciebie."
+          }
+        }
+      }
+    },
+    "It uses your subscription’s limit." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It uses your subscription’s limit."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zużywa limit Twojej subskrypcji."
+          }
+        }
+      }
+    },
+    "No marker does not mean nothing was sent (a failed run may have sent the transcript)." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: one point",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No marker does not mean nothing was sent (a failed run may have sent the transcript)."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak znacznika nie znaczy „nie wysłano” (nieudane zadanie mogło wysłać transkrypt)."
+          }
+        }
+      }
+    },
+    "Audio, meeting titles, the app a meeting came from, your own notes, the meetings vocabulary, dictated text." : {
+      "comment" : "Settings → Meetings, Details of the provider notice: what is not sent",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio, meeting titles, the app a meeting came from, your own notes, the meetings vocabulary, dictated text."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nagrań, tytułów spotkań, aplikacji źródłowej spotkania, Twoich własnych notatek, słownika spotkań ani treści dyktowań."
+          }
+        }
+      }
+    },
+    "Sent to: %@" : {
+      "comment" : "Meeting library badge: the provider that wrote the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent to: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wysłano do: %@"
+          }
+        }
+      }
+    },
+    "Sent to" : {
+      "comment" : "Notes details: the provider the transcript was sent to for the notes",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent to"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wysłano do"
+          }
+        }
+      }
+    },
+    "Notes written earlier by %@ stay." : {
+      "comment" : "Settings → Meetings: after Use Local, the notes a provider wrote earlier stay marked",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes written earlier by %@ stay."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notatki napisane wcześniej przez %@ zostają."
+          }
+        }
+      }
+    },
+    "providerChoice.dataLeavesComputer" : {
+      "comment" : "Settings → Meetings: the short notice next to an external provider",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meeting transcripts, speaker names and your approved dictionary terms leave this Mac and go to **%@**. Choosing this provider is your consent."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkrypty spotkań, imiona mówców i zatwierdzone terminy ze słownika opuszczają tego Maca i trafiają do **%@**. Wybór tego dostawcy oznacza Twoją zgodę."
+          }
+        }
+      }
+    },
+    "Restore Default" : {
+      "comment" : "Settings → Meetings: forget the hand-picked CLI, search again",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przywróć domyślną"
+          }
+        }
+      }
+    },
+    "File" : {
+      "comment" : "Settings → Meetings: the hand-picked CLI file",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik"
+          }
+        }
+      }
+    },
     "Update Available: %@…" : {
       "comment" : "Menu bar menu item shown when a newer version was found; opens the update window",
       "extractionState" : "manual",

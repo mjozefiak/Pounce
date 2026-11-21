@@ -22,12 +22,19 @@ struct ProviderNotesGenerator: NotesGenerating {
     private let runner: ProviderRunner
     private let currentSelection: @Sendable () -> NotesProviderSelection?
     private let timeout: Duration
+    private let onFailure: @Sendable (ProviderJobFailure.Reason) -> Void
+    private let onExactModel: @Sendable (String) -> Void
 
-    /// `currentSelection` is read at every authorization question, not once per job.
+    /// `currentSelection` is read at every authorization question, not once per job. `onFailure` gets the closed
+    /// reason of a failed attempt (the Settings banner shows it); it never carries text.
     init(
         runner: ProviderRunner, selection: NotesProviderSelection, inputBudgetTokens: Int,
-        currentSelection: @escaping @Sendable () -> NotesProviderSelection?, timeout: Duration = .seconds(600)
+        currentSelection: @escaping @Sendable () -> NotesProviderSelection?, timeout: Duration = .seconds(600),
+        onFailure: @escaping @Sendable (ProviderJobFailure.Reason) -> Void = { _ in },
+        onExactModel: @escaping @Sendable (String) -> Void = { _ in }
     ) {
+        self.onExactModel = onExactModel
+        self.onFailure = onFailure
         self.runner = runner
         self.selection = selection
         self.currentSelection = currentSelection
@@ -51,17 +58,42 @@ struct ProviderNotesGenerator: NotesGenerating {
                 ChatMessage(role: "user", content: serialized.input),
             ], timeout: timeout)
         let provider = selection.provider
+        let model = selection.model
         let current = currentSelection
         let authorization: ProviderAuthorization = {
             guard let chosen = current() else { return .denied(.noConsent) }
-            return chosen.provider == provider ? .allowed : .denied(.otherProvider)
+            guard chosen.provider == provider else { return .denied(.otherProvider) }
+            return chosen.model == model ? .allowed : .denied(.otherModel)
         }
         // The time limit of the pipeline counts from here (it counts only a request that is running).
         onPhase?(.running)
         do {
-            return try await runner.run(request, authorization: authorization)
+            return try await runner.run(request, authorization: authorization, onExactModel: onExactModel)
         } catch let error as ProviderError {
+            if let reason = Self.reason(of: error) { onFailure(reason) }
             throw Self.map(error)
+        }
+    }
+
+    /// The closed reason the Settings banner names; `nil` for what is no failure of the provider (a refusal, a
+    /// cancellation).
+    static func reason(of error: ProviderError) -> ProviderJobFailure.Reason? {
+        switch error {
+        case .notAuthorized, .cancelled: return nil
+        case .notInstalled: return .notInstalled
+        case .timedOut: return .timedOut
+        case .failed(let failure):
+            switch failure {
+            case .notSignedIn: return .notSignedIn
+            case .incompatibleVersion: return .incompatibleVersion
+            case .modelNotAvailable: return .modelNotAvailable
+            case .rateLimited: return .rateLimited
+            case .network: return .network
+            case .other: return .other
+            }
+        case .isolationNotVerified, .isolationProblem, .unsupportedProvider, .invalidModel, .invalidRequest,
+            .outputTooLarge, .launchFailed:
+            return .other
         }
     }
 

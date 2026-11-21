@@ -37,6 +37,10 @@ struct MeetingDocument: Sendable, Equatable {
     var speechModelID: String? = nil
     /// When the recorder copied the consent sentence from the HUD; `nil` if never (MEET-1.6).
     var consentTextCopiedAt: Date? = nil
+    /// The provider that wrote the notes and the exact model it reported (`notes_provider*`); `nil` for the
+    /// built-in model and for notes never written by a provider.
+    var notesProvider: String? = nil
+    var notesProviderModel: String? = nil
 
     func speaker(id: Int64?) -> Speaker? {
         guard let id else { return nil }
@@ -100,7 +104,8 @@ extension MeetingsStore {
                 speechModelID: row["speech_model_id"],
                 consentTextCopiedAt: (row["consent_text_copied_at"] as Int64?).map {
                     Date(timeIntervalSince1970: TimeInterval($0))
-                })
+                },
+                notesProvider: row["notes_provider"], notesProviderModel: row["notes_provider_model"])
         }
     }
 

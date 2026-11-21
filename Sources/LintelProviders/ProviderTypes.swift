@@ -41,6 +41,8 @@ public typealias ProviderAuthorization = @Sendable () async -> ProviderDecision
 public enum ProviderFailure: String, Sendable, Equatable {
     case incompatibleVersion
     case rateLimited
+    /// The account's plan does not include the model ("Claude Opus is not available with the Claude Pro plan").
+    case modelNotAvailable
     case notSignedIn
     case network
     case other
@@ -49,8 +51,22 @@ public enum ProviderFailure: String, Sendable, Equatable {
 public enum ProviderStatus: String, Sendable, Equatable {
     case notInstalled
     case notSignedIn
+    /// Older than the range the descriptor was measured with (or a version line nobody can read).
     case incompatibleVersion
+    /// Newer than the range: Lintel has not been checked against it ("update Lintel").
+    case newerVersion
     case ready
+}
+
+/// The result of the two availability probes: the status and the CLI's version number when it could be read.
+public struct ProviderStatusReport: Sendable, Equatable {
+    public let status: ProviderStatus
+    public let version: String?
+
+    public init(status: ProviderStatus, version: String?) {
+        self.status = status
+        self.version = version
+    }
 }
 
 /// Errors of this target. No case carries user text, provider output or a path.
