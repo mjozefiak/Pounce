@@ -10,10 +10,13 @@ name: Release
 #   build    every trigger. No secrets, no Environment. Tests, an ad-hoc signed app (uploaded as a zip made with
 #            ditto, which keeps symlinks, permissions and extended attributes) and the release notes.
 #   sign     the only job with the Environment `release` (the Developer ID and notary secrets). Runs only for a v*
-#            tag and for a manual run with `sign: true` on main, never for a pull request. It compiles nothing,
-#            runs no tests and uses no third-party action: it takes ONLY the .app from the build job's artifact,
+#            tag and for a manual run with `sign: true` on main, never for a pull request. It builds no code of
+#            the app, runs no tests and uses no third-party action: it takes ONLY the .app from the build job's artifact,
 #            re-signs it with the repository's own scripts, notarizes and staples the app and the DMG, and verifies.
-#   publish  tags only: the GitHub Release and the website dispatch.
+#            The only Swift it runs is scripts/ed25519.swift (about 40 lines, CryptoKit, run by `swift` to check the key pair).
+#            It also holds the Sparkle EdDSA key (SPARKLE_ED_PRIVATE_KEY): it checks that the key belongs to the public
+#            key in the app's Info.plist (before anything is signed), signs the DMG and builds and signs appcast.xml.
+#   publish  tags only: the GitHub Release (with appcast.xml) and the website dispatch.
 # Pull requests that touch the app, and manual runs without `sign`, build an ad-hoc DMG and upload it as a workflow
 # artifact without signing or publishing anything.
 on:
@@ -268,6 +271,22 @@ jobs:
           rm -rf "$EXTRACT" artifact-app
           plutil -lint dist/Lintel.app/Contents/Info.plist
 
+      # sign_update, from Sparkle's release zip, checked against the SHA-256 committed in scripts/sparkle-tools.txt before
+      # anything is extracted. One binary is all this job needs; resolving the package graph would fetch every
+      # dependency of the app into a job that holds secrets.
+      - name: Fetch the Sparkle tools
+        run: |
+          SIGN_UPDATE="$(scripts/fetch-sparkle-tools.sh "$RUNNER_TEMP/sparkle")"
+          echo "SPARKLE_SIGN_UPDATE=$SIGN_UPDATE" >> "$GITHUB_ENV"
+
+      # Fails the run, before the hours of notarization and before anything is published, when the Sparkle private key is
+      # not the partner of SUPublicEDKey in the app being released: an app with that public key would reject every update
+      # signed by this key. The key goes to sign_update through stdin only; no output of sign_update is shown.
+      - name: Check the Sparkle signing key against the app's public key
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: scripts/sparkle-sign.sh check-key dist/Lintel.app/Contents/Info.plist
+
       - name: Import the Developer ID certificate into a temporary keychain
         env:
           DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
@@ -356,6 +375,37 @@ jobs:
           mkdir -p requirement
           REQUIREMENT_OUT="$PWD/requirement/designated-requirement.txt" scripts/verify-release-bundle.sh dist/Lintel.app dist/Lintel.dmg
 
+      # The previous feed supplies the other channel's item: the newest published release that has an appcast.xml (the one
+      # the site serves). Tag runs only, and the script knows that (it fetches nothing for another run), so this step has
+      # no `if:` that could skip it. A failing `gh` fails the step: an API error must never look like "no previous release",
+      # because the feed would then be rebuilt without the other channel's item. The file is only data here:
+      # release-appcast.sh refuses it unless its signature verifies.
+      - name: Fetch the previous appcast
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Empty for a run that is not a tag run: the script then fetches nothing.
+          FEED_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+        run: scripts/fetch-previous-appcast.sh appcast "$FEED_TAG"
+
+      # Signs the DMG, builds the feed and signs and verifies it (scripts/release-appcast.sh). A previous feed that is
+      # present but does not verify fails the job (dropping it would remove the other channel's item). A manual run does
+      # the same but deletes the feed: it is for version 0.0.0, validly signed with the production key, and must not be
+      # downloadable. Only tag runs keep it for the upload below.
+      - name: Sign the DMG and build the appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: scripts/release-appcast.sh dist/Lintel.app/Contents/Info.plist dist/Lintel.dmg appcast
+
+      # Tag runs only: a manual run has no feed left (see above).
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: Lintel-appcast
+          path: |
+            appcast/appcast.xml
+            appcast/previous-tag.txt
+          if-no-files-found: error
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Lintel-dmg
@@ -428,6 +478,19 @@ jobs:
           name: release-notes
           path: dist
 
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: Lintel-appcast
+          path: appcast
+
+      # The feed was built in `sign` from the previous release's feed. If another release was published since, that feed
+      # lacks its item and publishing it would drop the other channel's entry: stop, and run the tag again after the
+      # newer release (a tag that was already pushed is not reused: tag the next version).
+      - name: Check the appcast is built on the newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/check-appcast-base.sh appcast/previous-tag.txt "$GITHUB_REF_NAME"
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -461,7 +524,7 @@ jobs:
           if [[ "$PRERELEASE" == true ]]; then
             PRERELEASE_FLAG=(--prerelease)
           fi
-          gh release create "$GITHUB_REF_NAME" dist/Lintel.dmg dist/Lintel.dmg.sha256 dist/CHANGELOG.md \
+          gh release create "$GITHUB_REF_NAME" dist/Lintel.dmg dist/Lintel.dmg.sha256 dist/CHANGELOG.md appcast/appcast.xml \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --title "Lintel ${GITHUB_REF_NAME#v}" \
@@ -480,13 +543,22 @@ jobs:
           WEBSITE_REPO: mjozefiak/lintel-web
         run: |
           if [[ -z "$GH_TOKEN" ]]; then
-            echo "LINTEL_WEB_DISPATCH_TOKEN is not set; the website is not rebuilt."
+            echo "::warning::LINTEL_WEB_DISPATCH_TOKEN is not set, so the website was not asked to rebuild. The feed at https://lintelapp.com/appcast.xml stays at the previous release's until lintel-web is rebuilt: redeploy it by hand (workflow_dispatch)."
             exit 0
           fi
           if gh api --method POST "repos/${WEBSITE_REPO}/dispatches" \
             -f event_type=release-published \
             -f "client_payload[tag]=${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             echo "Website rebuild requested."
+            echo "SITE_REBUILD_REQUESTED=true" >> "$GITHUB_ENV"
           else
             echo "::warning::The website dispatch failed. The release is published; redeploy lintel-web by hand (workflow_dispatch)."
           fi
+
+      # The site (another repository) copies the release's appcast.xml into lintelapp.com when it rebuilds. Waits until
+      # the live feed equals this release's, for ten minutes in total (a deadline, not a count of tries), and only warns
+      # when it does not: the release itself is valid and the feed on the site stays at the previous, validly signed
+      # version. It runs even when the dispatch was not sent (the site may rebuild by itself; the script warns that it was
+      # not asked). Never fails the job.
+      - name: Wait for the site to serve the new feed
+        run: scripts/wait-for-site-feed.sh appcast/appcast.xml --deadline 600 --interval 30

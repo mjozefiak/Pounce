@@ -40,13 +40,15 @@ jobs:
           swift --version
           sw_vers
 
-      - name: Script tests
-        timeout-minutes: 3
-        run: zsh scripts/tests/run.zsh
-
       - name: Build
         timeout-minutes: 12
         run: swift build
+
+      # After the build, which resolves the packages and so puts Sparkle's `sign_update` in .build/artifacts: the signing tests
+      # in scripts/tests/test_appcast.zsh need it and fail (not skip) when CI is true and it is missing.
+      - name: Script tests
+        timeout-minutes: 6
+        run: zsh scripts/tests/run.zsh
 
       - name: Test
         timeout-minutes: 16

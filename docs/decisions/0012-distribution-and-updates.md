@@ -55,7 +55,7 @@ reporting "Notarized Developer ID" and a valid staple, for the app and the DMG. 
   lose and which the frameworks' `Versions/Current` links and the signature depend on). A tag must be on `main`.
 - `sign` (`environment: release`, only for a `v*` tag push and for a manual run with `sign: true` on `main`, never for a
   pull request): checks out the repository, selects Xcode with `xcode-select`, takes **only the `.app`** from the
-  artifact, imports the certificate into a temporary keychain and runs the repository's own scripts. It compiles nothing,
+  artifact, imports the certificate into a temporary keychain and runs the repository's own scripts. It builds no app code (the only Swift it runs is the 40-line `scripts/ed25519.swift` key-pair check),
   runs no tests and uses no third-party action. Apple's tools and the repository's scripts are the only code that runs
   next to the key. The Environment `release` holds `DEVELOPER_ID_P12`, `DEVELOPER_ID_P12_PASSWORD`, `NOTARY_KEY_P8`,
   `NOTARY_KEY_ID` and `NOTARY_ISSUER_ID`, deploys only from `main` and `v*`, and has the owner as required reviewer.
@@ -145,12 +145,24 @@ Sparkle 2.10.1 is a dependency of `LintelApp` only, pinned exactly; it arrives a
   applied to the allowed channels at once), "Check Now". Where the updater is off (DEBUG, outside Applications, ad-hoc)
   only the version and one line are shown. The menu has "Check for Updates…", dimmed while the updater is off or busy.
 
+## The feed (spec Step 4.7)
+
+- The `sign` job builds `appcast.xml` (`scripts/make-appcast.sh`, pure) and signs it; `publish` attaches it to the release
+  and the site copies it to `https://lintelapp.com/appcast.xml`. At most two items: this release and the other channel's
+  item carried from the previous release's feed byte for byte (a stable, or a beta only while its build is higher than
+  the stable's). The previous feed must verify; a feed that is present but does not verify fails the job.
+- **Key pair check.** `scripts/sparkle-sign.sh check-key` signs a probe with `SPARKLE_ED_PRIVATE_KEY` and verifies the
+  signature against `SUPublicEDKey` of the built app with CryptoKit (`scripts/ed25519.swift`), because `sign_update --verify`
+  takes the public key from the private key it is given and so cannot compare with `Info.plist`. It runs before the
+  certificate is imported and before notarization, so a wrong secret fails in minutes, not after hours.
+- **The tool.** `sign_update` comes from Sparkle's release zip, checked against the SHA-256 in `scripts/sparkle-tools.txt`
+  (the checksum SwiftPM pins; a script test ties it to `Package.swift`). The job does not resolve the package graph.
+- **Race.** `sign` and `publish` of two tags can interleave, so `publish` repeats the "previous release" query and stops when
+  it differs from the release the feed was built on.
+
 ## Deferred
 
-- **Steps 4.7 and 4.8 of the spec.** Signing the feed in the `sign` job and the real-updater check; Sparkle's
-  `generate_keys` and the secret are the owner's.
-- **The feed (`appcast.xml`), spec Architecture and Step 4.7.** One signed feed rebuilt on every release, served from the
-  address decided in D4; the website copies it. Not built.
+- **Step 4.8 of the spec.** The real-updater check; Sparkle's `generate_keys` and the secret are the owner's.
 - **Homebrew, spec Phase 5 (D13).** The project's own tap `mjozefiak/homebrew-lintel` (casks `lintel` and `lintel@beta`),
   updated by `publish` with `HOMEBREW_TAP_TOKEN` from the Environment `publish`. The official `homebrew/cask` is a later,
   conditional step. Not built.

@@ -71,7 +71,8 @@ requirement it printed as `Lintel-requirement`.
    and extended attributes) and, for a tag, the release notes (`release-notes`).
 
 **`sign`** (`environment: release`; only for a `v*` tag push and for a manual run with `sign: true` on `main`; never for a
-pull request or a push to `main`). It compiles nothing, runs no tests and uses no third-party action:
+pull request or a push to `main`). It builds no app code (the only Swift it runs is the 40-line `scripts/ed25519.swift` key-pair check), runs no tests and
+uses no third-party action:
 
 1. Checks the release order (below), before any secret is used.
 2. Selects Xcode with `xcode-select`, downloads `Lintel-app` and takes only the `.app` from it.
@@ -93,10 +94,36 @@ pull request or a push to `main`). It compiles nothing, runs no tests and uses n
 7. `scripts/verify-release-bundle.sh` checks `codesign --verify --strict --deep`, a requirement that names the Team ID with
    `anchor apple generic` and no `cdhash`, `spctl` ("Notarized Developer ID") and `stapler validate`, for the app and the DMG.
    The requirement is then compared with `Resources/designated-requirement.txt`.
-8. Uploads `Lintel-dmg` (DMG and checksum) and `Lintel-requirement`, and always deletes the temporary keychain.
+8. Builds and signs the update feed (spec Step 4.7). `scripts/fetch-sparkle-tools.sh` downloads Sparkle's release zip and
+   extracts `sign_update` only if the zip matches the SHA-256 in `scripts/sparkle-tools.txt`. Right after the app is taken,
+   `scripts/sparkle-sign.sh check-key` signs a probe with `SPARKLE_ED_PRIVATE_KEY` and verifies it against `SUPublicEDKey` in
+   the built app's `Info.plist`; a mismatch fails the run before the certificate is imported. After the DMG is final, the
+   DMG is signed, the previous feed (tag runs; `scripts/fetch-previous-appcast.sh`) must verify, `scripts/make-appcast.sh`
+   builds the feed, and the feed is signed and verified (`scripts/release-appcast.sh`). A manual signed run does the same
+   with no previous feed, then deletes the feed (version 0.0.0, validly signed with the production key: it is never
+   uploaded) and prints only the item count and that verification passed; it publishes nothing.
+9. Uploads `Lintel-dmg`, `Lintel-requirement` and, for a tag, `Lintel-appcast` (`appcast.xml`), and always deletes the
+   temporary keychain.
+
+**The Sparkle key.** `SPARKLE_ED_PRIVATE_KEY` (Environment `release`) is the base64 private key `generate_keys -x` exports;
+its public half is `SUPublicEDKey` in `Resources/Info.plist`. It is passed through the `env:` of the two steps that use it
+and from there to `sign_update --ed-key-file -` on standard input (never an argument or a file), and `sign_update`'s output
+is never shown, because it quotes a malformed key. `scripts/sparkle-sign.sh` removes the variable from the environment as
+soon as it has read it, so only `sign_update` receives the key (on standard input); `swift`, `plutil` and the other scripts
+never see it. Only the `sign` job names it; `ReleaseWorkflowTests` pins that.
+
+**The key cannot be rotated by this pipeline today.** `check-key` fails every release whose `SUPublicEDKey` is not the
+partner of `SPARKLE_ED_PRIVATE_KEY`, and an installed app (`SURequireSignedFeed`) rejects a feed signed with any other key
+than the one it ships with. So replacing the key (or losing it) is not a configuration change: apps that already carry the
+old public key could no longer be updated in place, and their users would have to install a DMG by hand. Rotation would need
+its own procedure, designed and tested before it is ever needed (for example a release signed with the old key that ships
+the new public key, a period in which the feed is signed with both, and a change to `check-key` that allows exactly that);
+it is not implemented. Keep the key backed up (owner checklist) and never regenerate it.
 
 **`publish`** (tags only, after `sign`): creates the GitHub Release (body: install text and the changelog section; `-beta`
-tags are pre-releases; assets: the DMG, its checksum, `CHANGELOG.md`) and asks the website to rebuild.
+tags are pre-releases; assets: the DMG, its checksum, `CHANGELOG.md`, `appcast.xml`) and asks the website to rebuild, then
+waits up to ten minutes for `https://lintelapp.com/appcast.xml` to equal the new feed and only warns when it does not.
+Before it creates the release it checks that the feed was built on the release that is still the newest one.
 
 Pull requests get no Environment and no secrets, and always build ad-hoc. `sign` and `publish` of all tags share the
 job-level concurrency group `release-tags` (`queue: max`), so releases go one at a time and none is cancelled. Manual
@@ -124,6 +151,5 @@ means a locally built app does not share grants with an installed release (QA bu
 
 ## Not built yet
 
-In-app updates (Sparkle), the signed `appcast.xml` feed and the Homebrew tap are specified
-(`.ai/specs/2026-11-19-updates-and-open-source-hygiene.md`, Phases 4 and 5) but do not exist. Today an update is a new DMG
-from a GitHub Release; the grants survive it because the requirement stays the same.
+The Homebrew tap is specified (`.ai/specs/2026-11-19-updates-and-open-source-hygiene.md`, Phase 5) but does not exist. The
+in-app updater reads the signed feed this workflow publishes; the grants survive an update because the requirement stays the same.
