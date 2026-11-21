@@ -50,26 +50,30 @@ enum NotesQAFixtures {
         ]
     }
 
+    /// The notes as production writes them since the owner decision of 2026-11-19: no `[mm:ss]` times and no Source
+    /// column (times stay in the transcript), tasks as a checklist, sections in the template's order.
     static let meetingNotes = """
-        ## Summary
+        ### Summary
 
-        The team agreed to ship the new onboarding on 12 Nov and to postpone the pricing page. \\[12:41\\]
+        The team agreed to ship the new onboarding on 12 Nov and to postpone the pricing page.
 
-        ## Decisions
+        ### Decisions
 
-        - Ship onboarding on 12 Nov. \\[12:42\\]
-        - Pricing page moves to the next sprint (Marek confirmed). \\[12:43\\]
+        - Ship onboarding on 12 Nov.
+        - Pricing page moves to the next sprint (Marek confirmed).
 
-        ## Tasks
+        ### Action items
 
-        | # | Task | Owner | Due | Source |
-        | --- | --- | --- | --- | --- |
-        | T1 | Update the release checklist | Kasia | Thu | \\[12:44\\] |
-        | T2 | Send the demo build to QA | Marek | today | \\[12:43\\] |
+        - [ ] Update the release checklist — owner\\: Kasia, due\\: Thursday
+        - [ ] Send the demo build to QA — owner\\: Marek, due\\: today
 
-        ## Open questions
+        ### Open questions
 
-        - Who reviews the Polish translation? \\[12:46\\]
+        - Who reviews the Polish translation?
+
+        ### Participants
+
+        Kasia, Marek
         """
 
     static let summaryNotes = """
@@ -120,11 +124,6 @@ enum NotesQAFixtures {
         guard let summary = summaries(now: now).first(where: { $0.id == key }) else { return nil }
         switch key {
         case meetingID:
-            var provenance: [NoteBlockProvenance] = []
-            // Blocks: 0 heading, 1 summary, 2 heading, 3 and 4 decisions, 5 heading, 6 table, 7 heading, 8 question.
-            for (index, time) in [(1, 761_000), (3, 762_000), (4, 763_000), (8, 766_000)] {
-                provenance.append(NoteBlockProvenance(blockIndex: index, quoteTimesMs: [time]))
-            }
             let transcript = segments.map { $0.text }.joined(separator: "\n\n")
             let transcriptProvenance = segments.enumerated().map { index, segment in
                 NoteBlockProvenance(
@@ -134,7 +133,7 @@ enum NotesQAFixtures {
                 summary: summary,
                 layers: [
                     NoteLayer(
-                        id: "notes", author: .agent, markdown: meetingNotes, provenance: provenance, version: "1"),
+                        id: "notes", author: .agent, markdown: meetingNotes, version: "1"),
                     NoteLayer(
                         id: "transcript", author: .stt, markdown: transcript, provenance: transcriptProvenance,
                         version: "1"),

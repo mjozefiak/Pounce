@@ -80,13 +80,13 @@ struct NoteBlockTests {
         let content = NotesQAFixtures.content(for: NotesQAFixtures.meetingID)
         let notes = content?.layers.first { $0.id == "notes" }
         let blocks = notes.map(NoteBlocks.parse) ?? []
-        #expect(blocks.count == 9)
-        guard case .table(let table) = blocks[6].kind else {
-            Issue.record("block 6 is not the tasks table")
-            return
-        }
-        #expect(table.rows.count == 2)
-        #expect(blocks[1].quoteTimesMs == [761_000])
+        // Heading, summary, heading, two decisions, heading, two tasks, heading, one question, heading, participants.
+        #expect(blocks.count == 12)
+        // Owner decision 2026-11-19: the notes carry no times and no Source column; times are in the transcript only.
+        #expect(blocks.allSatisfy { $0.quoteTimesMs.isEmpty })
+        let text = notes?.markdown ?? ""
+        #expect(text.contains("\\[") == false)
+        #expect(text.contains("| Source") == false)
         let transcript = content?.layers.first { $0.id == "transcript" }.map(NoteBlocks.parse) ?? []
         #expect(transcript.count == NotesQAFixtures.segments.count)
         #expect(transcript.compactMap(\.startMs) == NotesQAFixtures.segments.map(\.start))

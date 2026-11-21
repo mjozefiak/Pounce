@@ -86,6 +86,9 @@ struct QAOptions: Equatable {
     /// `--qa-notes`: the Notes section lists fixture notes (spec `2026-11-04-notes-workspace`, step 1.2). No store
     /// exists before step 4.0, so fixtures are all it can show.
     var notesFixtures = false
+    /// `--qa-hud dictation:<state>|meeting:<state>`: draws that plugin's HUD in that state in a QA panel, without a
+    /// microphone or any permission; `--qa-snapshot` then writes the HUD instead of the main window (`docs/qa.md`).
+    var hud: QAHUDRequest?
     /// `--qa-meeting-mic-wav <path>` / `--qa-meeting-system-wav <path>`: 16 kHz mono WAV files played back as
     /// the meeting's microphone and system tracks instead of real audio (meeting notes, step 1.5). Real
     /// capture is never started in QA mode.
@@ -137,6 +140,8 @@ struct QAOptions: Equatable {
     static let appsLiveActivityKey = "plugins.apps.qaLiveActivity"
     /// The Notes plugin's DEBUG-only fixtures key (`AppEnvironment.qaNotesSettings`).
     static let notesFixturesKey = "plugins.notes.qaFixtures"
+    static let meetingsAccountNameKey = "plugins.meetings.qaAccountName"
+    static let meetingsProviderBinaryKey = "plugins.meetings.qaProviderBinary"
     /// Settings that `--qa-setting` reads as comma-separated lists.
     static let listSettingKeys: Set<String> = [
         SettingsKeys.sectionOrder, "plugins.apps.suggestions.hidden", "plugins.windows.floatingApps",
@@ -256,6 +261,10 @@ struct QAOptions: Equatable {
                 options.liveAppActivity = true
             case "--qa-notes":
                 options.notesFixtures = true
+            case "--qa-hud":
+                let value = try Self.pathValue(argument, iterator.next())
+                guard let request = QAHUDRequest(value) else { throw .invalidValue(argument, value) }
+                options.hud = request
             case "--qa-meeting-mic-wav":
                 options.meetingMicWAV = URL(filePath: try Self.pathValue(argument, iterator.next()))
             case "--qa-meeting-system-wav":
@@ -317,6 +326,24 @@ struct QAOptions: Equatable {
         case "false": return .bool(false)
         default: return Int(text).map(SettingValue.integer) ?? .string(text)
         }
+    }
+}
+
+/// `--qa-hud <plugin>:<state>`: which plugin's HUD to draw and in which state. The state names belong to the plugin
+/// (`DictationHUDQA`, `MeetingHUDQA`); an unknown one draws nothing and is logged.
+struct QAHUDRequest: Equatable {
+    static let identifier = "lintel.qa.hud"
+    /// The plugin ids that have a HUD to draw.
+    static let pluginIDs = ["dictation": "dictation", "meeting": "meetings"]
+
+    let pluginID: String
+    let state: String
+
+    init?(_ value: String) {
+        let parts = value.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2, let id = Self.pluginIDs[String(parts[0])], !parts[1].isEmpty else { return nil }
+        pluginID = id
+        state = String(parts[1])
     }
 }
 #endif

@@ -18,7 +18,7 @@ struct NoteDocumentModelTests {
         let document = meeting()
         #expect(document.phase == .loaded)
         #expect(document.layerID == "notes")
-        #expect(document.blocks.count == 9)
+        #expect(document.blocks.count == 12)
         #expect(document.speakers.map(\.name) == ["Kasia", "Marek", "You"])
     }
 
