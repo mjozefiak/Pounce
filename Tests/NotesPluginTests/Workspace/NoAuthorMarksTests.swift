@@ -37,17 +37,41 @@ import Testing
     }
 
     @Test func theHistoryRowAndTheCompareChipsShowOnlyTimes() throws {
+        // The only author reads allowed in the History views: the change text (which picks "Wrote the notes" and the
+        // like, an owner question) and the explanation of a kept proposal of the user's own text.
+        let allowed = [
+            "Text(verbatim: entry.change.text(layer: layer, author: entry.author))", "if compare.author == .human {",
+        ]
         let files = try sources(["Sources/NotesPlugin/UI/History"])
         for (name, text) in files {
-            #expect(!text.contains(".author.") && !text.contains("baseAuthor"), "\(name) reads an author for display")
-            #expect(!text.contains("line.author"), "\(name) shows the author of a diff line")
+            for (index, line) in text.components(separatedBy: .newlines).enumerated() {
+                let code = line.components(separatedBy: "//").first ?? ""
+                if allowed.contains(code.trimmingCharacters(in: .whitespaces)) { continue }
+                #expect(
+                    code.range(of: #"[aA]uthor\b|\.author|baseAuthor"#, options: .regularExpression) == nil
+                        || code.contains("func text(layer: String, author: NoteAuthor)")
+                        || code.contains("switch author"),
+                    "\(name):\(index + 1) reads an author for display")
+                for literal in ["\"AI\"", "\"You\"", "\"STT\"", "\"Ty\""] {
+                    #expect(!code.contains(literal), "\(name):\(index + 1) draws \(literal)")
+                }
+            }
         }
+    }
+
+    @Test func theHistoryEmptyTextDoesNotPromiseAnAuthor() throws {
+        let text = try String(
+            contentsOf: Self.root.appending(path: "Resources/Localizable.xcstrings"), encoding: .utf8)
+        #expect(!text.contains("with who made them") && !text.contains("kto je zrobił"))
     }
 
     @Test func theStringCatalogHasNoMarkTexts() throws {
         let text = try String(
             contentsOf: Self.root.appending(path: "Resources/Localizable.xcstrings"), encoding: .utf8)
-        for key in ["Written by AI", "Written by you", "Speech to text", "document.author.you"] {
+        for key in [
+            "Written by AI", "Written by you", "Speech to text", "document.author.you", "Added by you",
+            "Revised, not checked against the recording",
+        ] {
             #expect(!text.contains("\"\(key)\""), "\(key) is still in the catalog")
         }
     }

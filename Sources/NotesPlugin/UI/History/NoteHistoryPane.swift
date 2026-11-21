@@ -19,7 +19,7 @@ struct NoteHistoryPane: View {
             case .none:
                 note(
                     Text(
-                        "Nothing has been changed here yet. Edits by you and by the agent are listed here, with who made them.",
+                        "Nothing has been changed here yet. Every edit to this note is listed here.",
                         comment: "Inspector, History: the layer has no edits"))
             case .failed:
                 note(

@@ -15247,20 +15247,20 @@
         }
       }
     },
-    "Nothing has been changed here yet. Edits by you and by the agent are listed here, with who made them." : {
+    "Nothing has been changed here yet. Every edit to this note is listed here." : {
       "comment" : "Inspector, History: the layer has no edits",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nothing has been changed here yet. Edits by you and by the agent are listed here, with who made them."
+            "value" : "Nothing has been changed here yet. Every edit to this note is listed here."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nic tu jeszcze nie zmieniono. Zmiany wprowadzone przez Ciebie i agenta pojawią się tutaj razem z informacją, kto je zrobił."
+            "value" : "Nic tu jeszcze nie zmieniono. Każda zmiana tej notatki pojawi się tutaj."
           }
         }
       }
