@@ -188,13 +188,17 @@ struct AppEnvironment {
         try createPrivateDirectory(root, fileManager: fileManager)
         let fileHome = root.appending(path: "files-home", directoryHint: .isDirectory)
         try createPrivateDirectory(fileHome, fileManager: fileManager)
-        var seeded = qaNotesSettings(
-            qaAppActivitySettings(
-                qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
-                activity: options.appActivity,
-                live: options.liveAppActivity
-            ),
-            fixtures: options.notesFixtures
+        var seeded = qaHUDSettings(
+            qaIdentitySettings(
+                qaNotesSettings(
+                    qaAppActivitySettings(
+                        qaFileIndexSettings(options.settings, emptyHome: fileHome.path),
+                        activity: options.appActivity,
+                        live: options.liveAppActivity
+                    ),
+                    fixtures: options.notesFixtures
+                )),
+            hud: options.hud
         )
         // A QA run never opens an open or save panel: they write their sizes into the real defaults domain.
         if seeded[QAOptions.windowsScriptedFilesKey] == nil { seeded[QAOptions.windowsScriptedFilesKey] = .bool(true) }
@@ -246,6 +250,32 @@ struct AppEnvironment {
     static func qaNotesSettings(_ settings: [String: SettingValue], fixtures: Bool) -> [String: SettingValue] {
         var result = settings
         if fixtures { result[QAOptions.notesFixturesKey] = .bool(true) }
+        return result
+    }
+
+    /// QA mode never shows the tester's account name or a path from their home folder (issue #222): unless the run
+    /// sets them, "Your name" suggests an invented name and "Choose File…" of the notes provider answers with an
+    /// invented path outside every home folder, without opening a file panel.
+    static let qaAccountName = "Ada Example"
+    static let qaProviderBinaryPath = "/opt/lintel-qa/bin/claude"
+    static func qaIdentitySettings(_ settings: [String: SettingValue]) -> [String: SettingValue] {
+        var result = settings
+        if result[QAOptions.meetingsAccountNameKey] == nil {
+            result[QAOptions.meetingsAccountNameKey] = .string(qaAccountName)
+        }
+        if result[QAOptions.meetingsProviderBinaryKey] == nil {
+            result[QAOptions.meetingsProviderBinaryKey] = .string(qaProviderBinaryPath)
+        }
+        return result
+    }
+
+    /// `--qa-hud dictation:<state>` / `meeting:<state>` switches the plugin on and gives it the state to draw
+    /// (`plugins.<id>.qaHUD`); the plugin shows its HUD view in a QA panel, without microphone or permissions.
+    static func qaHUDSettings(_ settings: [String: SettingValue], hud: QAHUDRequest?) -> [String: SettingValue] {
+        guard let hud else { return settings }
+        var result = settings
+        result["plugins.\(hud.pluginID).enabled"] = .bool(true)
+        result["plugins.\(hud.pluginID).qaHUD"] = .string(hud.state)
         return result
     }
 

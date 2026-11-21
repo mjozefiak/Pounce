@@ -49,6 +49,9 @@ public final class DictationPlugin: LintelPlugin {
     private let builtInLLM: KeepWarmRuntime
     private let hud: DictationHUDPanel
     private let settingsModel: DictationSettingsModel
+    #if DEBUG
+    private var qaHUD: DictationHUDQA?
+    #endif
     private let formattingModel: FormattingSettingsModel
     private let transport: any HTTPTransport
     let history: DictationHistory
@@ -194,6 +197,17 @@ public final class DictationPlugin: LintelPlugin {
 
     public func activate() async throws {
         let context = context
+        #if DEBUG
+        // `--qa-hud dictation:<state>`: draws the HUD in that state, nothing else (docs/qa.md).
+        if let name = context.settings.string(DictationHUDQA.settingName) {
+            let hud = DictationHUDQA()
+            if hud.show(named: name) {
+                qaHUD = hud
+            } else {
+                context.logger.error("Unknown --qa-hud dictation state")
+            }
+        }
+        #endif
         let settings = settings
         let engine = engine
         let lease = SpeechEngineLease.shared

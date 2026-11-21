@@ -66,7 +66,8 @@ final class MeetingsUI {
             },
             openURL: { url in Task { try? await workspace.open(url) } },
             copyText: { pasteboard.setString($0) },
-            chooseFile: { MeetingsUI.chooseProviderBinary() }, changed: context.resultsChanged,
+            chooseFile: { providerSettings.qaProviderBinary ?? MeetingsUI.chooseProviderBinary() },
+            changed: context.resultsChanged,
             lastMarked: { [library] in
                 guard let store = library.store,
                     let entries = try? store.libraryEntries(matching: nil, filter: .all, limit: 100),
