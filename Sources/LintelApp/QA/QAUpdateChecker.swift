@@ -34,7 +34,7 @@ final class QAUpdateChecker: UpdateChecking {
 
     /// A controller whose policy says "start" (the facts of an installed, signed release build) over this fake.
     static func controller(
-        version: String?, settings: any SettingsStore, isBusy: @escaping () -> Bool = { false }
+        version: String?, beta: Bool = false, settings: any SettingsStore, isBusy: @escaping () -> Bool = { false }
     ) -> UpdateController {
         let home = URL(filePath: "/Users/qa", directoryHint: .isDirectory)
         return UpdateController(
@@ -47,10 +47,18 @@ final class QAUpdateChecker: UpdateChecking {
                 homeDirectory: home
             ),
             settings: settings,
-            runningVersion: "0.0.0",
+            runningVersion: beta ? "0.0.0-beta.1" : "0.0.0",
             isBusy: isBusy,
             makeChecker: { QAUpdateChecker(version: version) }
         )
     }
+}
+#endif
+
+#if DEBUG
+/// The QA flag behind `--qa-updates pending`: the welcome flow counts as open until it is cleared.
+@MainActor
+final class QAWelcomePending {
+    var value = true
 }
 #endif

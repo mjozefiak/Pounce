@@ -78,6 +78,16 @@ struct GeneralPaneContent: View {
         .onAppear {
             launchesAtLogin = launchAtLogin.isEnabled
         }
+        // On the pane, not on the Updates section: a modifier on a `Section` is not guaranteed to run. It mirrors
+        // the updater while the pane is on screen (an answer to Sparkle's question, the end of a check, the end of
+        // the welcome flow).
+        .task {
+            guard let updates else { return }
+            while !Task.isCancelled {
+                updates.refresh()
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
     }
 
     private var launchBinding: Binding<Bool> {

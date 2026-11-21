@@ -128,6 +128,11 @@ struct QAOptions: Equatable {
     /// `--qa-updates on|off`: `on` gives Settings → General the Updates group over the fake updater (running, no
     /// update found); `off` shows the "not available in this copy" state (what every DEBUG build does by itself).
     var updatesOn: Bool?
+    /// `--qa-updates pending`: like `on`, but the welcome flow counts as open for a few seconds, so the updater
+    /// starts only then (Settings shows the controls disabled first, then live, without reopening the window).
+    var updatesWelcomePending = false
+    /// `--qa-updates beta` (and `pending`): the fake updater runs a `-beta.N` version, so the note shows.
+    var updatesBeta = false
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -291,6 +296,13 @@ struct QAOptions: Equatable {
                 switch value {
                 case "on": options.updatesOn = true
                 case "off": options.updatesOn = false
+                case "beta":
+                    options.updatesOn = true
+                    options.updatesBeta = true
+                case "pending":
+                    options.updatesOn = true
+                    options.updatesBeta = true
+                    options.updatesWelcomePending = true
                 default: throw .invalidValue(argument, value)
                 }
             case "--qa-move-scenario":

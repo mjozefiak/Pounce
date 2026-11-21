@@ -382,6 +382,51 @@ import Testing
         #expect(!model.isAvailable && !model.canCheckNow && !model.automaticChecks)
     }
 
+    @Test func theSettingsModelWaitsForTheWelcomeFlowWithoutClaimingUnavailabilityAndGoesLive() {
+        let waiting = controller(UpdaterStartPolicyTests.facts())
+        var pending = true
+        waiting.welcomeIsPending = { pending }
+        waiting.startIfAllowed()
+        let model = UpdatesSettingsModel(version: "1.0.0", build: "1", controller: waiting)
+        #expect(model.isWaitingForWelcome && model.showsControls)
+        #expect(!model.isAvailable && !model.canCheckNow && !model.automaticChecks)
+        model.refresh()  // still waiting: nothing changes
+        #expect(model.isWaitingForWelcome && !model.isAvailable)
+        pending = false
+        waiting.welcomeFinished()
+        model.refresh()  // what the pane's one-second refresh does; no new model, no reopened window
+        #expect(!model.isWaitingForWelcome && model.isAvailable && model.showsControls && model.canCheckNow)
+    }
+
+    @Test func aBetaBuildWaitingForTheWelcomeShowsTheRealValuesAndWritesNothing() {
+        let settings = InMemorySettingsStore()
+        let waiting = controller(UpdaterStartPolicyTests.facts(), settings: settings, version: "0.2.0-beta.1")
+        var pending = true
+        waiting.welcomeIsPending = { pending }
+        waiting.startIfAllowed()
+        let model = UpdatesSettingsModel(version: "0.2.0-beta.1", build: "7", controller: waiting)
+        #expect(model.isWaitingForWelcome && model.includeBeta && model.runsPreRelease && !model.isAvailable)
+        #expect(settings.value(forKey: "app.updates.includeBeta") == nil)
+        pending = false
+        waiting.welcomeFinished()
+        model.refresh()
+        #expect(model.isAvailable && model.includeBeta && model.runsPreRelease)
+    }
+
+    @Test func theSettingsModelStaysUnavailableWhenThePolicyRefusesAfterTheWelcomeFlow() {
+        let refused = controller(UpdaterStartPolicyTests.facts(debug: true))
+        var pending = true
+        refused.welcomeIsPending = { pending }
+        refused.startIfAllowed()
+        let model = UpdatesSettingsModel(version: "1.0.0", build: "1", controller: refused)
+        #expect(!model.isWaitingForWelcome && !model.showsControls)  // refused at once, not after the welcome
+        pending = false
+        refused.welcomeFinished()
+        model.refresh()
+        #expect(!model.isWaitingForWelcome && !model.isAvailable && !model.showsControls)
+        #expect(!UpdatesSettingsModel(version: "1", build: "1").showsControls)  // no controller at all
+    }
+
     @Test func aStartErrorLeavesTheUpdaterOff() {
         let controller = controller(UpdaterStartPolicyTests.facts(), error: Boom())
         controller.startIfAllowed()
@@ -539,6 +584,12 @@ struct UpdateReminderMenuTests {
     @Test func theQAUpdatesArgumentTakesOnOrOff() throws {
         #expect(try #require(try QAOptions.parse(["--qa", "--qa-updates", "on"])).updatesOn == true)
         #expect(try #require(try QAOptions.parse(["--qa", "--qa-updates", "off"])).updatesOn == false)
+        let stable = try #require(try QAOptions.parse(["--qa", "--qa-updates", "on"]))
+        #expect(stable.updatesOn == true && !stable.updatesBeta && !stable.updatesWelcomePending)
+        let beta = try #require(try QAOptions.parse(["--qa", "--qa-updates", "beta"]))
+        #expect(beta.updatesOn == true && beta.updatesBeta && !beta.updatesWelcomePending)
+        let pending = try #require(try QAOptions.parse(["--qa", "--qa-updates", "pending"]))
+        #expect(pending.updatesOn == true && pending.updatesBeta && pending.updatesWelcomePending)
         #expect(throws: QAOptions.ParseError.self) { _ = try QAOptions.parse(["--qa", "--qa-updates", "maybe"]) }
     }
 

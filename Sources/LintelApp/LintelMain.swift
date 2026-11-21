@@ -57,6 +57,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator.attach(updates)
             // Not while the welcome screen is up: Sparkle's permission question must not appear over it (D6).
             updates.welcomeIsPending = { [weak coordinator] in coordinator?.onboarding?.isVisible ?? false }
+            #if DEBUG
+            if qaOptions?.updatesWelcomePending == true {
+                let pending = QAWelcomePending()
+                updates.welcomeIsPending = { pending.value }
+                Task { @MainActor [weak updates] in
+                    try? await Task.sleep(for: .seconds(8))
+                    pending.value = false
+                    updates?.welcomeFinished()
+                }
+            }
+            #endif
             updates.startIfAllowed()
             self.updates = updates
             if !pendingFiles.isEmpty {
@@ -76,7 +87,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         if let options = qaOptions, options.updateAvailable != nil || options.updatesOn == true {
             return QAUpdateChecker.controller(
-                version: options.updateAvailable, settings: environment.settings, isBusy: isBusy)
+                version: options.updateAvailable, beta: options.updatesBeta, settings: environment.settings,
+                isBusy: isBusy)
         }
         #endif
         return UpdateController.live(settings: environment.settings, isBusy: isBusy)
