@@ -35,6 +35,17 @@ import Testing
         #expect(rig.controller.busyReason == .recording)
     }
 
+    /// The decision HUD hides after 20 s but the phase stays until the next press: it must not hold back an update.
+    @Test func aPendingMicrophoneDecisionIsNotBusy() async throws {
+        let rig = try ControllerRig(access: .denied)
+        rig.controller.start()
+        await eventually { rig.controller.phase == .awaitingMicrophoneDecision }
+        #expect(rig.controller.busyReason == nil)
+        rig.controller.perform(.recordSystemAudioOnly)
+        await eventually { rig.controller.phase == .recording }
+        #expect(rig.controller.busyReason == .recording)
+    }
+
     @Test func aPluginThatIsNotActiveIsNotBusy() throws {
         let harness = try MeetingsHarness()
         let plugin = MeetingsPlugin(context: harness.context)
