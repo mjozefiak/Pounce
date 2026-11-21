@@ -206,6 +206,8 @@ struct MeetingHUDView: View {
         HStack(spacing: 10) {
             Text(MeetingHUDState.clock(recording.elapsedSeconds))
                 .font(.callout.monospacedDigit().weight(.medium))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .accessibilityHidden(true)
             Spacer(minLength: 4)
             if recording.recordsMicrophone {
