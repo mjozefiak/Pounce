@@ -14,9 +14,9 @@ struct NoteExportTests {
     @Test("the notes export is the title and the layer's Markdown")
     func notes() throws {
         let text = NoteMarkdownExport.markdown(try content(NotesQAFixtures.meetingID), layerID: "notes")
-        #expect(text.hasPrefix("# Orchard weekly sync\n\n## Summary"))
-        #expect(text.contains("| T1 | Update the release checklist | Kasia | Thu |"))
-        #expect(text.hasSuffix("\\[12:46\\]\n"))
+        #expect(text.hasPrefix("# Orchard weekly sync\n\n### Summary"))
+        #expect(text.contains("- [ ] Update the release checklist — owner\\: Kasia, due\\: Thursday"))
+        #expect(text.hasSuffix("### Participants\n\nKasia, Marek\n"))
     }
 
     @Test("the transcript export has the speaker and the time before each segment")

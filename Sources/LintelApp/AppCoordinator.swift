@@ -617,7 +617,9 @@ final class AppCoordinator {
 
     /// QA (`--qa-snapshot`): the main window's content as a PNG, rendered by the app itself.
     func writeMainWindowSnapshotForQA(to path: String) {
-        guard let view = mainWindow?.window?.contentView,
+        // A `--qa-hud` run draws a HUD in its own QA panel: that is what the snapshot shows.
+        let hudWindow = NSApp.windows.first { $0.identifier?.rawValue == QAHUDRequest.identifier }
+        guard let view = hudWindow?.contentView ?? mainWindow?.window?.contentView,
             let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
         else {
             logger.error("No main window to snapshot")

@@ -27,6 +27,9 @@ public final class MeetingsPlugin: LintelPlugin {
 
     let context: PluginContext
     let settings: MeetingsSettings
+    #if DEBUG
+    private var qaHUD: MeetingHUDQA?
+    #endif
     let library: MeetingsLibrary
     /// True while a session records or processes; the session owner (step 1.10) calls `begin()` / `end()`.
     let activity = MeetingActivity()
@@ -136,6 +139,17 @@ public final class MeetingsPlugin: LintelPlugin {
     // MARK: Lifecycle
 
     public func activate() async throws {
+        #if DEBUG
+        // `--qa-hud meeting:<state>`: draws the HUD in that state, nothing else (docs/qa.md).
+        if let name = context.settings.string(MeetingHUDQA.settingName) {
+            let hud = MeetingHUDQA()
+            if hud.show(named: name) {
+                qaHUD = hud
+            } else {
+                context.logger.error("Unknown --qa-hud meeting state")
+            }
+        }
+        #endif
         await library.openInBackground()
         await notes.start()
         let detector = makeDetector()

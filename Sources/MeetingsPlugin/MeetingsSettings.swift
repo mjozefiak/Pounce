@@ -24,6 +24,7 @@ struct MeetingsSettings: Sendable {
         static let qaProviderStatus = "qaProviderStatus"
         static let qaProviderScenario = "qaProviderScenario"
         static let qaAccountName = "qaAccountName"
+        static let qaProviderBinary = "qaProviderBinary"
         static let notesChunkTokens = "notesChunkTokens"
         static let notesReduceInputTokens = "notesReduceInputTokens"
         static let suggestMeetings = "suggestMeetings"
@@ -282,6 +283,16 @@ struct MeetingsSettings: Sendable {
         } else {
             settings.removeValue(for: Key.notesProviderBinary)
         }
+    }
+
+    /// DEBUG only (`--qa-setting plugins.meetings.qaProviderBinary=<path>`): the answer of "Choose File…" for the
+    /// notes provider, so a QA run opens no file panel and shows no path from the tester's home folder.
+    var qaProviderBinary: URL? {
+        #if DEBUG
+        settings.string(Key.qaProviderBinary).map { URL(filePath: $0) }
+        #else
+        nil
+        #endif
     }
 
     /// DEBUG only (`--qa-setting plugins.meetings.qaAccountName=<name>`): the macOS account's full name as the
