@@ -382,6 +382,36 @@ import Testing
         #expect(!model.isAvailable && !model.canCheckNow && !model.automaticChecks)
     }
 
+    @Test func theSettingsModelWaitsForTheWelcomeFlowWithoutClaimingUnavailabilityAndGoesLive() {
+        let waiting = controller(UpdaterStartPolicyTests.facts())
+        var pending = true
+        waiting.welcomeIsPending = { pending }
+        waiting.startIfAllowed()
+        let model = UpdatesSettingsModel(version: "1.0.0", build: "1", controller: waiting)
+        #expect(model.isWaitingForWelcome && model.showsControls)
+        #expect(!model.isAvailable && !model.canCheckNow && !model.automaticChecks)
+        model.refresh()  // still waiting: nothing changes
+        #expect(model.isWaitingForWelcome && !model.isAvailable)
+        pending = false
+        waiting.welcomeFinished()
+        model.refresh()  // what the pane's one-second refresh does; no new model, no reopened window
+        #expect(!model.isWaitingForWelcome && model.isAvailable && model.showsControls && model.canCheckNow)
+    }
+
+    @Test func theSettingsModelStaysUnavailableWhenThePolicyRefusesAfterTheWelcomeFlow() {
+        let refused = controller(UpdaterStartPolicyTests.facts(debug: true))
+        var pending = true
+        refused.welcomeIsPending = { pending }
+        refused.startIfAllowed()
+        let model = UpdatesSettingsModel(version: "1.0.0", build: "1", controller: refused)
+        #expect(model.isWaitingForWelcome && model.showsControls)
+        pending = false
+        refused.welcomeFinished()
+        model.refresh()
+        #expect(!model.isWaitingForWelcome && !model.isAvailable && !model.showsControls)
+        #expect(!UpdatesSettingsModel(version: "1", build: "1").showsControls)  // no controller at all
+    }
+
     @Test func aStartErrorLeavesTheUpdaterOff() {
         let controller = controller(UpdaterStartPolicyTests.facts(), error: Boom())
         controller.startIfAllowed()

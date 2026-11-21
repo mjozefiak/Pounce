@@ -20,39 +20,47 @@ struct UpdatesSection: View {
                     .font(textSize.font(.body))
             }
             .accessibilityElement(children: .combine)
-            if model.isAvailable {
+            if model.showsControls {
                 Toggle(isOn: binding(model.automaticChecks, model.setAutomaticChecks)) {
                     Text("Check for updates automatically", comment: "Settings → General → Updates: switch")
                         .font(textSize.font(.body))
                 }
                 .toggleStyle(.switch)
+                .disabled(!model.isAvailable)
                 .accessibilityLabel(Text("Check for updates automatically", comment: "VoiceOver label of the switch"))
+                // The note is the switch's VoiceOver hint; the visible line is hidden from VoiceOver so it is
+                // not read twice.
+                VStack(alignment: .leading, spacing: 2) {
+                    Toggle(isOn: binding(model.includeBeta, model.setIncludeBeta)) {
+                        Text("Include beta versions", comment: "Settings → General → Updates: switch")
+                            .font(textSize.font(.body))
+                    }
+                    .toggleStyle(.switch)
+                    .disabled(!model.isAvailable)
+                    .accessibilityLabel(Text("Include beta versions", comment: "VoiceOver label of the switch"))
+                    .accessibilityHint(model.runsPreRelease ? Self.betaNote : Text(verbatim: ""))
+                    if model.runsPreRelease {
+                        Self.betaNote
+                            .font(textSize.font(.callout))
+                            .foregroundStyle(LintelBrand.secondaryText)
+                            .accessibilityHidden(true)
+                    }
+                }
                 Toggle(isOn: binding(model.automaticDownloads, model.setAutomaticDownloads)) {
                     Text("Download and install updates automatically", comment: "Settings → General → Updates: switch")
                         .font(textSize.font(.body))
                 }
                 .toggleStyle(.switch)
-                .disabled(!model.automaticChecks)
+                .disabled(!model.isAvailable || !model.automaticChecks)
                 .accessibilityLabel(
                     Text("Download and install updates automatically", comment: "VoiceOver label of the switch"))
-                Toggle(isOn: binding(model.includeBeta, model.setIncludeBeta)) {
-                    Text("Include beta versions", comment: "Settings → General → Updates: switch")
-                        .font(textSize.font(.body))
-                    if model.runsPreRelease {
-                        Text("You are running a beta version.", comment: "Settings → General → Updates: note")
-                            .font(textSize.font(.callout))
-                            .foregroundStyle(LintelBrand.secondaryText)
-                    }
-                }
-                .toggleStyle(.switch)
-                .accessibilityLabel(Text("Include beta versions", comment: "VoiceOver label of the switch"))
                 LabeledContent {
                     Button {
                         model.checkNow()
                     } label: {
                         Text("Check Now", comment: "Settings → General → Updates: button that checks for an update")
                     }
-                    .disabled(!model.canCheckNow)
+                    .disabled(!model.isAvailable || !model.canCheckNow)
                     .accessibilityLabel(
                         Text("Check for updates now", comment: "VoiceOver label of the Check Now button"))
                 } label: {
@@ -70,12 +78,10 @@ struct UpdatesSection: View {
             Text("Updates", comment: "Settings → General: section title of the update settings")
                 .settingsSectionHeader()
         }
-        .task {
-            while !Task.isCancelled {
-                model.refresh()
-                try? await Task.sleep(for: .seconds(1))
-            }
-        }
+    }
+
+    private static var betaNote: Text {
+        Text("You are running a beta version.", comment: "Settings → General → Updates: note")
     }
 
     private var versionText: String {

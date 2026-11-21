@@ -15,6 +15,8 @@ final class UpdatesSettingsModel {
     let build: String
 
     private(set) var isAvailable = false
+    /// The updater is held back only until the welcome flow closes: the group is shown, its controls disabled.
+    private(set) var isWaitingForWelcome = false
     private(set) var automaticChecks = false
     private(set) var automaticDownloads = false
     private(set) var includeBeta = false
@@ -35,6 +37,7 @@ final class UpdatesSettingsModel {
     }
 
     func refresh() {
+        isWaitingForWelcome = controller?.waitingForWelcome ?? false
         guard let controller, controller.isRunning else {
             isAvailable = false
             automaticChecks = false
@@ -51,6 +54,9 @@ final class UpdatesSettingsModel {
         canCheckNow = controller.canCheckForUpdates
         runsPreRelease = controller.runningVersionIsPreRelease
     }
+
+    /// Whether the group shows its controls (live or waiting for the welcome) instead of the "unavailable" line.
+    var showsControls: Bool { isAvailable || isWaitingForWelcome }
 
     func setAutomaticChecks(_ value: Bool) {
         controller?.automaticallyChecks = value

@@ -57,7 +57,8 @@ final class UpdateController {
     /// Whether the welcome flow is on screen. While it is, the updater is not started, so Sparkle's permission
     /// question never appears over it (spec D6).
     var welcomeIsPending: () -> Bool = { false }
-    private var waitingForWelcome = false
+    /// True while a start is held back only because the welcome flow is on screen.
+    private(set) var waitingForWelcome = false
 
     /// Starts the updater when the policy allows it and the welcome flow is not pending. Safe to call more than
     /// once: only the first call that gets past both acts.

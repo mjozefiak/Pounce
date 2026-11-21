@@ -47,10 +47,18 @@ final class QAUpdateChecker: UpdateChecking {
                 homeDirectory: home
             ),
             settings: settings,
-            runningVersion: "0.0.0",
+            runningVersion: "0.0.0-beta.1",
             isBusy: isBusy,
             makeChecker: { QAUpdateChecker(version: version) }
         )
     }
+}
+#endif
+
+#if DEBUG
+/// The QA flag behind `--qa-updates pending`: the welcome flow counts as open until it is cleared.
+@MainActor
+final class QAWelcomePending {
+    var value = true
 }
 #endif
