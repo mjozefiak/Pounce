@@ -21,5 +21,5 @@
 - Database/migration state: clean
 
 ## Worktree
-- Path: /Users/mjozefiak/DeveloperTools/Pounce/.ai/tmp/om-auto-create-pr-loop/notes-workspace-20261106
+- Path: <repo>/.ai/tmp/om-auto-create-pr-loop/notes-workspace-20261106
 - Created this run: yes
