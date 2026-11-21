@@ -4,10 +4,12 @@
 # The release `sign` job uses this instead of resolving the package graph: it needs one binary, not the app's dependencies.
 #
 # Usage: scripts/fetch-sparkle-tools.sh <dir> [<zip>]   (<zip>: use this local file instead of downloading; tests)
+#   SPARKLE_TOOLS_CONF  another config file in place of scripts/sparkle-tools.txt (tests only)
+# Fails (non-zero) when the zip does not match the checksum, and then nothing from it is extracted.
 set -euo pipefail
 DIR="${1:-}"
 [[ -n "$DIR" ]] || { print -u2 "usage: fetch-sparkle-tools.sh <dir> [<zip>]"; exit 64; }
-CONF="${0:A:h}/sparkle-tools.txt"
+CONF="${SPARKLE_TOOLS_CONF:-${0:A:h}/sparkle-tools.txt}"
 VERSION="$(sed -n 's/^VERSION=//p' "$CONF")"
 WANT="$(sed -n 's/^SHA256=//p' "$CONF")"
 [[ "$VERSION" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' && "$WANT" =~ '^[0-9a-f]{64}$' ]] || { print -u2 "fetch-sparkle-tools.sh: $CONF is malformed"; exit 1; }

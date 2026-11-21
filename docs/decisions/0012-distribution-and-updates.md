@@ -55,7 +55,7 @@ reporting "Notarized Developer ID" and a valid staple, for the app and the DMG. 
   lose and which the frameworks' `Versions/Current` links and the signature depend on). A tag must be on `main`.
 - `sign` (`environment: release`, only for a `v*` tag push and for a manual run with `sign: true` on `main`, never for a
   pull request): checks out the repository, selects Xcode with `xcode-select`, takes **only the `.app`** from the
-  artifact, imports the certificate into a temporary keychain and runs the repository's own scripts. It compiles nothing,
+  artifact, imports the certificate into a temporary keychain and runs the repository's own scripts. It builds no app code (the only Swift it runs is the 40-line `scripts/ed25519.swift` key-pair check),
   runs no tests and uses no third-party action. Apple's tools and the repository's scripts are the only code that runs
   next to the key. The Environment `release` holds `DEVELOPER_ID_P12`, `DEVELOPER_ID_P12_PASSWORD`, `NOTARY_KEY_P8`,
   `NOTARY_KEY_ID` and `NOTARY_ISSUER_ID`, deploys only from `main` and `v*`, and has the owner as required reviewer.

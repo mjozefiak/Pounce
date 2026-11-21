@@ -20,8 +20,13 @@
 #     than this build (otherwise it is dropped); when this release is a beta, the previous stable item.
 # A beta item carries <sparkle:channel>beta</sparkle:channel>; a stable item has no channel.
 # Fails (exit 1, nothing written) when --previous is not well-formed XML, holds an item this script would not have
-# written, or when a beta is not newer than the stable it would sit beside. Exit 64 on usage errors.
+# written (another layout, more than two items, two items of one channel, or a channel other than none and "beta":
+# fail closed, an unknown item is never carried along and never dropped silently), when a beta is not newer than the
+# stable it would sit beside, or when this release's build is not higher than the item of its own channel that it
+# replaces (a build number must only grow). Exit 64 on usage errors.
 set -euo pipefail
+# Dates and every other text this script makes are the same in any locale (pubDate is English, RFC 822).
+export LC_ALL=C
 
 die() { print -u2 -r -- "make-appcast.sh: $1"; exit "${2:-1}"; }
 
@@ -123,12 +128,14 @@ fi
 
 STABLE_ITEM="" BETA_ITEM=""
 if (( IS_BETA )); then
+  [[ -z "$PREV_BETA" ]] || (( BUILD > PREV_BETA_BUILD )) || die "this beta (build $BUILD) is not newer than the beta it replaces (build $PREV_BETA_BUILD)"
   BETA_ITEM="$NEW_ITEM"
   if [[ -n "$PREV_STABLE" ]]; then
     (( BUILD > PREV_STABLE_BUILD )) || die "this beta (build $BUILD) is not newer than the stable in the previous feed (build $PREV_STABLE_BUILD)"
     STABLE_ITEM="$PREV_STABLE"
   fi
 else
+  [[ -z "$PREV_STABLE" ]] || (( BUILD > PREV_STABLE_BUILD )) || die "this release (build $BUILD) is not newer than the stable it replaces (build $PREV_STABLE_BUILD)"
   STABLE_ITEM="$NEW_ITEM"
   # The previous beta stays only while it is newer than this stable; otherwise it is dropped.
   if [[ -n "$PREV_BETA" ]] && (( PREV_BETA_BUILD > BUILD )); then

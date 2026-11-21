@@ -13,8 +13,10 @@
 #   SPARKLE_SIGN_UPDATE      path of the sign_update binary (scripts/fetch-sparkle-tools.sh puts it in place)
 #
 # The key reaches sign_update on its standard input only (`--ed-key-file -`): never in an argument, never in a file.
-# sign_update's own output is captured and never shown, because for a malformed key it quotes the key. This script
-# prints fixed messages only. Do not run it with `set -x`.
+# sign_update's own output is captured and never shown, because for a malformed key it quotes the key ("Failed to
+# decode base64 encoded key data from: <key>"). This script prints fixed messages only. Do not run it with `set -x`.
+# The key is read into a shell variable and removed from the environment at once, so no other child of this script
+# (plutil, swift, ...) can see it; only `sign_update` gets it, on its standard input.
 set -uo pipefail
 
 CMD="${1:-}"
@@ -24,7 +26,9 @@ HERE="${0:A:h}"
 
 fail() { print -u2 -r -- "::error::$1"; exit "${2:-1}"; }
 
-[[ -n "${SPARKLE_ED_PRIVATE_KEY:-}" ]] || fail "SPARKLE_ED_PRIVATE_KEY is not set." 64
+KEY="${SPARKLE_ED_PRIVATE_KEY:-}"
+unset SPARKLE_ED_PRIVATE_KEY
+[[ -n "$KEY" ]] || fail "SPARKLE_ED_PRIVATE_KEY is not set." 64
 [[ -x "$SIGN_UPDATE" ]] || fail "SPARKLE_SIGN_UPDATE does not name an executable." 64
 [[ -n "$ARG" ]] || fail "usage: sparkle-sign.sh check-key|sign-file|sign-feed|verify-feed <file>" 64
 
@@ -34,7 +38,7 @@ trap 'exit 130' INT TERM HUP
 
 # Runs sign_update with the key on stdin. Its output goes to $TMP/out and $TMP/err, never to the log.
 run_sign_update() {
-  print -rn -- "$SPARKLE_ED_PRIVATE_KEY" | "$SIGN_UPDATE" --ed-key-file - "$@" > "$TMP/out" 2> "$TMP/err"
+  print -rn -- "$KEY" | "$SIGN_UPDATE" --ed-key-file - "$@" > "$TMP/out" 2> "$TMP/err"
 }
 
 case "$CMD" in

@@ -5,7 +5,7 @@
 //                                                           the public key (used by the script tests only)
 //
 // `sign_update --verify` takes the public key from the PRIVATE key it is given, so it cannot check a signature
-// against the key committed in Info.plist. This can: scripts/check-signing-key.sh uses `verify` for that.
+// against the key committed in Info.plist. This can: `scripts/sparkle-sign.sh check-key` uses `verify` for that.
 // Nothing here prints key material other than the public key.
 import CryptoKit
 import Foundation
