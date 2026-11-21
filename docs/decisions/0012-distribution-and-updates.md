@@ -127,8 +127,16 @@ Sparkle 2.10.1 is a dependency of `LintelApp` only, pinned exactly; it arrives a
 
 - `Info.plist` carries the owner's public key `SUPublicEDKey` (public by design; the private key stays in the Environment
   `release`) and `SUPromptUserOnFirstLaunch` = true. `SUEnableAutomaticChecks` is absent, which is what makes Sparkle
-  ask. The key exists in the pinned 2.10.1 framework (a string in the binary; `SPUUpdater.h` documents only the default
-  of a question on the second launch). `SUEnableSystemProfiling` stays unset, so no system profile is sent.
+  ask. Checked in Sparkle's source at the tag 2.10.1: `-[SPUUpdater startUpdateCycle]` asks only while
+  `SUEnableAutomaticChecks` is in neither the defaults nor `Info.plist`, and asks on the first launch when
+  `SUPromptUserOnFirstLaunch` is true (otherwise on the second, `SUHasLaunchedBefore`). While the question is up nothing
+  is scheduled; after the answer `resetUpdateCycle` calls `scheduleNextUpdateCheckFiringImmediately:NO`, which returns
+  without a timer when `automaticallyChecksForUpdates` is false. `SUEnableSystemProfiling` stays unset, so the
+  question hides the profile checkbox and answers `sendSystemProfile` false (`SUUpdatePermissionPrompt`), and
+  `parameterizedFeedURL` adds no profile: the request carries only the User-Agent `Lintel/<version> Sparkle/2.10.1`.
+- Until the feed exists (Step 4.7) the address answers 404: a scheduled check fails without a window
+  (`SPUScheduledUpdateDriver` shows an error only for an update it showed) and "Check Now" shows Sparkle's
+  "Update Error!" alert.
 - `UpdateController` does not start the updater while the welcome flow is on screen (`welcomeIsPending`); closing the
   welcome window calls `welcomeFinished()`, which starts it once. Sparkle's question therefore never appears over the
   welcome screen and nothing is requested before the user answers. After a "no" only the user's own "Check Now" asks.
