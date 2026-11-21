@@ -63,12 +63,12 @@ struct NoteCompareView: View {
                 .keyboardShortcut(.cancelAction)
             }
             NoteWrapLayout(spacing: 6 * textSize.scale, lineSpacing: 6 * textSize.scale) {
-                chip(compare.baseAuthor, compare.baseDate)
+                chip(compare.baseDate)
                 Text(verbatim: "→")
                     .font(textSize.font(.footnote))
                     .foregroundStyle(LintelBrand.secondaryText)
                     .accessibilityHidden(true)
-                chip(compare.author, compare.date)
+                chip(compare.date)
                 Text("Inline", comment: "Compare: the changes are shown in the text")
                     .font(textSize.font(.footnote, weight: .semibold))
                     .foregroundStyle(LintelBrand.ink)
@@ -145,17 +145,17 @@ struct NoteCompareView: View {
         }
     }
 
-    private func chip(_ author: NoteAuthor, _ date: Date) -> some View {
-        Text(verbatim: "\(author.gutterText) \(model.presentation.time(date))")
+    private func chip(_ date: Date) -> some View {
+        Text(verbatim: model.presentation.time(date))
             .font(textSize.font(.footnote))
             .foregroundStyle(LintelBrand.ink)
             .padding(.horizontal, 8)
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(LintelBrand.hairline))
-            .accessibilityLabel(Text(verbatim: "\(author.spokenName), \(model.presentation.dateTime(date))"))
+            .accessibilityLabel(Text(verbatim: model.presentation.dateTime(date)))
     }
 }
 
-/// One line of the inline diff (prototype `.dl`): the glyph, the block, the author of the block.
+/// One line of the inline diff (prototype `.dl`): the glyph and the block.
 struct NoteDiffLineView: View {
     let line: NoteDiffLine
     @Environment(\.lintelTextSize) private var textSize
@@ -170,12 +170,6 @@ struct NoteDiffLineView: View {
                 .foregroundStyle(LintelBrand.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
-            if let author = line.author {
-                Text(verbatim: author.gutterText)
-                    .font(textSize.font(.footnote))
-                    .foregroundStyle(LintelBrand.secondaryText)
-                    .accessibilityHidden(true)
-            }
         }
         .font(textSize.font(.callout))
         .padding(.horizontal, 10)

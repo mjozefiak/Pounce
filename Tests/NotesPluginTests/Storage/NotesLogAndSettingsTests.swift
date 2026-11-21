@@ -60,7 +60,6 @@ import Testing
     @Test func defaultsFollowTheSpec() throws {
         let settings = try NotesHarness().notesSettings
         #expect(settings.grouping == .time)
-        #expect(settings.showAuthorBars)
         #expect(settings.showQuotes)
         #expect(settings.showComments)
         #expect(settings.wrapLines)

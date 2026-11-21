@@ -7,6 +7,8 @@ import LintelSpeech
 enum NotesSettingsKey {
     /// `time` or `source`, default `time`.
     static let grouping = "grouping"
+    /// Ignored since the owner decision of 2026-11-19 (no author marks in the notes UI): nothing reads it and nothing
+    /// writes it, the key stays declared so an old value is kept and the contract is unchanged.
     static let showAuthorBars = "showAuthorBars"
     static let showQuotes = "showQuotes"
     static let showComments = "showComments"
@@ -81,7 +83,6 @@ struct NotesSettings: Sendable {
     }
 
     var grouping: Grouping { settings.string(NotesSettingsKey.grouping).flatMap(Grouping.init) ?? Self.defaultGrouping }
-    var showAuthorBars: Bool { settings.bool(NotesSettingsKey.showAuthorBars, default: true) }
     var showQuotes: Bool { settings.bool(NotesSettingsKey.showQuotes, default: true) }
     var showComments: Bool { settings.bool(NotesSettingsKey.showComments, default: true) }
     var wrapLines: Bool { settings.bool(NotesSettingsKey.wrapLines, default: true) }

@@ -3,7 +3,7 @@ import LintelCore
 import LintelKit
 
 /// A note on a block that is not an untouched block of the recording's own notes (spec "Attribution and
-/// verification invariant"): shown, not hidden.
+/// verification invariant"). Derived from the stored authors; no view draws or speaks it any more.
 enum BlockMark: Equatable, Sendable {
     /// An `agent` block that is not the seeded block: revised by the agent, not checked against the recording.
     case revisedNotChecked
@@ -11,7 +11,8 @@ enum BlockMark: Equatable, Sendable {
     case addedByYou
 }
 
-/// What the gutter and the block draw for one block: the author bar, the mark and whether quote chips may show.
+/// What the stored attribution says about one block: the author, the mark and whether quote chips may show.
+/// Data only: the notes UI draws no author bar, mark or label.
 struct BlockAttributionInfo: Equatable, Sendable {
     var index: Int
     var author: NoteAuthor

@@ -87,10 +87,8 @@ import Testing
     @Test func theDetailsTogglesWriteTheKeysTheInspectorWrites() {
         let store = MemorySettings()
         let model = make(store: store)
-        model.preferences.showAuthorBars = false
         model.preferences.showQuotes = false
         model.preferences.wrapLines = false
-        #expect(store.value(forKey: "plugins.notes.showAuthorBars") == .bool(false))
         #expect(store.value(forKey: "plugins.notes.showQuotes") == .bool(false))
         #expect(store.value(forKey: "plugins.notes.wrapLines") == .bool(false))
     }

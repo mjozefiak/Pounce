@@ -29,63 +29,6 @@ struct NoteBlockRow: View {
     }
 }
 
-extension NoteAuthor {
-    /// The author in words: the History tab and its VoiceOver text name who wrote a revision.
-    var gutterText: String {
-        switch self {
-        case .agent: "AI"
-        case .human:
-            String(
-                localized: "document.author.you", defaultValue: "You",
-                comment: "Document: author bar of a block the user wrote (the gutter label and the legend)")
-        case .stt: "STT"
-        default: ""
-        }
-    }
-
-    /// The same, in words for VoiceOver.
-    var spokenName: String {
-        switch self {
-        case .agent: String(localized: "Written by AI", comment: "Accessibility: who wrote a block")
-        case .human: String(localized: "Written by you", comment: "Accessibility: who wrote a block")
-        case .stt: String(localized: "Speech to text", comment: "Accessibility: who wrote a block")
-        default: ""
-        }
-    }
-
-    /// The author's colour in the History tab and the compare view.
-    @MainActor var barColor: Color {
-        switch self {
-        case .agent: LintelBrand.accent
-        case .human: LintelBrand.ink
-        default: LintelBrand.secondaryText.opacity(0.5)
-        }
-    }
-}
-
-extension BlockMark {
-    /// What the block says about itself (spec "Attribution and verification invariant"). Not drawn in the
-    /// document any more; kept for the stored attribution and its tests.
-    var text: String {
-        switch self {
-        case .revisedNotChecked:
-            String(
-                localized: "Revised, not checked against the recording",
-                comment: "Document: an AI block that was changed after it was checked against the recording")
-        case .addedByYou:
-            String(localized: "Added by you", comment: "Document: a block the user wrote or edited in an AI note")
-        }
-    }
-}
-
-extension BlockAttributionInfo {
-    /// The author in words, then the mark.
-    var spokenLabel: String {
-        guard let mark else { return author.spokenName }
-        return "\(author.spokenName), \(mark.text)"
-    }
-}
-
 /// Text from a source, drawn as inline Markdown with no link and no image. A trailing `[mm:ss]` that an older
 /// note carries is cut off: the notes show no times.
 struct NoteInlineText: View {
