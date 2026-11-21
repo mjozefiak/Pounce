@@ -25668,6 +25668,42 @@
           }
         }
       }
+    },
+    "Update Available: %@…" : {
+      "comment" : "Menu bar menu item shown when a newer version was found; opens the update window",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update Available: %@…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostępna aktualizacja: %@…"
+          }
+        }
+      }
+    },
+    "Lintel, update available" : {
+      "comment" : "Menu bar item accessibility label with an update",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel, update available"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lintel, dostępna aktualizacja"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

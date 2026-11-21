@@ -13,6 +13,7 @@ import Testing
         "fluidaudio": ["FluidAudio"],
         "argmax-oss-swift": ["WhisperKit"],
         "llama": ["llama.cpp"],
+        "sparkle": ["Sparkle"],
     ]
 
     private static var root: URL {
