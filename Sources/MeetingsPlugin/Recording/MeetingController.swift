@@ -141,6 +141,17 @@ final class MeetingController {
 
     var isBusy: Bool { phase != .idle }
 
+    /// `.recording` while audio is captured, `.processing` for the checks and finishing. A pending microphone
+    /// decision holds nothing (no audio, no activity) and outlives its HUD, which hides after 20 s, so it is not
+    /// busy: otherwise an ignored decision would hold back an update until the next press of the shortcut.
+    var busyReason: BusyReason? {
+        switch phase {
+        case .idle, .awaitingMicrophoneDecision: nil
+        case .recording: .recording
+        case .preparing, .finishing: .processing
+        }
+    }
+
     // MARK: Input
 
     /// The command: starts a recording, or ends the running one.

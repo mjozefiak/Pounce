@@ -48,6 +48,7 @@ final class SparkleUpdateChecker: NSObject, UpdateChecking, SPUUpdaterDelegate, 
     ) -> Bool {
         guard shouldPostponeRelaunch?() == true else { return false }
         postponedInstall = installHandler
+        onEvent?(.relaunchPostponed)
         return true
     }
 

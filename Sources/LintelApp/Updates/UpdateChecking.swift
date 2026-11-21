@@ -6,6 +6,9 @@ nonisolated enum UpdateEvent: Equatable, Sendable {
     case foundInBackground(version: String)
     /// The user saw the update (its window came into focus) or the update session ended: the reminder goes away.
     case reminderNoLongerNeeded
+    /// An update is ready to install and the relaunch is being held back because Lintel is busy: the controller
+    /// polls until nothing is busy (there is no "busy ended" event in the plugin contract).
+    case relaunchPostponed
 }
 
 /// The port between the shell and the update framework (Sparkle), so that nothing but `SparkleUpdateChecker`

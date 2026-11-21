@@ -5,6 +5,17 @@ import LintelUI
 
 /// The main window's banner of Settings → Meetings (prototype `set-meetings`, spec step 5.2).
 extension MeetingsPlugin {
+    /// `.recording` while audio is captured; `.processing` while a session is finishing (also one that outlives a
+    /// switch-off), a resumed meeting is transcribed or notes are written. `nil` when nothing runs.
+    public var busyReason: BusyReason? {
+        let controllers = [controller, lingeringController].compactMap { $0 }
+        if let reason = controllers.lazy.compactMap(\.busyReason).first(where: { $0 == .recording }) { return reason }
+        if controllers.contains(where: { $0.busyReason != nil }) || library.isProcessing || notes.isBusy {
+            return .processing
+        }
+        return nil
+    }
+
     /// The shell reads it only while the plugin is active and while the view draws, so it only reads: the speech
     /// model's place and the microphone are re-read on activation, when the pane appears and when Lintel becomes
     /// the active app, and a change signals `resultsChanged`. A denied microphone is listed by the shell's

@@ -50,6 +50,15 @@ final class DictationController {
 
     var isBusy: Bool { gesture.state != .idle }
 
+    /// `.recording` while the microphone is captured, `.processing` while the text is produced and pasted.
+    var busyReason: BusyReason? {
+        switch gesture.state {
+        case .idle: nil
+        case .finishing: .processing
+        case .pressed, .toggle, .stopPressed: .recording
+        }
+    }
+
     // MARK: Input
 
     /// A phase of the shortcut.

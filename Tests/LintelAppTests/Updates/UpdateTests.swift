@@ -112,6 +112,7 @@ import Testing
         /// What Sparkle does when an update is ready to install: asks, and holds the relaunch on "yes".
         func readyToRelaunch() {
             postponed = shouldPostponeRelaunch?() ?? false
+            if postponed { onEvent?(.relaunchPostponed) }
         }
     }
 
@@ -205,6 +206,91 @@ import Testing
         #expect(!controller.hasPostponedRelaunch)
         controller.busyStateChanged()
         #expect(checker?.resumed == 1)
+    }
+
+    /// A scripted ticker: counts the polls started and stopped, and fires on demand.
+    final class FakePoll {
+        var started = 0
+        var stopped = 0
+        var intervals: [TimeInterval] = []
+        var tick: (@MainActor () -> Void)?
+        var running: Bool { started > stopped }
+        var starter: UpdateController.PollStarter {
+            { [self] interval, tick in
+                started += 1
+                intervals.append(interval)
+                self.tick = tick
+                return { [self] in stopped += 1 }
+            }
+        }
+        @MainActor func fire() { tick?() }
+    }
+
+    private func pollingController(
+        busy: @escaping () -> Bool, poll: FakePoll, made: @escaping (FakeChecker) -> Void
+    ) -> UpdateController {
+        UpdateController(
+            facts: UpdaterStartPolicyTests.facts(), settings: InMemorySettingsStore(), runningVersion: "0.1.0",
+            isBusy: busy, startPolling: poll.starter,
+            makeChecker: {
+                let checker = FakeChecker()
+                made(checker)
+                return checker
+            })
+    }
+
+    @Test func aPostponedRelaunchIsResumedByThePollOnceWhenBusyEndsAndThePollStops() {
+        var busy = true
+        var checkers: [FakeChecker] = []
+        let poll = FakePoll()
+        let controller = pollingController(busy: { busy }, poll: poll, made: { checkers.append($0) })
+        controller.startIfAllowed()
+        #expect(poll.started == 0, "no timer while nothing is postponed")
+        checkers.first?.readyToRelaunch()
+        #expect(poll.started == 1 && poll.running)
+        #expect(poll.intervals == [5])
+        poll.fire()
+        poll.fire()
+        #expect(checkers.first?.resumed == 0 && poll.running)
+        busy = false
+        poll.fire()
+        #expect(checkers.first?.resumed == 1)
+        #expect(!poll.running && poll.stopped == 1)
+        poll.fire()
+        #expect(checkers.first?.resumed == 1)
+        #expect(poll.started == 1)
+    }
+
+    @Test func aSecondPostponementDoesNotStartASecondPoll() {
+        var checkers: [FakeChecker] = []
+        let poll = FakePoll()
+        let controller = pollingController(busy: { true }, poll: poll, made: { checkers.append($0) })
+        controller.startIfAllowed()
+        checkers.first?.readyToRelaunch()
+        checkers.first?.readyToRelaunch()
+        #expect(poll.started == 1)
+    }
+
+    @Test func theCheckerStopsThePollWhenTheRelaunchWentOnByItself() {
+        var checkers: [FakeChecker] = []
+        let poll = FakePoll()
+        let controller = pollingController(busy: { true }, poll: poll, made: { checkers.append($0) })
+        controller.startIfAllowed()
+        checkers.first?.readyToRelaunch()
+        checkers.first?.postponed = false
+        poll.fire()
+        #expect(!poll.running)
+        #expect(checkers.first?.resumed == 0)
+    }
+
+    @Test func nothingBusyNeverPostponesAndNeverPolls() {
+        var checkers: [FakeChecker] = []
+        let poll = FakePoll()
+        let controller = pollingController(busy: { false }, poll: poll, made: { checkers.append($0) })
+        controller.startIfAllowed()
+        checkers.first?.readyToRelaunch()
+        #expect(!controller.hasPostponedRelaunch)
+        #expect(poll.started == 0)
     }
 
     @Test func aRelaunchIsNotHeldBackWhenNothingIsBusy() {
