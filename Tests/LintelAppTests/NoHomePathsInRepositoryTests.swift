@@ -80,16 +80,17 @@ private let repositoryRoot = URL(filePath: #filePath)
     private func offenders() throws -> (scanned: Int, hits: [String]) {
         let pattern = try NSRegularExpression(
             pattern: "/Users/([^/\\s\"'`]+)", options: [.caseInsensitive])
-        let allowed = Set(Self.allowedNames.map(\.name))
+        let allowed = Set(Self.allowedNames.map { $0.name.lowercased() })
         let files = textFiles()
         var hits: [String] = []
         for (path, text) in files {
+            guard text.range(of: "/Users/", options: .caseInsensitive) != nil else { continue }
             for (index, line) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
                 let string = String(line)
                 let range = NSRange(string.startIndex..., in: string)
                 for match in pattern.matches(in: string, range: range) {
                     guard let nameRange = Range(match.range(at: 1), in: string) else { continue }
-                    if !allowed.contains(String(string[nameRange])) {
+                    if !allowed.contains(string[nameRange].lowercased()) {
                         hits.append("\(path):\(index + 1)")
                         break
                     }
