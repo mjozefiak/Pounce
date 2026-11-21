@@ -134,11 +134,8 @@ struct NoteEditorModeTests {
         #expect(editor.mode == .raw)
     }
 
-    @Test("the policy: Raw has no author bars or format buttons, Formatted follows the preference")
+    @Test("the policy: Raw has no format buttons, Formatted has them")
     func policy() {
-        #expect(!NoteEditorMode.raw.showsAuthorBars(preference: true))
-        #expect(NoteEditorMode.formatted.showsAuthorBars(preference: true))
-        #expect(!NoteEditorMode.formatted.showsAuthorBars(preference: false))
         #expect(!NoteEditorMode.raw.offersFormatting && NoteEditorMode.formatted.offersFormatting)
         #expect(NoteEditorMode.formatted.toggled == .raw && NoteEditorMode.raw.toggled == .formatted)
         #expect(NoteEditorMode.qa("raw") == .raw)

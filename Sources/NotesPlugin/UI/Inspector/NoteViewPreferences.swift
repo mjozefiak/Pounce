@@ -2,14 +2,11 @@ import LintelKit
 import Observation
 import SwiftUI
 
-/// The Details toggles of the inspector (prototype `lib-details`: "View"): author bars, source quotes and wrapped
-/// lines. Stored in `plugins.notes.showAuthorBars`, `showQuotes` and `wrapLines` (declared once in
+/// The Details toggles of the inspector (prototype `lib-details`: "View"): comments in text and wrapped
+/// lines. Stored in `plugins.notes.showComments`, `showQuotes` and `wrapLines` (declared once in
 /// `NotesSettingsKey`); a toggle writes the setting at once. With no settings (tests, QA) they stay in memory.
 @MainActor @Observable
 final class NoteViewPreferences {
-    var showAuthorBars: Bool {
-        didSet { if showAuthorBars != oldValue { settings?.set(showAuthorBars, for: NotesSettingsKey.showAuthorBars) } }
-    }
     var showQuotes: Bool {
         didSet { if showQuotes != oldValue { settings?.set(showQuotes, for: NotesSettingsKey.showQuotes) } }
     }
@@ -35,7 +32,6 @@ final class NoteViewPreferences {
     init(settings: PluginSettings? = nil) {
         self.settings = settings
         let current = settings.map(NotesSettings.init)
-        showAuthorBars = current?.showAuthorBars ?? true
         showQuotes = current?.showQuotes ?? true
         showComments = current?.showComments ?? true
         wrapLines = current?.wrapLines ?? true

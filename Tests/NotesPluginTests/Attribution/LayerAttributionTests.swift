@@ -5,7 +5,8 @@ import Testing
 
 @testable import NotesPlugin
 
-/// The gutter's rules (spec step 4.3): per-block authors, the marks, the chip rule and the accessibility text.
+/// The stored attribution's rules (spec step 4.3): per-block authors, the marks and the chip rule. Nothing of it is
+/// drawn or spoken in the notes UI any more (owner decision 2026-11-19, see `NoAuthorMarksTests`).
 @Suite struct LayerAttributionTests {
     private let seed = "## Summary\n\nWe ship on Friday. [12:41]\n\n- Budget approved. [12:44]"
 
@@ -116,27 +117,6 @@ import Testing
         #expect(result.map(\.author) == [.stt, .human])
         #expect(result.allSatisfy { $0.mark == nil && $0.showsQuotes })
     }
-
-    @Test func everyAuthorAndMarkIsSpokenAsWords() {
-        #expect(NoteAuthor.agent.spokenName == "Written by AI")
-        #expect(NoteAuthor.human.spokenName == "Written by you")
-        #expect(NoteAuthor.stt.spokenName == "Speech to text")
-        let plain = BlockAttributionInfo(index: 0, author: .agent, mark: nil, showsQuotes: true)
-        #expect(plain.spokenLabel == "Written by AI")
-        let marked = BlockAttributionInfo(index: 1, author: .human, mark: .addedByYou, showsQuotes: false)
-        #expect(marked.spokenLabel == "Written by you, Added by you")
-        let revised = BlockAttributionInfo(index: 2, author: .agent, mark: .revisedNotChecked, showsQuotes: false)
-        #expect(revised.spokenLabel.hasSuffix("Revised, not checked against the recording"))
-        // The words, not the letters: no label is the bare "AI" or "STT".
-        for author in [NoteAuthor.agent, .human, .stt] { #expect(author.spokenName.count > 3) }
-    }
-
-    @Test func theGutterTextIsAIYouSTT() {
-        #expect(NoteAuthor.agent.gutterText == "AI")
-        #expect(NoteAuthor.human.gutterText == "You")
-        #expect(NoteAuthor.stt.gutterText == "STT")
-        #expect(NoteAuthor(rawValue: "future").gutterText.isEmpty)
-    }
 }
 
 @Suite struct BlockLocatorTests {
@@ -164,86 +144,5 @@ import Testing
         let text = "Zażółć 😀.\n\nDrugi."
         let ranges = BlockLocator.ranges(of: MarkdownBlocks.split(text), in: text)
         #expect(ranges[1]?.location == ("Zażółć 😀.\n\n" as NSString).length)
-    }
-}
-
-@MainActor
-@Suite("Author gutter", .serialized)
-struct AuthorGutterTests {
-    private func rig(_ text: String, attribution: @escaping ([String]) -> [BlockAttributionInfo])
-        -> (NoteEditorController, AuthorGutterRuler)
-    {
-        let controller = NoteEditorController(pasteboard: RecordingPasteboard())
-        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
-        scroll.documentView = controller.textView
-        let ruler = AuthorGutterRuler(scrollView: scroll, client: controller.textView)
-        controller.gutter = ruler
-        controller.setText(text)
-        controller.attribution = attribution
-        return (controller, ruler)
-    }
-
-    @Test func theGutterHoldsOneEntryPerBlockWithItsRangeAndAuthor() {
-        let (controller, ruler) = rig("One.\n\nTwo.") { blocks in
-            blocks.indices.map { index in
-                BlockAttributionInfo(index: index, author: index == 0 ? .agent : .human, mark: nil, showsQuotes: true)
-            }
-        }
-        _ = controller
-        #expect(ruler.blocks.map(\.range) == [NSRange(location: 0, length: 4), NSRange(location: 6, length: 4)])
-        #expect(ruler.blocks.map { $0.info.author } == [.agent, .human])
-    }
-
-    @Test func typingASecondBlockAddsAHumanEntryAtOnce() {
-        let layer = NoteLayer(id: "notes", author: .agent, markdown: "One.", version: "v1")
-        let attribution = LayerAttribution.seeding(layer: layer)
-        let (controller, ruler) = rig("One.") { attribution.infos(blocks: $0, useStored: false) }
-        #expect(ruler.blocks.map { $0.info.author } == [.agent])
-        let end = (controller.text as NSString).length
-        controller.textView.setSelectedRange(NSRange(location: end, length: 0))
-        controller.textView.insertText("\n\nMine.", replacementRange: NSRange(location: end, length: 0))
-        #expect(controller.text == "One.\n\nMine.")
-        #expect(ruler.blocks.map { $0.info.author } == [.agent, .human])
-        #expect(ruler.blocks.last?.info.mark == .addedByYou)
-    }
-
-    @Test func withoutAnAttributionTheGutterIsEmpty() {
-        let controller = NoteEditorController(pasteboard: RecordingPasteboard())
-        let ruler = AuthorGutterRuler(scrollView: NSScrollView(), client: controller.textView)
-        controller.gutter = ruler
-        controller.setText("One.")
-        #expect(ruler.blocks.isEmpty)
-    }
-}
-
-@MainActor
-@Suite("Author gutter drawing", .serialized)
-struct AuthorGutterDrawingTests {
-    @Test func everyVisibleBlockIsMeasuredAndDrawnBesideItsText() throws {
-        let controller = NoteEditorController(pasteboard: RecordingPasteboard())
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 400), styleMask: [.titled], backing: .buffered,
-            defer: true)
-        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 600, height: 400))
-        scroll.documentView = controller.textView
-        let ruler = AuthorGutterRuler(scrollView: scroll, client: controller.textView)
-        scroll.verticalRulerView = ruler
-        scroll.hasVerticalRuler = true
-        scroll.rulersVisible = true
-        window.contentView = scroll
-        controller.setWrapsLines(true)
-        controller.gutter = ruler
-        controller.setText("One.\n\nTwo.\n\nThree.")
-        controller.attribution = { blocks in
-            blocks.indices.map { BlockAttributionInfo(index: $0, author: .agent, mark: nil, showsQuotes: true) }
-        }
-        scroll.layoutSubtreeIfNeeded()
-        controller.textView.textLayoutManager?.ensureLayout(for: controller.textView.textLayoutManager!.documentRange)
-        let rep = try #require(ruler.bitmapImageRepForCachingDisplay(in: ruler.bounds))
-        ruler.cacheDisplay(in: ruler.bounds, to: rep)
-        #expect(ruler.drawn.count == 3)
-        let tops = ruler.drawn.map(\.rect.minY)
-        #expect(tops == tops.sorted() && Set(tops).count == 3)
-        #expect(ruler.drawn.allSatisfy { $0.rect.height > 0 })
     }
 }

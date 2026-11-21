@@ -51,15 +51,14 @@ struct GutterWiringTests {
     @Test func theDetailsTtogglesDefaultToOnAndWriteTheirSettingsAtOnce() throws {
         let harness = try NotesHarness()
         let preferences = NoteViewPreferences(settings: harness.settings)
-        #expect(preferences.showAuthorBars && preferences.showQuotes && preferences.wrapLines)
-        preferences.showAuthorBars = false
+        #expect(preferences.showQuotes && preferences.wrapLines)
         preferences.showQuotes = false
         preferences.wrapLines = false
         let read = harness.notesSettings
-        #expect(!read.showAuthorBars && !read.showQuotes && !read.wrapLines)
+        #expect(!read.showQuotes && !read.wrapLines)
         // A fresh model reads them back.
         let again = NoteViewPreferences(settings: harness.settings)
-        #expect(!again.showAuthorBars && !again.showQuotes && !again.wrapLines)
+        #expect(!again.showQuotes && !again.wrapLines)
         // Without settings they stay in memory.
         let loose = NoteViewPreferences()
         loose.showQuotes = false

@@ -1,24 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Added by you" : {
-      "comment" : "Document: a block the user wrote or edited in an AI note",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Added by you"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dodane przez Ciebie"
-          }
-        }
-      }
-    },
     "Details" : {
       "comment" : "Inspector: tab with the view toggles and the note's facts",
       "extractionState" : "manual",
@@ -33,24 +15,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szczegóły"
-          }
-        }
-      }
-    },
-    "document.author.you" : {
-      "comment" : "Document: author bar of a block the user wrote (the gutter label and the legend)",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ty"
           }
         }
       }
@@ -4065,24 +4029,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kolejność wyników"
-          }
-        }
-      }
-    },
-    "Revised, not checked against the recording" : {
-      "comment" : "Document: an AI block that was changed after it was checked against the recording",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revised, not checked against the recording"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Poprawione, niesprawdzone z nagraniem"
           }
         }
       }
@@ -14271,60 +14217,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ta notatka nie ma jeszcze tekstu."
-          }
-        }
-      }
-    },
-    "Written by AI" : {
-      "comment" : "Accessibility: who wrote a block",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Written by AI"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Napisane przez AI"
-          }
-        }
-      }
-    },
-    "Written by you" : {
-      "comment" : "Accessibility: who wrote a block",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Written by you"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Napisane przez Ciebie"
-          }
-        }
-      }
-    },
-    "Speech to text" : {
-      "comment" : "Accessibility: who wrote a block",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speech to text"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zamiana mowy na tekst"
           }
         }
       }

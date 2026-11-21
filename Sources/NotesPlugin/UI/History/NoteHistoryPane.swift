@@ -76,21 +76,10 @@ struct NoteHistoryRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Circle().fill(entry.author.barColor)
-                .frame(width: 0.7 * 12.5 * textSize.scale, height: 0.7 * 12.5 * textSize.scale)
-                .padding(.top, 0.45 * 12.5 * textSize.scale)
-                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 0) {
-                    Text(verbatim: entry.author.gutterText)
-                        .font(textSize.font(.footnote, weight: .semibold).monospaced())
-                        .foregroundStyle(LintelBrand.ink)
-                    Text(
-                        verbatim: " · \(model.presentation.historyTime(entry.createdAt, now: model.environment.now()))"
-                    )
+                Text(verbatim: model.presentation.historyTime(entry.createdAt, now: model.environment.now()))
                     .font(textSize.font(.footnote))
                     .foregroundStyle(LintelBrand.secondaryText)
-                }
                 Text(verbatim: entry.change.text(layer: layer, author: entry.author))
                     .font(textSize.font(.callout))
                     .foregroundStyle(LintelBrand.ink)

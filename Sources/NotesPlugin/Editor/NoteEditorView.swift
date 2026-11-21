@@ -19,9 +19,6 @@ struct NoteEditorSurface<Header: View>: View {
     /// Where the open comments are in the buffer, and which thread a caret inside one picks (step 5.2).
     let highlights: [CommentHighlight]
     let onSelectThread: ((Int64) -> Void)?
-    /// Who wrote each block of the buffer (step 4.3); `nil` shows no author gutter.
-    let attribution: (([String]) -> [BlockAttributionInfo])?
-    let showsAuthorBars: Bool
     /// The editor gained or lost focus (a save point).
     let onFocusChange: ((Bool) -> Void)?
     let header: Header
@@ -40,8 +37,7 @@ struct NoteEditorSurface<Header: View>: View {
         text: Binding<String>, pasteboard: any PasteboardClient, isReadOnly: Bool = false, wrapsLines: Bool = true,
         mode: NoteEditorMode = .formatted,
         onAddComment: ((String, NSRange, String) async -> Bool)? = nil, highlights: [CommentHighlight] = [],
-        onSelectThread: ((Int64) -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
-        showsAuthorBars: Bool = true, onFocusChange: ((Bool) -> Void)? = nil,
+        onSelectThread: ((Int64) -> Void)? = nil, onFocusChange: ((Bool) -> Void)? = nil,
         onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }, @ViewBuilder header: () -> Header
     ) {
         self.mode = mode
@@ -49,8 +45,6 @@ struct NoteEditorSurface<Header: View>: View {
         self.onSelectThread = onSelectThread
         self.header = header()
         self.onFocusChange = onFocusChange
-        self.attribution = attribution
-        self.showsAuthorBars = showsAuthorBars
         _text = text
         self.isReadOnly = isReadOnly
         self.wrapsLines = wrapsLines
@@ -70,7 +64,7 @@ struct NoteEditorSurface<Header: View>: View {
             header
             NoteEditorRepresentable(
                 controller: controller, text: $text, isReadOnly: isReadOnly, wrapsLines: wrapsLines, mode: mode,
-                textSize: textSize, attribution: attribution, showsAuthorBars: showsAuthorBars,
+                textSize: textSize,
                 highlights: highlights, pending: draft?.range, onSelectionChange: selectionChanged,
                 onComment: openComment, onFocusChange: onFocusChange, onEdit: onEdit
             )
@@ -154,14 +148,13 @@ extension NoteEditorSurface where Header == EmptyView {
         text: Binding<String>, pasteboard: any PasteboardClient, isReadOnly: Bool = false, wrapsLines: Bool = true,
         mode: NoteEditorMode = .formatted,
         onAddComment: ((String, NSRange, String) async -> Bool)? = nil, highlights: [CommentHighlight] = [],
-        onSelectThread: ((Int64) -> Void)? = nil, attribution: (([String]) -> [BlockAttributionInfo])? = nil,
-        showsAuthorBars: Bool = true, onFocusChange: ((Bool) -> Void)? = nil,
+        onSelectThread: ((Int64) -> Void)? = nil, onFocusChange: ((Bool) -> Void)? = nil,
         onEdit: @escaping (NoteEditorEdit) -> Void = { _ in }
     ) {
         self.init(
             text: text, pasteboard: pasteboard, isReadOnly: isReadOnly, wrapsLines: wrapsLines, mode: mode,
             onAddComment: onAddComment, highlights: highlights, onSelectThread: onSelectThread,
-            attribution: attribution, showsAuthorBars: showsAuthorBars, onFocusChange: onFocusChange, onEdit: onEdit,
+            onFocusChange: onFocusChange, onEdit: onEdit,
             header: { EmptyView() })
     }
 }
@@ -174,8 +167,6 @@ struct NoteEditorRepresentable: NSViewRepresentable {
     let wrapsLines: Bool
     let mode: NoteEditorMode
     let textSize: TextSize
-    let attribution: (([String]) -> [BlockAttributionInfo])?
-    let showsAuthorBars: Bool
     let highlights: [CommentHighlight]
     let pending: NSRange?
     let onSelectionChange: (NSRange) -> Void
@@ -193,28 +184,16 @@ struct NoteEditorRepresentable: NSViewRepresentable {
         scroll.documentView = controller.textView
         controller.scrollView = scroll
         controller.textView.textContainer?.lineFragmentPadding = 0
-        if attribution != nil {
-            // The author gutter is the vertical ruler: it scrolls with the text and keeps the text off the bars.
-            let ruler = AuthorGutterRuler(scrollView: scroll, client: controller.textView)
-            scroll.verticalRulerView = ruler
-            scroll.hasVerticalRuler = true
-            scroll.rulersVisible = true
-            controller.gutter = ruler
-            controller.textView.onDraw = { [weak ruler] in ruler?.needsDisplay = true }
-        }
         controller.setText(text)
         return scroll
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         let scale = textSize.scale
-        let hasGutter = attribution != nil
         scroll.contentInsets = NSEdgeInsets(
-            top: 6 * scale, left: (hasGutter ? 6 : 5.4 * 12.5) * scale, bottom: 24 * scale,
-            right: (hasGutter ? 28 : 40) * scale
+            top: 6 * scale, left: 5.4 * 12.5 * scale, bottom: 24 * scale,
+            right: 40 * scale
         )
-        controller.gutter?.textScale = scale
-        controller.gutter?.showsBars = mode.showsAuthorBars(preference: showsAuthorBars)
         scroll.hasHorizontalScroller = !wrapsLines
         let binding = $text
         controller.onEdit = { edit in
@@ -228,7 +207,6 @@ struct NoteEditorRepresentable: NSViewRepresentable {
         controller.setTextSize(textSize)
         controller.setMode(mode)
         controller.setWrapsLines(wrapsLines)
-        if let attribution, controller.attribution == nil { controller.attribution = attribution }
         if controller.text != text { controller.setText(text) }
         controller.setHighlights(highlights, pending: pending)
     }
