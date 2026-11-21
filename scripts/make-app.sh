@@ -103,6 +103,17 @@ else
     -output "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama.arm64"
   mv "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama.arm64" \
     "$OUT/Contents/Frameworks/llama.framework/Versions/A/llama"
+
+  # Sparkle (docs/decisions/0012-distribution-and-updates.md): the prebuilt framework with its helper tools
+  # (Autoupdate, Updater.app). Lintel is not sandboxed, so the XPC services are not used and not shipped
+  # (Sparkle's documentation: only sandboxed apps need them); fewer nested programs to sign and notarize.
+  ditto "$BIN_DIR/Sparkle.framework" "$OUT/Contents/Frameworks/Sparkle.framework"
+  rm -rf "$OUT/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices" \
+    "$OUT/Contents/Frameworks/Sparkle.framework/XPCServices"
+  for helper in Autoupdate Updater.app; do
+    [[ -e "$OUT/Contents/Frameworks/Sparkle.framework/Versions/B/$helper" ]] \
+      || { echo "Sparkle.framework has no Versions/B/$helper: the layout changed, review scripts/make-app.sh" >&2; exit 1; }
+  done
   install_name_tool -add_rpath "@executable_path/../Frameworks" "$OUT/Contents/MacOS/$EXEC_NAME"
 
   # License notices of the bundled third-party code (SQLCipher's BSD license requires them in binary
@@ -153,6 +164,14 @@ SIGN_ARGS=(--force --sign "$SIGN_IDENTITY" "$SIGN_TIMESTAMP" --options runtime)
 [[ -n "$SIGN_KEYCHAIN" ]] && SIGN_ARGS+=(--keychain "$SIGN_KEYCHAIN")
 codesign "${SIGN_ARGS[@]}" "$OUT/Contents/Frameworks/SQLCipher.framework"
 codesign "${SIGN_ARGS[@]}" "$OUT/Contents/Frameworks/llama.framework"
+# Sparkle's nested code first (its helper tool and helper app), then the framework that seals them. Without
+# --deep: every program gets its own signature with the same identity, timestamp and hardened runtime.
+SPARKLE="$OUT/Contents/Frameworks/Sparkle.framework"
+[[ ! -e "$SPARKLE/Versions/B/XPCServices" ]] \
+  || { echo "Sparkle.framework still holds XPCServices, which this script does not sign" >&2; exit 1; }
+codesign "${SIGN_ARGS[@]}" "$SPARKLE/Versions/B/Autoupdate"
+codesign "${SIGN_ARGS[@]}" "$SPARKLE/Versions/B/Updater.app"
+codesign "${SIGN_ARGS[@]}" "$SPARKLE"
 codesign "${SIGN_ARGS[@]}" --identifier "$BUNDLE_ID" --entitlements "$SIGN_ENTITLEMENTS" "$OUT"
 codesign --verify --strict --deep "$OUT"
 

@@ -175,6 +175,18 @@ final class AppCoordinator {
         }
     }
 
+    /// The updater, once `LintelMain` made it. The menu bar shows its quiet reminder: a dot on the item and an
+    /// "Update Available" menu item, never a window (spec `2026-11-19-updates-and-open-source-hygiene`, Step 4.4).
+    private(set) var updates: UpdateController?
+
+    func attach(_ updates: UpdateController) {
+        self.updates = updates
+        updates.onReminderChange = { [weak self] version in
+            self?.statusItem?.setUpdateBadge(version != nil)
+        }
+        statusItem?.setUpdateBadge(updates.pendingVersion != nil)
+    }
+
     /// Builds the panel and windows, activates the enabled plugins, registers shortcuts and, while steps
     /// are pending, shows the welcome screen.
     func start() async {
@@ -186,7 +198,9 @@ final class AppCoordinator {
                 mainShortcut: { [weak self] in self?.hotkeys.mainShortcut },
                 runCommand: { [weak self] command in self?.perform(command) },
                 commandShortcut: { [weak self] id in self?.hotkeys.commandShortcut(id) },
-                showAbout: { [weak self] in self?.showAbout() }
+                showAbout: { [weak self] in self?.showAbout() },
+                pendingUpdate: { [weak self] in self?.updates?.pendingVersion },
+                showUpdate: { [weak self] in self?.updates?.checkForUpdates() }
             )
         ) { host.activeCommands }
 

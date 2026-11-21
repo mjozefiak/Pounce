@@ -14,6 +14,13 @@ assert_contains "$out" "Sign only" "sign-only says so"
 assert_contains "$out" "ad-hoc" "sign-only reports the ad-hoc identity"
 assert_ok "the re-signed bundle verifies" codesign --verify --strict --deep "$app"
 assert_ok "the framework was signed too" codesign --verify --strict "$app/Contents/Frameworks/SQLCipher.framework"
+# Sparkle's nested code is signed one by one, inside-out, each with the hardened runtime.
+sparkle="$app/Contents/Frameworks/Sparkle.framework"
+assert_ok "Sparkle.framework verifies" codesign --verify --strict "$sparkle"
+assert_ok "Sparkle's Autoupdate verifies" codesign --verify --strict "$sparkle/Versions/B/Autoupdate"
+assert_ok "Sparkle's Updater.app verifies" codesign --verify --strict "$sparkle/Versions/B/Updater.app"
+assert_contains "$(codesign -dv "$sparkle/Versions/B/Autoupdate" 2>&1)" "runtime" "Autoupdate has the hardened runtime"
+assert_contains "$(codesign -dv "$sparkle/Versions/B/Updater.app" 2>&1)" "runtime" "Updater.app has the hardened runtime"
 assert_contains "$(codesign -d --entitlements - "$app" 2>&1)" "disable-library-validation" "ad-hoc keeps library validation off"
 assert_contains "$(codesign -d --entitlements - "$app" 2>&1)" "device.audio-input" "audio-input is kept"
 assert_contains "$(codesign -dv "$app" 2>&1)" "flags=0x10002(adhoc,runtime)" "hardened runtime is on"
@@ -21,6 +28,12 @@ assert_contains "$(codesign -dv "$app" 2>&1)" "Identifier=com.lintelapp.Lintel" 
 assert_ok "symlinks survive" test -L "$app/Contents/Frameworks/llama.framework/Versions/Current"
 # Nothing but signatures changed: the executables are byte-identical to what was given.
 assert_ok "the main executable is still a Mach-O" file "$app/Contents/MacOS/Fixture"
+
+# A Sparkle.framework that still holds XPC services is refused: this script would leave them unsigned.
+mkdir -p "$sparkle/Versions/B/XPCServices/Installer.xpc"
+out="$(zsh "$ROOT/scripts/make-app.sh" --sign-only 2>&1)"; rc=$?
+assert_eq "1" "$rc" "sign-only refuses a Sparkle.framework with XPCServices"
+assert_contains "$out" "XPCServices" "the refusal names XPCServices"
 
 # Sign-only without a bundle fails clearly and builds nothing.
 rm -rf "$DIST_DIR/Lintel.app"

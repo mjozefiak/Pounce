@@ -12,6 +12,11 @@ struct ShellMenuActions {
     var commandShortcut: (String) -> HotkeyShortcut? = { _ in nil }
     /// Opens Lintel's About window. Added in Phase 4; without it the standard About panel opens.
     var showAbout: (() -> Void)?
+    /// The version a background update check found and the user has not looked at yet (spec
+    /// `2026-11-19-updates-and-open-source-hygiene`, Step 4.4); `nil` hides the menu item.
+    var pendingUpdate: () -> String? = { nil }
+    /// Shows the found update (the update framework's own window).
+    var showUpdate: (() -> Void)?
 }
 
 /// The menu bar item: a template SF Symbol and a menu with "Open Lintel" (showing the current shortcut),
@@ -23,6 +28,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let menu = NSMenu()
     private let commands: () -> [PluginCommand]
     private let menuBuilder: StatusMenuBuilder
+    private var updateBadge: UpdateBadgeView?
 
     init(
         statusBar: NSStatusBar = .system,
@@ -53,6 +59,30 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menuBuilder.populate(menu, commands: commands())
     }
 
+    /// Shows or hides the dot that says a background check found an update. Nothing else announces it: no
+    /// window, no notification (spec Step 4.4).
+    func setUpdateBadge(_ visible: Bool) {
+        guard let button = statusItem.button else { return }
+        let label =
+            visible
+            ? String(localized: "Lintel, update available", comment: "Menu bar item accessibility label with an update")
+            : String(localized: "Lintel", comment: "Menu bar item accessibility label")
+        button.setAccessibilityLabel(label)
+        if visible, updateBadge == nil {
+            // The status bar button is a flipped view: its top edge is minY.
+            let badge = UpdateBadgeView(frame: UpdateBadgeView.frame(in: button.bounds, flipped: button.isFlipped))
+            badge.autoresizingMask = UpdateBadgeView.autoresizingMask(flipped: button.isFlipped)
+            button.addSubview(badge)
+            updateBadge = badge
+        } else if !visible {
+            updateBadge?.removeFromSuperview()
+            updateBadge = nil
+        }
+    }
+
+    /// Whether the update dot is shown (tests).
+    var showsUpdateBadge: Bool { updateBadge != nil }
+
     /// Opens the menu (QA screenshots).
     func openMenu() {
         statusItem.button?.performClick(nil)
@@ -78,6 +108,20 @@ final class StatusMenuBuilder: NSObject {
     func populate(_ menu: NSMenu, commands: [PluginCommand]) {
         menu.removeAllItems()
         commandTargets = []
+
+        if let actions, let version = actions.pendingUpdate() {
+            let update = NSMenuItem(
+                title: String(
+                    localized: "Update Available: \(version)…",
+                    comment: "Menu bar menu item shown when a newer version was found; opens the update window"),
+                action: #selector(showUpdate),
+                keyEquivalent: ""
+            )
+            update.target = self
+            update.identifier = Self.updateItemIdentifier
+            menu.addItem(update)
+            menu.addItem(.separator())
+        }
 
         if let actions {
             let open = NSMenuItem(
@@ -143,6 +187,12 @@ final class StatusMenuBuilder: NSObject {
         menu.addItem(quit)
     }
 
+    static let updateItemIdentifier = NSUserInterfaceItemIdentifier("lintel.menu.update")
+
+    @objc private func showUpdate() {
+        actions?.showUpdate?()
+    }
+
     @objc private func openPanel() {
         actions?.openPanel()
     }
@@ -194,4 +244,28 @@ final class CommandTarget: NSObject {
         let action = command.run
         Task { await action() }
     }
+}
+
+/// The dot on the menu bar item while an update waits: the accent colour, in the top right corner.
+final class UpdateBadgeView: NSView {
+    static let diameter: CGFloat = 6
+
+    /// The dot's frame in the top right corner of `bounds`, in the coordinates of a flipped (top edge at minY) or an
+    /// unflipped superview.
+    static func frame(in bounds: NSRect, flipped: Bool) -> NSRect {
+        let y = flipped ? bounds.minY + 4 : bounds.maxY - diameter - 4
+        return NSRect(x: bounds.maxX - diameter - 3, y: y, width: diameter, height: diameter)
+    }
+
+    /// Keeps the dot at the top right corner when the button resizes: the left margin and the bottom margin stretch.
+    static func autoresizingMask(flipped: Bool) -> NSView.AutoresizingMask {
+        [.minXMargin, flipped ? .maxYMargin : .minYMargin]
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.controlAccentColor.setFill()
+        NSBezierPath(ovalIn: bounds).fill()
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }

@@ -26,6 +26,7 @@ enum LintelMain {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var coordinator: AppCoordinator?
+    private var updates: UpdateController?
     /// Files opened before the coordinator has started (a double-click that launched the app).
     private var pendingFiles: [URL] = []
     private var started = false
@@ -51,6 +52,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard await offerMoveToApplications(environment) else { return }
             await coordinator.start()
             started = true
+            // Off until the owner's update key is in Info.plist (`UpdaterStartPolicy`); DEBUG and QA builds never start it.
+            let updates = makeUpdateController(environment)
+            coordinator.attach(updates)
+            updates.startIfAllowed()
+            self.updates = updates
             if !pendingFiles.isEmpty {
                 let files = pendingFiles
                 pendingFiles = []
@@ -60,6 +66,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runQAActions()
             #endif
         }
+    }
+
+    /// The real updater, or in a QA run with `--qa-update-available` a fake that reports a found update at once.
+    private func makeUpdateController(_ environment: AppEnvironment) -> UpdateController {
+        #if DEBUG
+        if let version = qaOptions?.updateAvailable {
+            return QAUpdateChecker.controller(version: version, settings: environment.settings)
+        }
+        #endif
+        return UpdateController.live(settings: environment.settings)
     }
 
     /// A file opened with Lintel goes to the plugins (`PluginHost.openFile`). Before the plugins have started it
