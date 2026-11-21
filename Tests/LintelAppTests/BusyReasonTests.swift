@@ -74,12 +74,24 @@ import Testing
         #expect(host.busyReason == .recording)
     }
 
-    @Test func aFailedOrDisabledPluginIsNotAsked() async {
+    @Test func aFailedPluginIsNotAsked() async {
         defer { env.tearDown() }
         let host = await host()
-        #expect(host.state(of: "busy-failing")?.isActive == false)
-        #expect(host.state(of: "busy-off")?.isActive == false)
-        BusyScript.shared.reasons = ["busy-failing": .recording, "busy-off": .recording]
+        #expect(host.state(of: "busy-failing")?.isFailed == true)
+        BusyScript.shared.reasons = ["busy-failing": .recording]
         #expect(host.busyReason == nil)
+    }
+
+    /// A switched-off plugin may still finish work its `deactivate()` handed to the background (Meetings keeps a
+    /// session that outlives the switch-off), so it is asked too.
+    @Test func aSwitchedOffPluginIsStillAsked() async {
+        defer { env.tearDown() }
+        let host = await host()
+        #expect(host.state(of: "busy-off")?.isActive == false)
+        #expect(host.state(of: "busy-off")?.isFailed == false)
+        BusyScript.shared.reasons = ["busy-off": .processing]
+        #expect(host.busyReason == .processing)
+        BusyScript.shared.reasons = ["busy-failing": .recording, "busy-off": .processing]
+        #expect(host.busyReason == .processing)
     }
 }

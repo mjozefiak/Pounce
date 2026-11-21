@@ -85,12 +85,15 @@ import Testing
         #expect(plugin.activity.isActive)
         #expect(plugin.controller == nil)
         #expect(plugin.lingeringController === controller)
+        // The switched-off plugin still holds back an update relaunch while the session processes.
+        #expect(plugin.busyReason == .processing)
 
         release.open()
         await eventually("the library closes once the session ended") { plugin.library.status == .closed }
         #expect(plugin.library.liveMeetingIDs.isEmpty)
         #expect(!plugin.activity.isActive)
         #expect(plugin.lingeringController == nil)
+        #expect(plugin.busyReason == nil)
     }
 
     @Test func reactivatingWhileASessionLingersKeepsTheLibraryOpenAfterItEnds() async throws {

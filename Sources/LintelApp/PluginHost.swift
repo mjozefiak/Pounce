@@ -20,6 +20,11 @@ enum PluginState {
         if case .active = self { return true }
         return false
     }
+
+    var isFailed: Bool {
+        if case .failed = self { return true }
+        return false
+    }
 }
 
 /// Owns every plugin's lifecycle: creation with its context, `activate()` / `deactivate()`, enabling and
@@ -146,10 +151,11 @@ final class PluginHost {
 
     private var activeEntries: [Entry] { entries.filter { $0.state.isActive } }
 
-    /// Why Lintel must not be relaunched now: `.recording` when an active plugin records, else `.processing` when
-    /// one processes, else `nil`. Inactive and `failed` plugins are not asked.
+    /// Why Lintel must not be relaunched now: `.recording` when a plugin records, else `.processing` when one
+    /// processes, else `nil`. A switched-off plugin is asked too, because its `deactivate()` may hand work that is
+    /// still running to the background (a meeting that outlives the switch-off); `failed` plugins are not asked.
     var busyReason: BusyReason? {
-        let reasons = activeEntries.compactMap { $0.plugin.busyReason }
+        let reasons = entries.filter { !$0.state.isFailed }.compactMap { $0.plugin.busyReason }
         return reasons.contains(.recording) ? .recording : reasons.first
     }
 
