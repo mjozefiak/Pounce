@@ -64,16 +64,19 @@ final class UpdateController {
     /// once: only the first call that gets past both acts.
     func startIfAllowed() {
         guard state == .idle else { return }
-        if welcomeIsPending() {
-            waitingForWelcome = true
-            return
-        }
-        waitingForWelcome = false
+        // The policy is pure (no Sparkle object, no request), so a refused copy is off at once; only a start that
+        // would go ahead waits for the welcome flow.
         switch UpdaterStartPolicy.decide(facts) {
         case .refuse(let reason):
+            waitingForWelcome = false
             state = .off(reason)
             logger.info("Updater off: \(reason.rawValue, privacy: .public)")
         case .start:
+            if welcomeIsPending() {
+                waitingForWelcome = true
+                return
+            }
+            waitingForWelcome = false
             let checker = makeChecker()
             checker.allowedChannels = UpdateChannel.allowed(
                 includeBeta: UpdateChannel.includeBeta(settings: settings, runningVersion: runningVersion))
@@ -115,6 +118,11 @@ final class UpdateController {
     /// `app.updates.includeBeta`, as the checker offers it.
     var includesBeta: Bool {
         UpdateChannel.includeBeta(settings: settings, runningVersion: runningVersion)
+    }
+
+    /// `includesBeta` without its first-run write, for showing the switch while the updater has not started.
+    var peekedIncludesBeta: Bool {
+        UpdateChannel.peekIncludeBeta(settings: settings, runningVersion: runningVersion)
     }
 
     /// Stores the choice and applies it to the next check at once.

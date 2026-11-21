@@ -42,9 +42,11 @@ final class UpdatesSettingsModel {
             isAvailable = false
             automaticChecks = false
             automaticDownloads = false
-            includeBeta = false
             canCheckNow = false
-            runsPreRelease = false
+            // While waiting for the welcome these come from sources that write nothing, so the group does not
+            // flip when the updater starts.
+            includeBeta = isWaitingForWelcome ? (controller?.peekedIncludesBeta ?? false) : false
+            runsPreRelease = isWaitingForWelcome ? (controller?.runningVersionIsPreRelease ?? false) : false
             return
         }
         isAvailable = true

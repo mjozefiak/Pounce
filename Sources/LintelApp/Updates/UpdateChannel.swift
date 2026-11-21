@@ -17,6 +17,15 @@ enum UpdateChannel {
         version.contains("-beta.")
     }
 
+    /// What `includeBeta(settings:runningVersion:)` would answer, without its write: the stored value, else whether
+    /// the running version is a pre-release. For showing the switch before the updater has started.
+    static func peekIncludeBeta(settings: any SettingsStore, runningVersion: String) -> Bool {
+        if case .bool(let stored)? = settings.value(forKey: SettingsKeys.updatesIncludeBeta) {
+            return stored
+        }
+        return isPreRelease(version: runningVersion)
+    }
+
     /// The value of `app.updates.includeBeta`, written once on the way: the first pre-release build that finds the
     /// key absent stores `true`, so a tester stays on the beta channel; a stable build writes nothing and an absent
     /// key means `false`. A value the user chose is never replaced.

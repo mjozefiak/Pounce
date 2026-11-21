@@ -24,31 +24,31 @@ struct UpdatesSection: View {
                 Toggle(isOn: binding(model.automaticChecks, model.setAutomaticChecks)) {
                     Text("Check for updates automatically", comment: "Settings → General → Updates: switch")
                         .font(textSize.font(.body))
+                        .opacity(labelOpacity)
                 }
                 .toggleStyle(.switch)
                 .disabled(!model.isAvailable)
                 .accessibilityLabel(Text("Check for updates automatically", comment: "VoiceOver label of the switch"))
-                // The note is the switch's VoiceOver hint; the visible line is hidden from VoiceOver so it is
-                // not read twice.
+                // The note is its own static text, read once right after the switch.
                 VStack(alignment: .leading, spacing: 2) {
                     Toggle(isOn: binding(model.includeBeta, model.setIncludeBeta)) {
                         Text("Include beta versions", comment: "Settings → General → Updates: switch")
                             .font(textSize.font(.body))
+                            .opacity(labelOpacity)
                     }
                     .toggleStyle(.switch)
                     .disabled(!model.isAvailable)
                     .accessibilityLabel(Text("Include beta versions", comment: "VoiceOver label of the switch"))
-                    .accessibilityHint(model.runsPreRelease ? Self.betaNote : Text(verbatim: ""))
                     if model.runsPreRelease {
                         Self.betaNote
                             .font(textSize.font(.callout))
                             .foregroundStyle(LintelBrand.secondaryText)
-                            .accessibilityHidden(true)
                     }
                 }
                 Toggle(isOn: binding(model.automaticDownloads, model.setAutomaticDownloads)) {
                     Text("Download and install updates automatically", comment: "Settings → General → Updates: switch")
                         .font(textSize.font(.body))
+                        .opacity(labelOpacity)
                 }
                 .toggleStyle(.switch)
                 .disabled(!model.isAvailable || !model.automaticChecks)
@@ -79,6 +79,9 @@ struct UpdatesSection: View {
                 .settingsSectionHeader()
         }
     }
+
+    /// Row labels are dimmed while the controls are waiting for the welcome flow.
+    private var labelOpacity: Double { model.isAvailable ? 1 : 0.5 }
 
     private static var betaNote: Text {
         Text("You are running a beta version.", comment: "Settings → General → Updates: note")

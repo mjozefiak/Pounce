@@ -87,7 +87,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         if let options = qaOptions, options.updateAvailable != nil || options.updatesOn == true {
             return QAUpdateChecker.controller(
-                version: options.updateAvailable, settings: environment.settings, isBusy: isBusy)
+                version: options.updateAvailable, beta: options.updatesBeta, settings: environment.settings,
+                isBusy: isBusy)
         }
         #endif
         return UpdateController.live(settings: environment.settings, isBusy: isBusy)
