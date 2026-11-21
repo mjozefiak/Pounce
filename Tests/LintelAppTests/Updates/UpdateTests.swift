@@ -94,6 +94,8 @@ import Testing
         var checks = 0
         var startError: (any Error)?
         var allowedChannels: Set<String> = []
+        var automaticallyChecksForUpdates = false
+        var automaticallyDownloadsUpdates = false
         var canCheckForUpdates: Bool { started > 0 }
         func start() throws {
             if let startError { throw startError }
@@ -301,6 +303,85 @@ import Testing
         #expect(!controller.hasPostponedRelaunch)
     }
 
+    @Test func theUpdaterWaitsForThePendingWelcomeFlowAndStartsOnceWhenItFinishes() {
+        var checkers: [FakeChecker] = []
+        let controller = controller(UpdaterStartPolicyTests.facts(), made: { checkers.append($0) })
+        var pending = true
+        controller.welcomeIsPending = { pending }
+        controller.startIfAllowed()
+        #expect(controller.state == .idle)
+        #expect(checkers.isEmpty)
+        controller.welcomeFinished()  // the welcome window is still reported as visible
+        #expect(controller.state == .idle && checkers.isEmpty)
+        pending = false
+        controller.welcomeFinished()
+        #expect(controller.state == .running)
+        #expect(checkers.count == 1 && checkers[0].started == 1)
+        controller.welcomeFinished()
+        controller.startIfAllowed()
+        #expect(checkers.count == 1 && checkers[0].started == 1)
+    }
+
+    @Test func withoutAPendingWelcomeFlowItStartsAtOnceAndAFinishedWelcomeStartsNothingMore() {
+        var checkers: [FakeChecker] = []
+        let controller = controller(UpdaterStartPolicyTests.facts(), made: { checkers.append($0) })
+        controller.welcomeFinished()  // nothing was held back
+        #expect(controller.state == .idle && checkers.isEmpty)
+        controller.startIfAllowed()
+        controller.welcomeFinished()
+        #expect(checkers.count == 1 && checkers[0].started == 1)
+    }
+
+    @Test func aRefusedPolicyStaysOffAfterTheWelcomeFlow() {
+        var made = 0
+        let controller = controller(UpdaterStartPolicyTests.facts(debug: true), made: { _ in made += 1 })
+        controller.welcomeIsPending = { true }
+        controller.startIfAllowed()
+        controller.welcomeIsPending = { false }
+        controller.welcomeFinished()
+        #expect(controller.state == .off(.debugBuild))
+        #expect(made == 0)
+    }
+
+    @Test func theAutomaticFlagsAndTheBetaChoiceGoToTheChecker() throws {
+        var checkers: [FakeChecker] = []
+        let settings = InMemorySettingsStore()
+        let controller = controller(UpdaterStartPolicyTests.facts(), settings: settings, made: { checkers.append($0) })
+        controller.startIfAllowed()
+        let checker = try #require(checkers.first)
+        controller.automaticallyChecks = true
+        controller.automaticallyDownloads = true
+        #expect(checker.automaticallyChecksForUpdates && checker.automaticallyDownloadsUpdates)
+        #expect(controller.automaticallyChecks && controller.automaticallyDownloads)
+        controller.setIncludesBeta(true)
+        #expect(checker.allowedChannels == ["beta"])
+        #expect(settings.value(forKey: "app.updates.includeBeta") == .bool(true))
+        controller.setIncludesBeta(false)
+        #expect(checker.allowedChannels.isEmpty && !controller.includesBeta)
+    }
+
+    @Test func theFlagsDoNothingWhileTheUpdaterIsOff() {
+        let controller = controller(UpdaterStartPolicyTests.facts(debug: true))
+        controller.startIfAllowed()
+        controller.automaticallyChecks = true
+        #expect(!controller.automaticallyChecks && !controller.isRunning)
+    }
+
+    @Test func theSettingsModelMirrorsTheControllerAndIsEmptyWhenOff() {
+        let on = controller(UpdaterStartPolicyTests.facts(), version: "0.2.0-beta.1")
+        on.startIfAllowed()
+        let model = UpdatesSettingsModel(version: "0.2.0-beta.1", build: "7", controller: on)
+        #expect(model.isAvailable && model.canCheckNow && model.runsPreRelease && model.includeBeta)
+        #expect(!model.automaticChecks && !model.automaticDownloads)
+        model.setAutomaticChecks(true)
+        model.setIncludeBeta(false)
+        #expect(model.automaticChecks && !model.includeBeta)
+        let off = controller(UpdaterStartPolicyTests.facts(debug: true))
+        off.startIfAllowed()
+        model.controller = off
+        #expect(!model.isAvailable && !model.canCheckNow && !model.automaticChecks)
+    }
+
     @Test func aStartErrorLeavesTheUpdaterOff() {
         let controller = controller(UpdaterStartPolicyTests.facts(), error: Boom())
         controller.startIfAllowed()
@@ -309,8 +390,8 @@ import Testing
     }
 }
 
-/// The switch that keeps updates off until the owner's key exists (spec Step 4.3): no public key, and automatic
-/// checks disabled, in the plist every build is made from.
+/// The switch (spec Step 4.5, D6): the owner's public key is present, `SUEnableAutomaticChecks` is absent so Sparkle
+/// asks the user, and the question comes on the first launch.
 @Suite struct UpdateInfoPlistTests {
     static let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -322,10 +403,11 @@ import Testing
         return try #require(value as? [String: Any])
     }
 
-    @Test func theUpdaterIsSwitchedOff() throws {
+    @Test func theUpdaterIsSwitchedOnAndAsksTheUserFirst() throws {
         let plist = try Self.plist()
-        #expect(plist["SUPublicEDKey"] == nil)
-        #expect(plist["SUEnableAutomaticChecks"] as? Bool == false)
+        #expect(plist["SUPublicEDKey"] as? String == "AxOZt5K9tZbKgGmAfMNlD4C9XDf19agkUunZ9JetlJw=")
+        #expect(plist["SUEnableAutomaticChecks"] == nil)
+        #expect(plist["SUPromptUserOnFirstLaunch"] as? Bool == true)
         #expect(plist["SUAutomaticallyUpdate"] == nil)
         #expect(plist["SUEnableSystemProfiling"] == nil)
     }
@@ -430,6 +512,34 @@ struct UpdateReminderMenuTests {
         #expect(after.top == before.top && after.right == before.right)
         #expect(badge.frame.size == NSSize(width: UpdateBadgeView.diameter, height: UpdateBadgeView.diameter))
         #expect(badge.hitTest(NSPoint(x: badge.frame.midX, y: badge.frame.midY)) == nil)
+    }
+
+    @Test func theCheckForUpdatesItemFollowsTheUpdater() throws {
+        var can = true
+        var checks = 0
+        var shell = actions(pending: { nil })
+        shell.checkForUpdates = { checks += 1 }
+        shell.canCheckForUpdates = { can }
+        let menu = NSMenu()
+        let builder = StatusMenuBuilder(actions: shell)
+        builder.populate(menu, commands: [])
+        #expect(
+            menu.items.map(\.title) == [
+                "Open Lintel", "", "Settings…", "About Lintel", "Check for Updates…", "", "Quit Lintel",
+            ])
+        let item = try #require(menu.items.first { $0.identifier == StatusMenuBuilder.checkItemIdentifier })
+        #expect(builder.validateMenuItem(item))
+        let action = try #require(item.action)
+        _ = (item.target as? NSObject)?.perform(action, with: item)
+        #expect(checks == 1)
+        can = false
+        #expect(!builder.validateMenuItem(item))
+    }
+
+    @Test func theQAUpdatesArgumentTakesOnOrOff() throws {
+        #expect(try #require(try QAOptions.parse(["--qa", "--qa-updates", "on"])).updatesOn == true)
+        #expect(try #require(try QAOptions.parse(["--qa", "--qa-updates", "off"])).updatesOn == false)
+        #expect(throws: QAOptions.ParseError.self) { _ = try QAOptions.parse(["--qa", "--qa-updates", "maybe"]) }
     }
 
     @Test func theQAArgumentCarriesTheVersion() throws {

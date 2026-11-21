@@ -123,12 +123,32 @@ Sparkle 2.10.1 is a dependency of `LintelApp` only, pinned exactly; it arrives a
   HUD) and Dictation report it; Notes does not, because a quit cancels its revise
   run and leaves the document as it was.
 
+## Sparkle switched on (Step 4.5)
+
+- `Info.plist` carries the owner's public key `SUPublicEDKey` (public by design; the private key stays in the Environment
+  `release`) and `SUPromptUserOnFirstLaunch` = true. `SUEnableAutomaticChecks` is absent, which is what makes Sparkle
+  ask. Checked in Sparkle's source at the tag 2.10.1: `-[SPUUpdater startUpdateCycle]` asks only while
+  `SUEnableAutomaticChecks` is in neither the defaults nor `Info.plist`, and asks on the first launch when
+  `SUPromptUserOnFirstLaunch` is true (otherwise on the second, `SUHasLaunchedBefore`). While the question is up nothing
+  is scheduled; after the answer `resetUpdateCycle` calls `scheduleNextUpdateCheckFiringImmediately:NO`, which returns
+  without a timer when `automaticallyChecksForUpdates` is false. `SUEnableSystemProfiling` stays unset, so the
+  question hides the profile checkbox and answers `sendSystemProfile` false (`SUUpdatePermissionPrompt`), and
+  `parameterizedFeedURL` adds no profile: the request carries only the User-Agent `Lintel/<version> Sparkle/2.10.1`.
+- Until the feed exists (Step 4.7) the address answers 404: a scheduled check fails without a window
+  (`SPUScheduledUpdateDriver` shows an error only for an update it showed) and "Check Now" shows Sparkle's
+  "Update Error!" alert.
+- `UpdateController` does not start the updater while the welcome flow is on screen (`welcomeIsPending`); closing the
+  welcome window calls `welcomeFinished()`, which starts it once. Sparkle's question therefore never appears over the
+  welcome screen and nothing is requested before the user answers. After a "no" only the user's own "Check Now" asks.
+- Settings → General → Updates: version and build, "Check for updates automatically" and "Download and install updates
+  automatically" (both in Sparkle's own defaults, no new Lintel key), "Include beta versions" (`app.updates.includeBeta`,
+  applied to the allowed channels at once), "Check Now". Where the updater is off (DEBUG, outside Applications, ad-hoc)
+  only the version and one line are shown. The menu has "Check for Updates…", dimmed while the updater is off or busy.
+
 ## Deferred
 
-- **Sparkle switched on, spec Steps 4.4 to 4.8.** The owner's EdDSA key (`SPARKLE_ED_PRIVATE_KEY`, in the Environment
-  `release`; the public key as `SUPublicEDKey` in `Info.plist`), the Updates settings, the permission question,
-  gentle reminders, the postponed relaunch and signing the feed in the `sign` job. See "Sparkle, embedded and off"
-  for what exists.
+- **Steps 4.7 and 4.8 of the spec.** Signing the feed in the `sign` job and the real-updater check; Sparkle's
+  `generate_keys` and the secret are the owner's.
 - **The feed (`appcast.xml`), spec Architecture and Step 4.7.** One signed feed rebuilt on every release, served from the
   address decided in D4; the website copies it. Not built.
 - **Homebrew, spec Phase 5 (D13).** The project's own tap `mjozefiak/homebrew-lintel` (casks `lintel` and `lintel@beta`),

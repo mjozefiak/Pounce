@@ -36,12 +36,19 @@ dictation, meeting notes and window management are off until you turn them on.
 
 No account, no analytics, no tracking. Every feature can be turned off and its data erased in Settings.
 
-Lintel connects to the network only to download the speech and language models you choose to download
+Lintel connects to the network to download the speech and language models you choose to download
 (in Settings → Models, or from the download button a feature shows when it needs a model). They come
 from Hugging Face (`huggingface.co` and its download servers), pinned to a fixed revision and checked
 against a SHA-256 checksum. The optional dictation cleanup can talk to a server on your own Mac
-(`localhost` only). There is no update check yet and no other network traffic: new versions come from the
-[releases page](https://github.com/mjozefiak/lintel/releases).
+(`localhost` only).
+
+Lintel asks once, after the welcome screen on the first launch, whether it may check for updates. Until you
+answer, and after a "no", it makes no update request on its own; Settings → General → Updates has "Check Now"
+for when you want one. A check requests `https://lintelapp.com/appcast.xml`, so the site's host sees your IP
+address and the Lintel and Sparkle versions (the User-Agent `Lintel/<version> Sparkle/2.10.1`). No system profile is
+sent (`SUEnableSystemProfiling` is not set).
+There is no other network traffic. Installing from the
+[releases page](https://github.com/mjozefiak/lintel/releases) works as before.
 
 ## Install
 

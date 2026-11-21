@@ -24,6 +24,13 @@ protocol UpdateChecking: AnyObject {
     /// A check the user asked for: it may show a window. Also brings a found update into focus.
     func checkForUpdates()
 
+    /// Whether Sparkle checks on its own schedule. Sparkle persists it in the app's defaults and asks the user
+    /// once (the permission question); false until the user answered "yes".
+    var automaticallyChecksForUpdates: Bool { get set }
+
+    /// Whether a found update is downloaded and installed without asking. Off unless the user turns it on.
+    var automaticallyDownloadsUpdates: Bool { get set }
+
     /// The channels offered besides the default one (`UpdateChannel.allowed`). Read on every check.
     var allowedChannels: Set<String> { get set }
 

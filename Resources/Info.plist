@@ -91,8 +91,10 @@
 	<false/>
 	<key>SUFeedURL</key>
 	<string>https://lintelapp.com/appcast.xml</string>
-	<key>SUEnableAutomaticChecks</key>
-	<false/>
+	<key>SUPublicEDKey</key>
+	<string>AxOZt5K9tZbKgGmAfMNlD4C9XDf19agkUunZ9JetlJw=</string>
+	<key>SUPromptUserOnFirstLaunch</key>
+	<true/>
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
 	<key>SURequireSignedFeed</key>

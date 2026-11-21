@@ -179,8 +179,14 @@ final class AppCoordinator {
     /// "Update Available" menu item, never a window (spec `2026-11-19-updates-and-open-source-hygiene`, Step 4.4).
     private(set) var updates: UpdateController?
 
+    /// What Settings → General → Updates shows; its controller is set by `attach`.
+    let updatesModel = UpdatesSettingsModel.forMainBundle()
+
     func attach(_ updates: UpdateController) {
         self.updates = updates
+        updatesModel.controller = updates
+        // The updater (and with it Sparkle's permission question) waits for the welcome screen (spec D6).
+        onboarding?.onClosed = { [weak updates] in updates?.welcomeFinished() }
         updates.onReminderChange = { [weak self] version in
             self?.statusItem?.setUpdateBadge(version != nil)
         }
@@ -200,7 +206,9 @@ final class AppCoordinator {
                 commandShortcut: { [weak self] id in self?.hotkeys.commandShortcut(id) },
                 showAbout: { [weak self] in self?.showAbout() },
                 pendingUpdate: { [weak self] in self?.updates?.pendingVersion },
-                showUpdate: { [weak self] in self?.updates?.checkForUpdates() }
+                showUpdate: { [weak self] in self?.updates?.checkForUpdates() },
+                canCheckForUpdates: { [weak self] in self?.updates?.canCheckForUpdates ?? false },
+                checkForUpdates: { [weak self] in self?.updates?.checkForUpdates() }
             )
         ) { host.activeCommands }
 
@@ -403,7 +411,10 @@ final class AppCoordinator {
         let shell: (SettingsShellPane) -> AnyView = { [environment, weak self] pane in
             switch pane {
             case .general:
-                return AnyView(GeneralPane(hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin))
+                return AnyView(
+                    GeneralPane(
+                        hotkeys: hotkeys, settings: settings, launchAtLogin: launchAtLogin,
+                        updates: self?.updatesModel))
             case .features:
                 return AnyView(FeaturesPane(host: host, settings: settings) { self?.pluginsChanged() })
             case .permissions:

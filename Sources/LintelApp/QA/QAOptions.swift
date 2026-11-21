@@ -122,6 +122,9 @@ struct QAOptions: Equatable {
     /// version, so the menu bar shows the dot and the "Update Available" item. The real update framework is never
     /// created and nothing is requested from the network (`QAUpdateChecker`).
     var updateAvailable: String?
+    /// `--qa-updates on|off`: `on` gives Settings → General the Updates group over the fake updater (running, no
+    /// update found); `off` shows the "not available in this copy" state (what every DEBUG build does by itself).
+    var updatesOn: Bool?
 
     /// The file plugin's DEBUG-only fake home and its roots, which QA mode always sets
     /// (`AppEnvironment.qaFileIndexSettings`).
@@ -274,6 +277,13 @@ struct QAOptions: Equatable {
                 options.showsMovePrompt = true
             case "--qa-update-available":
                 options.updateAvailable = try Self.pathValue(argument, iterator.next())
+            case "--qa-updates":
+                let value = try Self.pathValue(argument, iterator.next())
+                switch value {
+                case "on": options.updatesOn = true
+                case "off": options.updatesOn = false
+                default: throw .invalidValue(argument, value)
+                }
             case "--qa-move-scenario":
                 let value = try Self.pathValue(argument, iterator.next())
                 guard let scenario = QAMoveScenario(rawValue: value) else { throw .invalidValue(argument, value) }

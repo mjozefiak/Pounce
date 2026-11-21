@@ -28,6 +28,16 @@ final class SparkleUpdateChecker: NSObject, UpdateChecking, SPUUpdaterDelegate, 
         controller?.updater.checkForUpdates()
     }
 
+    var automaticallyChecksForUpdates: Bool {
+        get { controller?.updater.automaticallyChecksForUpdates ?? false }
+        set { controller?.updater.automaticallyChecksForUpdates = newValue }
+    }
+
+    var automaticallyDownloadsUpdates: Bool {
+        get { controller?.updater.automaticallyDownloadsUpdates ?? false }
+        set { controller?.updater.automaticallyDownloadsUpdates = newValue }
+    }
+
     var hasPostponedRelaunch: Bool { postponedInstall != nil }
 
     func resumePostponedRelaunch() {

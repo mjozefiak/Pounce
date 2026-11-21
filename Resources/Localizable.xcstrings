@@ -27108,6 +27108,186 @@
           }
         }
       }
+    },
+    "%@ (build %@)" : {
+      "comment" : "Settings → General → Updates: version and build number",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (build %@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (kompilacja %@)"
+          }
+        }
+      }
+    },
+    "Check for updates automatically" : {
+      "comment" : "Settings → General → Updates: switch; also its VoiceOver label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for updates automatically"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdzaj aktualizacje automatycznie"
+          }
+        }
+      }
+    },
+    "Download and install updates automatically" : {
+      "comment" : "Settings → General → Updates: switch; also its VoiceOver label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download and install updates automatically"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pobieraj i instaluj aktualizacje automatycznie"
+          }
+        }
+      }
+    },
+    "Include beta versions" : {
+      "comment" : "Settings → General → Updates: switch; also its VoiceOver label",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include beta versions"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uwzględniaj wersje beta"
+          }
+        }
+      }
+    },
+    "You are running a beta version." : {
+      "comment" : "Settings → General → Updates: note",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are running a beta version."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Używasz wersji beta."
+          }
+        }
+      }
+    },
+    "Check Now" : {
+      "comment" : "Settings → General → Updates: button that checks for an update",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Now"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź teraz"
+          }
+        }
+      }
+    },
+    "Check for updates now" : {
+      "comment" : "VoiceOver label of the Check Now button",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for updates now"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź aktualizacje teraz"
+          }
+        }
+      }
+    },
+    "Updates are not available in this copy of Lintel." : {
+      "comment" : "Settings → General → Updates: shown when the updater is off",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates are not available in this copy of Lintel."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualizacje nie są dostępne w tej kopii aplikacji Lintel."
+          }
+        }
+      }
+    },
+    "Updates" : {
+      "comment" : "Settings → General: section title of the update settings",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updates"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualizacje"
+          }
+        }
+      }
+    },
+    "Check for Updates…" : {
+      "comment" : "Menu bar menu item that asks the update framework to check for a new version",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check for Updates…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź aktualizacje…"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
