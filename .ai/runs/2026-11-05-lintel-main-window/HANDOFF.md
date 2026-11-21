@@ -21,5 +21,5 @@
 - Database/migration state: clean
 
 ## Worktree
-- Path: /Users/mjozefiak/DeveloperTools/Pounce/.ai/tmp/lintel-main-window
+- Path: <repo>/.ai/tmp/lintel-main-window
 - Created this run: yes (by the invoking session, per owner instruction)
