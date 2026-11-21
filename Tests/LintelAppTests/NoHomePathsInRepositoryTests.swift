@@ -6,7 +6,9 @@ private let repositoryRoot = URL(filePath: #filePath)
 
 /// The repository is public and its history is permanent, so no tracked text file may carry a path from
 /// someone's home folder (`/Users/<name>/...`). Write `<repo>/...` or `~/...` instead. A name that is a
-/// deliberate fictional example is listed in `allowedNames`, one reason each.
+/// deliberate fictional example is listed in `allowedNames`, one reason each. The match needs no trailing
+/// slash and ignores case (the Mac file system does). Known limits: a name with a space, `~name`,
+/// percent-encoded or JSON-escaped (`\/`) forms and other systems' paths are not recognised.
 @Suite struct NoHomePathsInRepositoryTests {
     /// Folders skipped when git is not available: build output, tooling and the vendored submodule.
     private static let skippedFolders: Set<String> = [
@@ -25,6 +27,9 @@ private let repositoryRoot = URL(filePath: #filePath)
         ("someone", "fictional second user in test fixtures"),
         ("…", "elided path in a test of path shortening"),
         ("zo\\u{0301}sia", "escaped, fictional non-ASCII folder name in a Unicode test"),
+        ("z\\u{00F3}sia", "escaped, fictional non-ASCII folder name in a Unicode test"),
+        ("qa", "fictional home folder of the QA update checker"),
+        ("demox", "fictional name that only shares a prefix with `demo`, in a prefix test"),
     ]
     /// Files that must name the pattern itself.
     private static let excludedPaths = ["Tests/LintelAppTests/NoHomePathsInRepositoryTests.swift"]
@@ -73,7 +78,8 @@ private let repositoryRoot = URL(filePath: #filePath)
 
     /// `file:line` of every home path whose name is not allowed; the name itself is never printed.
     private func offenders() throws -> (scanned: Int, hits: [String]) {
-        let pattern = try NSRegularExpression(pattern: "/Users/([^/\\s]+)/")
+        let pattern = try NSRegularExpression(
+            pattern: "/Users/([^/\\s\"'`]+)", options: [.caseInsensitive])
         let allowed = Set(Self.allowedNames.map(\.name))
         let files = textFiles()
         var hits: [String] = []
